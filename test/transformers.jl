@@ -61,4 +61,61 @@ using LinearAlgebra, Random
 
         @test loss_after isa Float64
     end
+
+    @testset "Training on a simple sequence" begin
+        input_text = repeat("AB", 1_000)
+        vocab = build_vocab(input_text)
+        data = encode(input_text, vocab)
+
+        # Model parameters
+        vocab_size = length(vocab)
+        embed_size = 16
+        seq_len = 8
+        num_heads = 2
+        num_layers = 1
+        ff_hidden_size = 4 * embed_size
+
+        model = Transformer(vocab_size, embed_size, seq_len, num_heads, num_layers, ff_hidden_size)
+
+        # Training parameters
+        learning_rate = 1e-2
+        num_steps = 100
+
+        # Calculate initial loss
+        loss_before = 0.0
+        for _ in 1:10
+            t = rand(1:(length(data) - seq_len))
+            x = data[t:(t + seq_len - 1)]
+            y = data[(t + 1):(t + seq_len)]
+            logits, _ = model(x)
+            loss_before += cross_entropy_loss(logits, y)
+        end
+        loss_before /= 10
+
+        # Training loop
+        for _ in 1:num_steps
+            t = rand(1:(length(data) - seq_len))
+            x = data[t:(t + seq_len - 1)]
+            y = data[(t + 1):(t + seq_len)]
+
+            zero_gradients!(model)
+            logits, cache = model(x)
+            dlogits = cross_entropy_loss_backward(logits, y)
+            backward!(model, dlogits, cache)
+            update!(model, learning_rate)
+        end
+        
+        # Calculate final loss
+        loss_after = 0.0
+        for _ in 1:10
+            t = rand(1:(length(data) - seq_len))
+            x = data[t:(t + seq_len - 1)]
+            y = data[(t + 1):(t + seq_len)]
+            logits, _ = model(x)
+            loss_after += cross_entropy_loss(logits, y)
+        end
+        loss_after /= 10
+        
+        @test loss_after < loss_before
+    end
 end
