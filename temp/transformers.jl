@@ -1,7 +1,7 @@
 using LinearAlgebra, Random, Statistics
 
 # --- Data Preparation ---
-input_text = repeat("AB", 1000)
+input_text = repeat("AB", 1_000)
 chars = sort(unique(collect(input_text)))
 vocab_size = length(chars)
 stoi = Dict(c => i for (i, c) in enumerate(chars))
@@ -16,7 +16,7 @@ num_heads = 4
 num_layers = 2
 ff_hidden_size = 4 * embed_size
 learning_rate = 1e-3
-max_iters = 1000
+max_iters = 10000
 
 # --- Helper Functions ---
 function softmax(x; dims=1)
