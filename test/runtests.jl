@@ -5,4 +5,8 @@ using Test
     @testset "Transformers" begin
         include("transformers.jl")
     end
+
+    @testset "Tokenizer" begin
+        include("tokenizer.jl")
+    end
 end
