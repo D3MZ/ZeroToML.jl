@@ -1,5 +1,3 @@
-using ZeroToML, Logging, Random
-
 # --- Data Preparation ---
 input_text = repeat("AB", 1_000)
 chars = sort(unique(collect(input_text)))

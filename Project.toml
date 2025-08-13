@@ -3,7 +3,17 @@ uuid = "92d4436d-aade-4fb1-9591-dec7c909cb55"
 authors = ["Demetrius Michael <arrrwalktheplank@gmail.com> and contributors"]
 version = "1.0.0-DEV"
 
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+
 [compat]
+LinearAlgebra = "1.11.0"
+Logging = "1.11.0"
+Random = "1.11.0"
+Statistics = "1.11.1"
 julia = "1.6.7"
 
 [extras]
