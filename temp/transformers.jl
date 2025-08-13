@@ -1,0 +1,1 @@
+input_text = repeat("AB", 1000)
