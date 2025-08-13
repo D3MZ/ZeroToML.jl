@@ -1,4 +1,4 @@
-using LinearAlgebra, Random, Statistics
+using LinearAlgebra, Random, Statistics, Logging
 
 # --- Data Preparation ---
 input_text = repeat("AB", 1_000)
@@ -323,13 +323,7 @@ function backward(sdpa::ScaledDotProductAttention, d_out, cache)
     d_V = d_out * p_attn'
     d_p_attn = V' * d_out
     
-    d_scores = similar(p_attn)
-    for i in axes(p_attn, 2)
-        p = p_attn[:, i]
-        dp = d_p_attn[:, i]
-        J = diagm(p) - p * p'
-        d_scores[:, i] = J * dp
-    end
+    d_scores = p_attn .* d_p_attn - p_attn .* sum(p_attn .* d_p_attn, dims=1)
 
     d_scores ./= sqrt(d_k)
     
@@ -500,22 +494,25 @@ function generate_text(model::Transformer, start_string::String, max_new_tokens:
 end
 
 # --- Main Execution ---
-println("Initializing Transformer Model...")
+@info "Initializing Transformer Model..."
 model = Transformer(vocab_size, embed_size, seq_len, num_heads, num_layers, ff_hidden_size)
 
-println("\nModel Architecture:")
-println("  Vocab Size: $vocab_size")
-println("  Embedding Size: $embed_size")
-println("  Sequence Length: $seq_len")
-println("  Num Heads: $num_heads")
-println("  Num Layers: $num_layers")
-println("  FF Hidden Size: $ff_hidden_size")
-println("  Learning Rate: $learning_rate")
-println("  Max Iters: $max_iters\n")
+@info """
+
+Model Architecture:
+  Vocab Size: $vocab_size
+  Embedding Size: $embed_size
+  Sequence Length: $seq_len
+  Num Heads: $num_heads
+  Num Layers: $num_layers
+  FF Hidden Size: $ff_hidden_size
+  Learning Rate: $learning_rate
+  Max Iters: $max_iters
+"""
 
 data = collect(input_text)
 
-println("Starting training loop...")
+@info "Starting training loop..."
 for iter in 1:max_iters
     zero_gradients!(model)
     
@@ -530,10 +527,10 @@ for iter in 1:max_iters
     update!(model, learning_rate)
     
     if iter % 100 == 0 || iter == 1
-        println("iter $iter, loss: $loss")
+        @info "iter $iter, loss: $loss"
     end
 end
-println("Training loop finished.\n")
+@info "Training loop finished."
 
-println("Generating text after training...")
+@info "Generating text after training..."
 generate_text(model, "A", 50)
