@@ -15,6 +15,8 @@ seq_len = 8
 num_heads = 4
 num_layers = 2
 ff_hidden_size = 4 * embed_size
+learning_rate = 1e-3
+max_iters = 1000
 
 # --- Helper Functions ---
 function softmax(x; dims=1)
@@ -133,6 +135,16 @@ function (ff::FeedForward)(x)
     return ff.W2 * hidden .+ ff.b2
 end
 
+function cross_entropy_loss(logits, targets)
+    # logits: (vocab_size, seq_len)
+    # targets: (seq_len,)
+    _, seq_len = size(logits)
+    probs = softmax(logits, dims=1)
+    indices = CartesianIndex.(targets, 1:seq_len)
+    p = probs[indices]
+    loss = -mean(log.(p .+ 1e-9))
+    return loss
+end
 
 struct TransformerBlock
     mha::MultiHeadAttention
@@ -206,7 +218,27 @@ function (model::Transformer)(x_indices)
     return logits
 end
 
-# --- Example Usage ---
+# --- Training & Generation ---
+
+function get_batch(data, seq_len)
+    i = rand(1:(length(data) - seq_len))
+    x = encode(data[i:i+seq_len-1])
+    y = encode(data[i+1:i+seq_len])
+    return x, y
+end
+
+function sample_multinomial(probs)
+    r = rand()
+    c = 0.0
+    for (i, p) in enumerate(probs)
+        c += p
+        if r < c
+            return i
+        end
+    end
+    return length(probs) # fallback
+end
+
 function generate_text(model::Transformer, start_string::String, max_new_tokens::Int)
     tokens = encode(start_string)
     
@@ -219,7 +251,7 @@ function generate_text(model::Transformer, start_string::String, max_new_tokens:
         last_logits = logits[:, end]
         probs = softmax(last_logits)
         
-        next_token = findmax(probs)[2]
+        next_token = sample_multinomial(probs)
         
         push!(tokens, next_token)
         print(itos[next_token])
@@ -237,16 +269,36 @@ println("  Embedding Size: $embed_size")
 println("  Sequence Length: $seq_len")
 println("  Num Heads: $num_heads")
 println("  Num Layers: $num_layers")
-println("  FF Hidden Size: $ff_hidden_size\n")
+println("  FF Hidden Size: $ff_hidden_size")
+println("  Learning Rate: $learning_rate")
+println("  Max Iters: $max_iters\n")
 
 data = collect(input_text)
-start_index = rand(1:(length(data) - seq_len))
-x_tokens = encode(data[start_index:start_index+seq_len-1])
 
-println("Running one forward pass...")
-logits = model(x_tokens)
-println("Input tokens: ", x_tokens)
+println("Starting training loop (without weight updates)...")
+for iter in 1:max_iters
+    x, y = get_batch(data, seq_len)
+    logits = model(x)
+    loss = cross_entropy_loss(logits, y)
+
+    # In a real training loop, we would now perform backpropagation
+    # to calculate gradients and then use an optimizer to update model weights.
+    
+    if iter % 100 == 0
+        println("iter $iter, loss: $loss")
+    end
+end
+println("Training loop finished.\n")
+
+
+println("Running one forward pass with random weights...")
+x, y = get_batch(data, seq_len)
+logits = model(x)
+loss = cross_entropy_loss(logits, y)
+println("Input tokens: ", x)
+println("Target tokens: ", y)
 println("Output logits shape: ", size(logits))
+println("Initial random loss: ", loss)
 println()
 
 generate_text(model, "A", 50)
