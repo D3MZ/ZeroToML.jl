@@ -2,5 +2,7 @@ using ZeroToML
 using Test
 
 @testset "ZeroToML.jl" begin
-    # Write your tests here.
+    @testset "Transformers" begin
+        include("transformers.jl")
+    end
 end
