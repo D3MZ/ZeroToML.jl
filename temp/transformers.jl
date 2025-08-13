@@ -171,23 +171,21 @@ end
 function cross_entropy_loss(logits, targets)
     # logits: (vocab_size, seq_len)
     # targets: (seq_len,)
-    _, seq_len = size(logits)
     probs = softmax(logits, dims=1)
-    indices = CartesianIndex.(targets, 1:seq_len)
+    indices = CartesianIndex.(targets, eachindex(targets))
     p = probs[indices]
     loss = -mean(log.(p .+ 1e-9))
     return loss
 end
 
 function cross_entropy_loss_backward(logits, targets)
-    _, seq_len = size(logits)
     probs = softmax(logits, dims=1)
     
     dlogits = copy(probs)
-    indices = CartesianIndex.(targets, 1:seq_len)
+    indices = CartesianIndex.(targets, eachindex(targets))
     dlogits[indices] .-= 1.0
     
-    dlogits ./= seq_len
+    dlogits ./= length(targets)
     
     return dlogits
 end
@@ -261,7 +259,7 @@ function (model::Transformer)(x_indices)
     current_seq_len = length(x_indices)
     
     x_emb = model.token_embedding[:, x_indices]
-    x = x_emb .+ model.pos_encoding[:, 1:current_seq_len]
+    x = x_emb .+ model.pos_encoding[:, eachindex(x_indices)]
     
     mask = triu(fill(-Inf, current_seq_len, current_seq_len), 1)
 
@@ -326,7 +324,7 @@ function backward(sdpa::ScaledDotProductAttention, d_out, cache)
     d_p_attn = V' * d_out
     
     d_scores = similar(p_attn)
-    for i in 1:size(p_attn, 2)
+    for i in axes(p_attn, 2)
         p = p_attn[:, i]
         dp = d_p_attn[:, i]
         J = diagm(p) - p * p'
@@ -406,7 +404,7 @@ function backward!(model::Transformer, dlogits, cache)
     d_x = d_block_output
     d_x_emb = d_x 
     
-    for t in 1:current_seq_len
+    for t in eachindex(x_indices)
         token_idx = x_indices[t]
         model.∇token_embedding[:, token_idx] .+= d_x_emb[:, t]
     end
