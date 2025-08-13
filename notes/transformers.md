@@ -1,12 +1,13 @@
 ## Table of Contents
 
- - [Input Embedding & Positional Encoding](#input-embedding--positional-encoding)
- - [Linear projections](#a-linear-projections)
- - [Scaled dot-product attention](#b-scaled-dot-product-attention)
- - [Concatenate heads & project](#c-concatenate-heads--project)
- - [Add & LayerNorm](#add--layernorm)
- - [Position-wise Feed-Forward Network](#position-wise-feed-forward-network)
-
+- [Input Embedding & Positional Encoding](#input-embedding--positional-encoding)
+- [Multi-Head Self-Attention](#multi-head-self-attention)
+  - [Linear projections](#linear-projections)
+  - [Scaled dot-product attention](#scaled-dot-product-attention)
+  - [Concatenate heads & project](#concatenate-heads--project)
+- [Add & LayerNorm](#add--layernorm)
+- [Position-wise Feed-Forward Network](#position-wise-feed-forward-network)
+- [Another Add & LayerNorm](#another-add--layernorm)
 
 ## Input Embedding & Positional Encoding
 
@@ -29,7 +30,7 @@ $$
 
 ## Multi-Head Self-Attention
 
-### a) Linear projections
+### Linear projections
 
 For each head $h$:
 
@@ -39,10 +40,10 @@ $$
 
 where $W_h^Q, W_h^K, W_h^V \in \mathbb{R}^{d_{\mathrm{model}} \times d_k}$.
 
-Operation types: matrix multiplication, addition.
+Operations: matrix multiplication.
 
 
-### b) Scaled dot-product attention
+### Scaled dot-product attention
 
 Score matrix:
 
@@ -50,7 +51,7 @@ $$
 S_h = \frac{Q_h K_h^\top}{\sqrt{d_k}}
 $$
 
-(Uses matrix multiply + scalar multiply)
+Operations: matrix multiplication, scalar division.
 
 Masking (optional):
 
@@ -58,7 +59,7 @@ $$
 S_h \leftarrow S_h + \log M
 $$
 
-(Addition)
+Operation: addition.
 
 Softmax normalization:
 
@@ -66,7 +67,7 @@ $$
 A_h = \mathrm{softmax}(S_h)
 $$
 
-(Elementwise exponentiation, sum, division)
+Operations: element-wise exponentiation, summation, division.
 
 Weighted sum of values:
 
@@ -74,14 +75,16 @@ $$
 O_h = A_h V_h
 $$
 
-(Matrix multiply)
+Operation: matrix multiplication.
 
 
-### c) Concatenate heads & project
+### Concatenate heads & project
 
 $$
 O = \mathrm{Concat}(O_1, \dots, O_H) W^O
 $$
+
+Operations: concatenation, matrix multiplication.
 
 
 ## Add & LayerNorm
@@ -90,7 +93,7 @@ $$
 Z' = \mathrm{LayerNorm}(Z + O)
 $$
 
-Elementwise add, subtract mean, divide by standard deviation, scale & shift.
+Operations: element-wise addition, subtraction of mean, division by standard deviation, scaling, and shifting.
 
 
 ## Position-wise Feed-Forward Network
@@ -101,7 +104,7 @@ $$
 \mathrm{FFN}(x) = \max(0,\, x W_1 + b_1) W_2 + b_2
 $$
 
-(Matrix multiplies, bias adds, activation)
+Operations: matrix multiplications, bias additions, and an activation function.
 
 
 ## Another Add & LayerNorm
@@ -109,3 +112,5 @@ $$
 $$
 Z_{\mathrm{out}} = \mathrm{LayerNorm}(Z' + \mathrm{FFN}(Z'))
 $$
+
+Operations: element-wise addition, subtraction of mean, division by standard deviation, scaling, and shifting.
