@@ -1,7 +1,3 @@
-# Character-Level Tokenizer
-
-This document outlines the process of converting text into a numerical format suitable for machine learning models and back. The process consists of three main steps: building a vocabulary, encoding text into integers, and decoding integers back into text.
-
 ## 1. Vocabulary Building
 
 The first step is to create a vocabulary from a given corpus of text. The vocabulary is the set of all unique characters present in the text.

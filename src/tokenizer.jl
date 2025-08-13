@@ -1,6 +1,4 @@
-function build_vocab(text)
-    sort(unique(collect(text)))
-end
+build_vocab(text) = sort(unique(collect(text)))
 
 function encode(text, vocab)
     char_to_int = Dict(c => i for (i, c) in enumerate(vocab))

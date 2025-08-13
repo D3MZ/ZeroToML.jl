@@ -7,24 +7,19 @@
  - [Add & LayerNorm](#add--layernorm)
  - [Position-wise Feed-Forward Network](#position-wise-feed-forward-network)
 
-
 ## Input Embedding & Positional Encoding
 
-Given:
+The tokenizer's encode function converts text into a sequence of integers. These integers act as indices to look up corresponding vectors from an embedding matrix.
+
+Given
 - Tokens $t_1, t_2, \dots, t_n$
 - Embedding matrix $E \in \mathbb{R}^{V \times d_{\mathrm{model}}}$
 
-Embedding lookup:
+Then 
 
-$$
-X \in \mathbb{R}^{n \times d_{\mathrm{model}}}, \quad X_i = E_{t_i}
-$$
+Embedding lookup: $X \in \mathbb{R}^{n \times d_{\mathrm{model}}}, \quad X_i = E_{t_i}$
 
-Addition (positional encoding $P$):
-
-$$
-Z^{(0)} = X + P
-$$
+Addition (positional encoding $P$): $Z^{(0)} = X + P$
 
 
 ## Multi-Head Self-Attention
