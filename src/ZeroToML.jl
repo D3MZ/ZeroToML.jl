@@ -3,7 +3,6 @@ module ZeroToML
 using LinearAlgebra, Random, Statistics, Logging
 
 include("transformers.jl")
-include("tokenizer.jl")
 
 export LayerNorm, ScaledDotProductAttention, MultiHeadAttention, FeedForward, TransformerBlock, Transformer,
        softmax, positional_encoding, cross_entropy_loss, cross_entropy_loss_backward,
