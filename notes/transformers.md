@@ -81,44 +81,76 @@ The token embeddings and positional encodings are combined via element-wise addi
 1. The linearity between $X$ and $Z$, and $P$ and $Z$ preserves separate contributions of $X$ and $P$ in the dot products from the "Attention" operation. 
 2. Since the addition is element-wise, the combined input $Z^{(0)}$ retains the same shape as both the token embeddings and positional encodings, preserving the sequence length $n$ and model dimension $d_{\mathrm{model}}$.
 
-## 4. Linear Projections for Single Head Attention
+## 4. Scaled Dot-Product Attention
 
-The combined token embeddings and positional encodings $Z^{(0)} = X + P$ are projected into three different vector spaces: queries $Q$, keys $K$, and values $V$.
+The combined token embeddings and positional encodings $Z^{(0)} = X + P$ are projected into three different learnable vector spaces: queries $Q$, keys $K$, and values $V$. Despite the naming, there are no prior relationships between $Q,K,V$, nor is there an interoperable relationship between them after training.
 
-Given
-- $X \in \mathbb{R}^{n \times d_{\mathrm{model}}}$ — token embeddings
-- $P \in \mathbb{R}^{n \times d_{\mathrm{model}}}$ — positional encodings
-- $Z^{(0)} = X + P$ — combined input
-
-Let
-- $d_{\mathrm{model}}$ the model dimension
-- $d_k$ the attention head dimension
-- $n$ be the sequence length
-- $i$ — query position index (row in $Q$)
-- $j$ — key position index (column in $K$)
-
-
-For one head with projection matrices $W^Q, W^K, W^V \in \mathbb{R}^{d_{\mathrm{model}} \times d_k}$:
 $$
 \begin{aligned}
 Q &= Z^{(0)} W^Q \\
   &= X W^Q + P W^Q \\
 K &= Z^{(0)} W^K \\
-  &= X W^K + P W^K
+  &= X W^K + P W^K \\
+V &= Z^{(0)} W^V \\
+  &= X W^V + P W^V
+\end{aligned}
+$$ 
+
+Given $n$ being the sequence length, and $d_k$ as the feature length for the model.
+
+Attention scores $S_{ij} \in \mathbb{R}^{n \times n}$ are then computed from either
+1. Additive attention ([Bahdanau et al., 2015](https://arxiv.org/abs/1409.0473)) with a hidden layer: for each query–key pair $(q_i, k_j)$,  
+   $$
+   S_{ij} = v_a^\top \tanh(W_q q_i + W_k k_j)
+   $$  
+   where $q_i$ is the $i$‑th row of $Q$, $k_j$ is the $j$‑th row of $K$, $W_q$ and $W_k$ project queries and keys into a shared attention space $\mathbb{R}^{d_a}$, and $v_a$ projects the hidden layer to a scalar score.
+
+
+   **Note:** $v_a$ in additive attention is unrelated to the uppercase $V$ (values) used later in the attention mechanism.
+
+   | Symbol | Role | Shape | Appears in |
+   |--------|------|-------|------------|
+   | $v_a$  | Projection vector in additive scoring | $(d_a)$ | $S_{ij}$ computation |
+   | $V$    | Value matrix (content to aggregate)   | $(n \times d_v)$ | Output computation $O = A V$ |
+
+2. The dot product of $Q \in \mathbb{R}^{n \times d_k}$ and $K \in \mathbb{R}^{n \times d_k}$. Creating the pairwise similarity scores between each $Q_{i}$ and $K_{j}$ vector. 
+
+$$
+\begin{aligned}
+S_{ij}
+&= Q_{i}K_{j}^\top \\
+&= (x_i W^Q + p_i W^Q)\,(x_j W^K + p_j W^K)^\top \\
+&= x_i W^Q (W^K)^\top x_j^\top
++ x_i W^Q (W^K)^\top p_j^\top
++ p_i W^Q (W^K)^\top x_j^\top
++ p_i W^Q (W^K)^\top p_j^\top
 \end{aligned}
 $$
 
-Attention scores between positions $i,j$:
-```math
-S_{ij} = \frac{1}{\sqrt{d_k}} \left[ (x_i W^Q + p_i W^Q)(x_j W^K + p_j W^K)^\top \right]
-```
-This expands to four terms:
-1. content–content: $x_i W^Q (x_j W^K)^\top$
-2. content–position: $x_i W^Q (p_j W^K)^\top$
-3. position–content: $p_i W^Q (x_j W^K)^\top$
-4. position–position: $p_i W^Q (p_j W^K)^\top$
+The dot product method is faster because it also creates four interporable relationships:
+  1. $Q$ content with $K$ content: $x_i W^Q (x_j W^K)^\top$   
+  2. $Q$ content with $K$ position: $x_i W^Q (p_j W^K)^\top$   
+  3. $Q$ position $K$ content: $p_i W^Q (x_j W^K)^\top$
+  4. $Q$ position $K$ position: $p_i W^Q (p_j W^K)^\top$
 
-The cross-terms inject **order information** directly into the dot-product attention scores, allowing the model to attend not just by content similarity but also by relative or absolute positions.
+To prevent softmax saturation the are also scores are scaled $\frac{1}{\sqrt{d_k}}$, then multiplied with $V$.
+
+$$
+\mathrm{Attention}(Q, K, V) = \mathrm{softmax}\!\left( \frac{Q K^\top}{\sqrt{d_k}} \right) V
+$$
+
+## 4.b Linear Projections for MultiHead Attention
+
+Each head $h$ computes its own queries, keys, and values by linear projection of the same input $Z$.
+$$
+Q_h = Z W_h^Q, \quad K_h = Z W_h^K, \quad V_h = Z W_h^V
+$$  
+
+
+- Dimensions:  
+  - $Q_h, K_h, V_h \in \mathbb{R}^{n \times d_k}$  
+
+Multiple heads allow the model to learn attention patterns in different representation subspaces, capturing diverse relationships ([Vaswani et al., 2017](https://arxiv.org/abs/1706.03762)).
 
 
 For each attention head $h = 1, \dots, H$, compute queries, keys, and values by linear projection of $Z$.
