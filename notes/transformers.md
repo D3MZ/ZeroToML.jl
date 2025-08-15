@@ -125,7 +125,6 @@ $$
 Q_h = Z W_h^Q, \quad K_h = Z W_h^K, \quad V_h = Z W_h^V
 $$  
 
-It's an ensemble techique where the average score of parallel heads converging to an optimal solution faster than a single head.
 The outputs are concatenated and projected back to model dimension.
 
 ## 7. Add & LayerNorm (Post-Attention)
@@ -148,7 +147,7 @@ Apply two affine transformations with an activation function in between, indepen
   - $W_2 \in \mathbb{R}^{d_{\mathrm{ff}} \times d_{\mathrm{model}}}$, $b_2 \in \mathbb{R}^{d_{\mathrm{model}}}$  
 - Feed-forward operation at each position $i$:  
 $$
-\mathrm{FFN}(Z'_i) = \max(0, Z'__i W_1 + b_1) W_2 + b_2
+\mathrm{FFN}(Z'_i) = \max(0, Z'_i W_1 + b_1) W_2 + b_2
 $$  
 - Output:  
 $$
