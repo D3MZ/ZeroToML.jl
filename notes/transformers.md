@@ -2,11 +2,12 @@
 
 1. [Tokenization](#1-tokenization) — Converts input text into a sequence of integer token IDs.  
 2. [Input Embedding](#2-input-embedding) — Maps tokens to dense vectors.  
-3. [Positional Encoding](#3-positional-encoding) — Adds position information to embeddings.  
-4. [Linear Projections for Multi-Head Attention](#4-linear-projections-for-multi-head-attention) — Projects embeddings into query, key, and value matrices for each head.  
-5. [Scaled Dot-Product Attention](#5-scaled-dot-product-attention) — Computes attention weights and weighted sums of values.  
-6. [Concatenate Heads & Project](#6-concatenate-heads--project) — Merges outputs from all attention heads and projects back to model dimension.  
-7. [Add & LayerNorm (Post-Attention)](#7-add--layernorm-post-attention) — Adds residual connection and normalizes post-attention output.  
+3. [Encoder Stack](#3-encoder-stack)
+   - [Positional Encoding](#positional-encoding)
+   - [Linear Projections for Multi-Head Attention](#linear-projections-for-multi-head-attention)
+   - [Scaled Dot-Product Attention](#scaled-dot-product-attention)
+   - [Concatenate Heads & Project](#concatenate-heads--project)
+   - [Add & LayerNorm (Post-Attention)](#add--layernorm-post-attention)  
 8. [Position-wise Feed-Forward Network](#8-position-wise-feed-forward-network) — Applies a two-layer feed-forward network to each position independently.  
 9. [Add & LayerNorm (Post-FFN)](#9-add--layernorm-post-ffn) — Adds residual connection and normalizes post-FFN output.  
 10. [Final Projection & Softmax](#10-final-projection--softmax) — Maps hidden states to vocabulary logits and converts to probabilities.  
@@ -58,7 +59,11 @@ Each token is then mapped to a dense vector forming a trainable embedding matrix
 
 The embedding matrix $E$ is learned during training to represent token semantics, allowing the model to capture meaningful relationships between tokens.
 
-## 3. Positional Encoding
+## 3. Encoder Stack
+
+The encoder is composed of a stack of N identical layers, where the outputs of the previous encoder layer are used as inputs in the current encoder layer. [Attention Is All You Need's](https://arxiv.org/abs/1706.03762) transformer had a 6 encoding layer stack.
+
+### Positional Encoding
 
 The embeddings are combined with positional encodings ($P \in \mathbb{R}^{n \times d_{\mathrm{model}}}$). 
 
@@ -72,7 +77,7 @@ The token embeddings and positional encodings are combined via element-wise addi
 1. The linearity between $X$ and $Z$, and $P$ and $Z$ preserves separate contributions of $X$ and $P$ in the dot products from the "Attention" operation. 
 2. The combined input $Z^{(0)}$ retains the same shape as both the token embeddings and positional encodings, preserving the sequence length $n$ and model dimension $d_{\mathrm{model}}$.
 
-## 4. Attention
+### Linear Projections
 
 The combined token embeddings and positional encodings $Z^{(0)} = X + P$ are factorized into three different learnable vector spaces: $Q$, $K$, and $V$.
 
@@ -86,6 +91,8 @@ V &= Z^{(0)} W^V = X W^V + P W^V
 $$
 
 Given $n$ being the sequence length, and $d_k$ as the feature length for the model.
+
+### Scaled Dot-Product Attention
 
 Attention scores $S_{ij} \in \mathbb{R}^{n \times n}$ are then computed with the dot product of $Q,K$ ([Vaswani et al., 2017](https://arxiv.org/abs/1706.03762))
 
@@ -107,22 +114,21 @@ This separates the position from the content from random initialzations of $Q$ a
   3. $Q$ position $K$ content: $p_i W^Q (x_j W^K)^\top$
   4. $Q$ position $K$ position: $p_i W^Q (p_j W^K)^\top$
 
-To prevent softmax saturation the are also scores are scaled $\frac{1}{\sqrt{d_k}}$, then multiplied with $V$.
+To prevent softmax saturation the are also scores are scaled $\frac{1}{\sqrt{d_k}}$, then multiplied with $V$. 
 
 $$
 \mathrm{Attention}(Q, K, V) = \mathrm{softmax}\!\left( \frac{Q K^\top}{\sqrt{d_k}} \right) V
 $$
 
-### MultiHead Attention
+Thus given Q and K, you get a weighted sum of V. Which is why the original paper named Q, K, V as Query, Key, and Value respectively. 
 
-Each head $h$ computes its own queries, keys, and values by linear projection of the same input $Z$.
-$$
-Q_h = Z W_h^Q, \quad K_h = Z W_h^K, \quad V_h = Z W_h^V
-$$  
+This creates two drawbacks:
+1. All tokens, frequent or rare, share the same computational budget.
+2. Attention is soft search: it retrieves values based on learned associations only.
 
-The outputs are concatenated and projected back to model dimension.
+### Concatenate Heads & Project
 
-## 7. Add & LayerNorm (Post-Attention)
+### Add & LayerNorm (Post-Attention)
 
 Add residual connection and apply layer normalization.
 
