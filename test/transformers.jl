@@ -138,10 +138,11 @@ const generate = ZeroToML.generate
 
         # Training parameters
         learning_rate = 1e-2
-        num_steps = 100
+        num_steps = 10000
 
         # Training loop
-        for _ in 1:num_steps
+        best_loss = Inf
+        for step in 1:num_steps
             t = rand(1:(length(data) - seq_len))
             x = data[t:(t + seq_len - 1)]
             y = data[(t + 1):(t + seq_len)]
@@ -151,6 +152,14 @@ const generate = ZeroToML.generate
             dlogits = cross_entropy_loss_backward(logits, y)
             backward!(model, dlogits, cache)
             update!(model, learning_rate)
+
+            if step % 100 == 0
+                loss = cross_entropy_loss(logits, y)
+                if loss < best_loss
+                    best_loss = loss
+                    @info "Step $step, best loss = $best_loss"
+                end
+            end
         end
 
         # Generation
