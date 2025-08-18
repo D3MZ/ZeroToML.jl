@@ -73,12 +73,13 @@ const generate = ZeroToML.generate
         # Model parameters
         vocab_size = length(vocab)
         embed_size = 16
-        seq_len = 8
+        block_size = 8
         num_heads = 2
         num_layers = 2
         ff_hidden_size = 4 * embed_size
 
-        model = Transformer(vocab_size, embed_size, seq_len, num_heads, num_layers, ff_hidden_size)
+        max_pos = length(data)
+        model = Transformer(vocab_size, embed_size, max_pos, num_heads, num_layers, ff_hidden_size)
 
         # Training parameters
         learning_rate = 1e-2
@@ -88,22 +89,22 @@ const generate = ZeroToML.generate
         # Calculate initial loss
         loss_before = 0.0
         for _ in 1:10
-            t = rand(1:(length(data) - seq_len))
-            x = data[t:(t + seq_len - 1)]
-            y = data[(t + 1):(t + seq_len)]
-            logits, _ = model(x)
+            t = rand(1:(length(data) - block_size))
+            x = data[t:(t + block_size - 1)]
+            y = data[(t + 1):(t + block_size)]
+            logits, _ = model(x; start_pos=t)
             loss_before += cross_entropy_loss(logits, y)
         end
         loss_before /= 10
 
         # Training loop
         for _ in 1:num_steps
-            t = rand(1:(length(data) - seq_len))
-            x = data[t:(t + seq_len - 1)]
-            y = data[(t + 1):(t + seq_len)]
+            t = rand(1:(length(data) - block_size))
+            x = data[t:(t + block_size - 1)]
+            y = data[(t + 1):(t + block_size)]
 
             zero_gradients!(model)
-            logits, cache = model(x)
+            logits, cache = model(x; start_pos=t)
             dlogits = cross_entropy_loss_backward(logits, y)
             backward!(model, dlogits, cache)
             update!(model, optimizer)
@@ -112,10 +113,10 @@ const generate = ZeroToML.generate
         # Calculate final loss
         loss_after = 0.0
         for _ in 1:10
-            t = rand(1:(length(data) - seq_len))
-            x = data[t:(t + seq_len - 1)]
-            y = data[(t + 1):(t + seq_len)]
-            logits, _ = model(x)
+            t = rand(1:(length(data) - block_size))
+            x = data[t:(t + block_size - 1)]
+            y = data[(t + 1):(t + block_size)]
+            logits, _ = model(x; start_pos=t)
             loss_after += cross_entropy_loss(logits, y)
         end
         loss_after /= 10
@@ -131,12 +132,13 @@ const generate = ZeroToML.generate
         # Model parameters
         vocab_size = length(vocab)
         embed_size = 16
-        seq_len = 8
+        block_size = 8
         num_heads = 2
         num_layers = 2
         ff_hidden_size = 4 * embed_size
 
-        model = Transformer(vocab_size, embed_size, seq_len, num_heads, num_layers, ff_hidden_size)
+        max_pos = length(data)
+        model = Transformer(vocab_size, embed_size, max_pos, num_heads, num_layers, ff_hidden_size)
 
         # Training parameters
         learning_rate = 3e-3
@@ -146,12 +148,12 @@ const generate = ZeroToML.generate
         # Training loop
         best_loss = Inf
         for step in 1:num_steps
-            t = rand(1:(length(data) - seq_len))
-            x = data[t:(t + seq_len - 1)]
-            y = data[(t + 1):(t + seq_len)]
+            t = rand(1:(length(data) - block_size))
+            x = data[t:(t + block_size - 1)]
+            y = data[(t + 1):(t + block_size)]
 
             zero_gradients!(model)
-            logits, cache = model(x)
+            logits, cache = model(x; start_pos=t)
             dlogits = cross_entropy_loss_backward(logits, y)
             backward!(model, dlogits, cache)
             update!(model, optimizer)
@@ -166,9 +168,9 @@ const generate = ZeroToML.generate
         end
 
         # Generation
-        # start_index = rand(1:(length(data) - seq_len))
+        # start_index = rand(1:(length(data) - block_size))
         start_index = 1
-        context_indices = data[start_index:(start_index + seq_len - 1)]
+        context_indices = data[start_index:(start_index + block_size - 1)]
         context_str = decode(context_indices, vocab)
         
         num_generate = 50
@@ -177,7 +179,7 @@ const generate = ZeroToML.generate
 
         @info "Full training test generation" context=context_str generated=generated_text
         
-        expected_indices = data[start_index:(start_index + seq_len - 1 + num_generate)]
+        expected_indices = data[start_index:(start_index + block_size - 1 + num_generate)]
         @test generated_indices == expected_indices
     end
 end
