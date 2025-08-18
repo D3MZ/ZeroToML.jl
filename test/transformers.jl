@@ -2,6 +2,8 @@ using ZeroToML
 using Test
 using LinearAlgebra, Random
 
+const generate = ZeroToML.generate
+
 @testset "Transformer Components" begin
     embed_size = 32
     seq_len = 8
