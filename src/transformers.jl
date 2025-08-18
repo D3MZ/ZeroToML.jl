@@ -395,8 +395,8 @@ function backward(sdpa::ScaledDotProductAttention, d_out, cache)
 
     d_scores ./= sqrt(d_k)
     
-    d_Q = K * d_scores'
-    d_K = Q * d_scores
+    d_Q = K * d_scores
+    d_K = Q * d_scores'
     
     return d_Q, d_K, d_V
 end
