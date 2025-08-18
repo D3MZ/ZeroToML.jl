@@ -118,6 +118,50 @@ using LinearAlgebra, Random
         
         @test loss_after < loss_before
     end
+
+    @testset "Full training and generation" begin
+        input_text = "The quick brown fox jumps over the lazy dog. " ^ 100
+        vocab = build_vocab(input_text)
+        data = encode(input_text, vocab)
+
+        # Model parameters
+        vocab_size = length(vocab)
+        embed_size = 16
+        seq_len = 8
+        num_heads = 2
+        num_layers = 1
+        ff_hidden_size = 4 * embed_size
+
+        model = Transformer(vocab_size, embed_size, seq_len, num_heads, num_layers, ff_hidden_size)
+
+        # Training parameters
+        learning_rate = 1e-2
+        num_steps = 100
+
+        # Training loop
+        for _ in 1:num_steps
+            t = rand(1:(length(data) - seq_len))
+            x = data[t:(t + seq_len - 1)]
+            y = data[(t + 1):(t + seq_len)]
+
+            zero_gradients!(model)
+            logits, cache = model(x)
+            dlogits = cross_entropy_loss_backward(logits, y)
+            backward!(model, dlogits, cache)
+            update!(model, learning_rate)
+        end
+
+        # Generation
+        start_index = rand(1:(length(data) - seq_len))
+        context_indices = data[start_index:(start_index + seq_len - 1)]
+        context_str = decode(context_indices, vocab)
+        
+        generated_indices = generate(model, context_indices, 50)
+        generated_text = decode(generated_indices, vocab)
+
+        @info "Full training test generation" context=context_str generated=generated_text
+        @test length(generated_indices) == length(context_indices) + 50
+    end
 end
 
 @testset "Tokenizer Functions" begin

@@ -270,6 +270,31 @@ function (model::Transformer)(x_indices)
     return logits, cache
 end
 
+function generate(model::Transformer, idx, max_new_tokens)
+    seq_len = size(model.pos_encoding, 2)
+    for _ in 1:max_new_tokens
+        idx_cond = if length(idx) > seq_len
+            idx[(end - seq_len + 1):end]
+        else
+            idx
+        end
+
+        logits, _ = model(idx_cond)
+        logits = logits[:, end]
+        probs = softmax(logits)
+
+        u = rand()
+        cdf = cumsum(vec(probs))
+        idx_next = findfirst(>=(u), cdf)
+        if isnothing(idx_next)
+            idx_next = length(probs)
+        end
+        
+        idx = vcat(idx, idx_next)
+    end
+    return idx
+end
+
 # --- Backpropagation ---
 
 function backward!(ff::FeedForward, d_out, cache)
