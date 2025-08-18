@@ -75,7 +75,7 @@ const generate = ZeroToML.generate
         embed_size = 16
         seq_len = 8
         num_heads = 2
-        num_layers = 1
+        num_layers = 2
         ff_hidden_size = 4 * embed_size
 
         model = Transformer(vocab_size, embed_size, seq_len, num_heads, num_layers, ff_hidden_size)
@@ -139,8 +139,8 @@ const generate = ZeroToML.generate
         model = Transformer(vocab_size, embed_size, seq_len, num_heads, num_layers, ff_hidden_size)
 
         # Training parameters
-        learning_rate = 1e-2
-        num_steps = 100_000
+        learning_rate = 3e-3
+        num_steps = 150_000
         optimizer = Adam(lr=learning_rate)
 
         # Training loop
