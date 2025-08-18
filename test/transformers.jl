@@ -133,7 +133,7 @@ const generate = ZeroToML.generate
         embed_size = 16
         seq_len = 8
         num_heads = 2
-        num_layers = 1
+        num_layers = 2
         ff_hidden_size = 4 * embed_size
 
         model = Transformer(vocab_size, embed_size, seq_len, num_heads, num_layers, ff_hidden_size)
