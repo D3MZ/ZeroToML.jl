@@ -299,7 +299,7 @@ function (model::Transformer)(x_indices; start_pos=1)
     pos_indices = start_pos:(start_pos + current_seq_len - 1)
     x = x_emb .+ model.pos_encoding[:, pos_indices]
     
-    mask = triu(fill(-Inf, current_seq_len, current_seq_len), 1)
+    mask = triu(fill(-Inf, current_seq_len, current_seq_len), 1)'
 
     block_outputs = Vector{Any}(undef, length(model.blocks))
     block_caches = Vector{Any}(undef, length(model.blocks))
