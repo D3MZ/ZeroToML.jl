@@ -235,14 +235,14 @@ end
 function (block::TransformerBlock)(x; mask=nothing)
     attn_output, mha_cache = block.mha(x, mask=mask)
     ln1_input = x + attn_output
-    ln1_output, ln1_cache = block.ln1(ln1_input)
-    
-    ff_output, ff_cache = block.ff(ln1_output)
-    ln2_input = ln1_output + ff_output
-    ln2_output, ln2_cache = block.ln2(ln2_input)
-    
-    cache = (x, attn_output, mha_cache, ln1_input, ln1_cache, ff_output, ff_cache, ln2_input, ln2_cache)
-    return ln2_output, cache
+    x_norm1, ln1_cache = block.ln1(ln1_input)
+
+    ff_output, ff_cache = block.ff(x_norm1)
+    ln2_input = x_norm1 + ff_output
+    x_norm2, ln2_cache = block.ln2(ln2_input)
+
+    cache = (mha_cache, ln1_cache, x_norm1, ff_cache, ln2_cache)
+    return x_norm2, cache
 end
 
 # --- Positional Encoding ---
@@ -431,22 +431,20 @@ function backward!(mha::MultiHeadAttention, d_out, cache)
 end
 
 function backward!(block::TransformerBlock, d_out, cache)
-    x, attn_output, mha_cache, ln1_input, ln1_cache, ff_output, ff_cache, ln2_input, ln2_cache = cache
+    mha_cache, ln1_cache, x_norm1, ff_cache, ln2_cache = cache
 
     d_ln2_input = backward!(block.ln2, d_out, ln2_cache)
-    d_ln1_output = d_ln2_input # from residual
-    d_ff_output = d_ln2_input  # from residual
-    
-    d_ln1_output_from_ff = backward!(block.ff, d_ff_output, ff_cache)
-    d_ln1_output += d_ln1_output_from_ff
+    d_x_norm1 = d_ln2_input
+    d_ff_output = d_ln2_input
 
-    d_ln1_input = backward!(block.ln1, d_ln1_output, ln1_cache)
-    d_x = d_ln1_input # from residual
-    d_attn_output = d_ln1_input # from residual
-
-    d_x_from_mha = backward!(block.mha, d_attn_output, mha_cache)
-    d_x += d_x_from_mha
+    d_x_norm1 += backward!(block.ff, d_ff_output, ff_cache)
     
+    d_ln1_input = backward!(block.ln1, d_x_norm1, ln1_cache)
+    d_x = d_ln1_input
+    d_attn_output = d_ln1_input
+    
+    d_x += backward!(block.mha, d_attn_output, mha_cache)
+
     return d_x
 end
 
