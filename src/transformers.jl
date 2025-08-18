@@ -316,24 +316,16 @@ function (model::Transformer)(x_indices; start_pos=1)
     return logits, cache
 end
 
-function generate(model::Transformer, idx, max_new_tokens; greedy::Bool=true)
+function generate(model::Transformer, idx, max_new_tokens; greedy::Bool=true, start_pos=1)
     original_pos_encoding = model.pos_encoding
     embed_size, original_seq_len = size(original_pos_encoding)
-    max_len = length(idx) + max_new_tokens
-    if max_len > original_seq_len
-        model.pos_encoding = positional_encoding(max_len, embed_size)
+    max_len_needed = start_pos + length(idx) + max_new_tokens - 1
+    if max_len_needed > original_seq_len
+        model.pos_encoding = positional_encoding(max_len_needed, embed_size)
     end
 
     for _ in 1:max_new_tokens
-        idx_cond = if length(idx) > original_seq_len
-            idx[(end - original_seq_len + 1):end]
-        else
-            idx
-        end
-        
-        start_pos = length(idx) - length(idx_cond) + 1
-
-        logits, _ = model(idx_cond; start_pos=start_pos)
+        logits, _ = model(idx; start_pos=start_pos)
         logits = logits[:, end]
         probs = softmax(logits)
 

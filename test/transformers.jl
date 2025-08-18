@@ -174,7 +174,7 @@ const generate = ZeroToML.generate
         context_str = decode(context_indices, vocab)
         
         num_generate = 50
-        generated_indices = generate(model, context_indices, num_generate)
+        generated_indices = generate(model, context_indices, num_generate; start_pos=start_index)
         generated_text = decode(generated_indices, vocab)
 
         @info "Full training test generation" context=context_str generated=generated_text
