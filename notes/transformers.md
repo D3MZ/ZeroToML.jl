@@ -62,17 +62,15 @@ The embedding matrix $E$ is learned during training to represent token semantics
 
 The embeddings are combined with positional encodings ($P \in \mathbb{R}^{n \times d_{\mathrm{model}}}$). 
 
-Let position $i\in\{0,\dots,n-1\}$, index $k\in\{0,\dots,\tfrac{d_{\mathrm{model}}}{2}-1\}$, positional matrix $P\in\mathbb{R}^{n\times d_{\mathrm{model}}}$, and row vector $p_i\in\mathbb{R}^{d_{\mathrm{model}}}$ (the $i$‑th row of $P$).
-
 | Type                          | Method                                                                                                                                                     | Reference                                                      |
 |-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Fixed sinusoidal encodings     | $P_{i, 2k} = \sin(i / 10000^{2k / d_{\text{model}}}), \; P_{i, 2k+1} = \cos(i / 10000^{2k / d_{\text{model}}})$ | [Vaswani et al., 2017](https://arxiv.org/abs/1706.03762)      |
 | Learned absolute position embeddings | learned vector $p_i \in \mathbb{R}^{d_{\text{model}}}$ updated through training, allowing the model to adapt position representations to the task | [Devlin et al., 2019](https://arxiv.org/abs/1810.04805)       |
 | Relative position encodings    | Positions are encoded relative to each other within the attention mechanism, letting the model focus on pairwise distances rather than absolute positions       | [Shaw et al., 2018](https://arxiv.org/abs/1803.02155)         |
 
-The token embeddings and positional encodings are combined via element-wise addition: $Z^{(0)} = X + P$. This has two benefits:
+The token embeddings and positional encodings are combined via element-wise addition: $Z^{(0)} = X + P$..  This has two benefits:
 1. The linearity between $X$ and $Z$, and $P$ and $Z$ preserves separate contributions of $X$ and $P$ in the dot products from the "Attention" operation. 
-2. Since the addition is element-wise, the combined input $Z^{(0)}$ retains the same shape as both the token embeddings and positional encodings, preserving the sequence length $n$ and model dimension $d_{\mathrm{model}}$.
+2. The combined input $Z^{(0)}$ retains the same shape as both the token embeddings and positional encodings, preserving the sequence length $n$ and model dimension $d_{\mathrm{model}}$.
 
 ## 4. Attention
 
@@ -89,11 +87,8 @@ $$
 
 Given $n$ being the sequence length, and $d_k$ as the feature length for the model.
 
-Attention scores $S_{ij} \in \mathbb{R}^{n \times n}$ are then computed from either
-1. Additive $q_i, k_i$, then learning the score through training: $S_{ij} = v^\top \tanh(W_q q_i + W_k k_j + b)$ with a hidden layer: for each query–key pair $(q_i, k_j)$. ([Bahdanau et al., 2015](https://arxiv.org/abs/1409.0473))
-2. The dot product of $Q,K$ ([Vaswani et al., 2017](https://arxiv.org/abs/1706.03762))
+Attention scores $S_{ij} \in \mathbb{R}^{n \times n}$ are then computed with the dot product of $Q,K$ ([Vaswani et al., 2017](https://arxiv.org/abs/1706.03762))
 
-### Dot product method
 $$
 \begin{aligned}
 S_{ij}
@@ -106,7 +101,7 @@ S_{ij}
 \end{aligned}
 $$
 
-This separates the position from the content from Z and :
+This separates the position from the content from random initialzations of $Q$ and $K$:
   1. $Q$ content with $K$ content: $x_i W^Q (x_j W^K)^\top$   
   2. $Q$ content with $K$ position: $x_i W^Q (p_j W^K)^\top$   
   3. $Q$ position $K$ content: $p_i W^Q (x_j W^K)^\top$
