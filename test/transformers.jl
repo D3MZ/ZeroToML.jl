@@ -72,7 +72,7 @@ const generate = ZeroToML.generate
 
         # Model parameters
         vocab_size = length(vocab)
-        embed_size = 16
+        embed_size = 32
         block_size = 8
         num_heads = 2
         num_layers = 2
@@ -131,7 +131,7 @@ const generate = ZeroToML.generate
 
         # Model parameters
         vocab_size = length(vocab)
-        embed_size = 16
+        embed_size = 32
         block_size = 8
         num_heads = 2
         num_layers = 2
