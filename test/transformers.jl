@@ -141,7 +141,7 @@ const generate = ZeroToML.generate
         model = Transformer(vocab_size, embed_size, max_pos, num_heads, num_layers, ff_hidden_size)
 
         # Training parameters
-        learning_rate = 3e-3
+        learning_rate = 3e-4
         num_steps = 150_000
         optimizer = Adam(lr=learning_rate)
 
