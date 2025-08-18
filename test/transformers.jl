@@ -171,11 +171,14 @@ const generate = ZeroToML.generate
         context_indices = data[start_index:(start_index + seq_len - 1)]
         context_str = decode(context_indices, vocab)
         
-        generated_indices = generate(model, context_indices, 50)
+        num_generate = 50
+        generated_indices = generate(model, context_indices, num_generate)
         generated_text = decode(generated_indices, vocab)
 
         @info "Full training test generation" context=context_str generated=generated_text
-        @test length(generated_indices) == length(context_indices) + 50
+        
+        expected_indices = data[start_index:(start_index + seq_len - 1 + num_generate)]
+        @test generated_indices == expected_indices
     end
 end
 
