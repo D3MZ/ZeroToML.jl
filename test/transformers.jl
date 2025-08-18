@@ -55,7 +55,8 @@ const generate = ZeroToML.generate
         loss = cross_entropy_loss(logits, y)
         dlogits = cross_entropy_loss_backward(logits, y)
         backward!(model, dlogits, cache)
-        update!(model, 1e-3)
+        optimizer = Adam(lr=1e-3)
+        update!(model, optimizer)
 
         # Loss after one step
         logits_after, _ = model(x)
@@ -82,6 +83,7 @@ const generate = ZeroToML.generate
         # Training parameters
         learning_rate = 1e-2
         num_steps = 100
+        optimizer = Adam(lr=learning_rate)
 
         # Calculate initial loss
         loss_before = 0.0
@@ -104,7 +106,7 @@ const generate = ZeroToML.generate
             logits, cache = model(x)
             dlogits = cross_entropy_loss_backward(logits, y)
             backward!(model, dlogits, cache)
-            update!(model, learning_rate)
+            update!(model, optimizer)
         end
         
         # Calculate final loss
@@ -139,6 +141,7 @@ const generate = ZeroToML.generate
         # Training parameters
         learning_rate = 1e-2
         num_steps = 10000
+        optimizer = Adam(lr=learning_rate)
 
         # Training loop
         best_loss = Inf
@@ -151,7 +154,7 @@ const generate = ZeroToML.generate
             logits, cache = model(x)
             dlogits = cross_entropy_loss_backward(logits, y)
             backward!(model, dlogits, cache)
-            update!(model, learning_rate)
+            update!(model, optimizer)
 
             if step % 100 == 0
                 loss = cross_entropy_loss(logits, y)

@@ -25,12 +25,21 @@ mutable struct LayerNorm
     ∇gamma::Vector{Float64}
     ∇beta::Vector{Float64}
 
+    m_gamma::Vector{Float64}
+    v_gamma::Vector{Float64}
+    m_beta::Vector{Float64}
+    v_beta::Vector{Float64}
+
     function LayerNorm(embed_size::Int; epsilon=1e-5)
         gamma = ones(embed_size)
         beta = zeros(embed_size)
         ∇gamma = zeros(embed_size)
         ∇beta = zeros(embed_size)
-        new(gamma, beta, epsilon, ∇gamma, ∇beta)
+        m_gamma = zeros(embed_size)
+        v_gamma = zeros(embed_size)
+        m_beta = zeros(embed_size)
+        v_beta = zeros(embed_size)
+        new(gamma, beta, epsilon, ∇gamma, ∇beta, m_gamma, v_gamma, m_beta, v_beta)
     end
 end
 
@@ -75,6 +84,15 @@ mutable struct MultiHeadAttention
     ∇W_v::Matrix{Float64}
     ∇W_o::Matrix{Float64}
     
+    m_W_q::Matrix{Float64}
+    v_W_q::Matrix{Float64}
+    m_W_k::Matrix{Float64}
+    v_W_k::Matrix{Float64}
+    m_W_v::Matrix{Float64}
+    v_W_v::Matrix{Float64}
+    m_W_o::Matrix{Float64}
+    v_W_o::Matrix{Float64}
+
     attention::ScaledDotProductAttention
 
     function MultiHeadAttention(embed_size::Int, num_heads::Int)
@@ -91,8 +109,14 @@ mutable struct MultiHeadAttention
         ∇W_k = zeros(size(W_k))
         ∇W_v = zeros(size(W_v))
         ∇W_o = zeros(size(W_o))
+
+        m_W_q = zeros(size(W_q)); v_W_q = zeros(size(W_q))
+        m_W_k = zeros(size(W_k)); v_W_k = zeros(size(W_k))
+        m_W_v = zeros(size(W_v)); v_W_v = zeros(size(W_v))
+        m_W_o = zeros(size(W_o)); v_W_o = zeros(size(W_o))
         
-        new(embed_size, num_heads, head_dim, W_q, W_k, W_v, W_o, ∇W_q, ∇W_k, ∇W_v, ∇W_o, ScaledDotProductAttention())
+        new(embed_size, num_heads, head_dim, W_q, W_k, W_v, W_o, ∇W_q, ∇W_k, ∇W_v, ∇W_o, 
+            m_W_q, v_W_q, m_W_k, v_W_k, m_W_v, v_W_v, m_W_o, v_W_o, ScaledDotProductAttention())
     end
 end
 
@@ -134,6 +158,15 @@ mutable struct FeedForward
     ∇W2::Matrix{Float64}
     ∇b2::Vector{Float64}
 
+    m_W1::Matrix{Float64}
+    v_W1::Matrix{Float64}
+    m_b1::Vector{Float64}
+    v_b1::Vector{Float64}
+    m_W2::Matrix{Float64}
+    v_W2::Matrix{Float64}
+    m_b2::Vector{Float64}
+    v_b2::Vector{Float64}
+
     function FeedForward(embed_size::Int, hidden_size::Int)
         limit1 = sqrt(6.0 / (embed_size + hidden_size))
         W1 = rand(Float64, hidden_size, embed_size) .* 2 .* limit1 .- limit1
@@ -143,12 +176,14 @@ mutable struct FeedForward
         W2 = rand(Float64, embed_size, hidden_size) .* 2 .* limit2 .- limit2
         b2 = zeros(embed_size)
         
-        ∇W1 = zeros(size(W1))
-        ∇b1 = zeros(size(b1))
-        ∇W2 = zeros(size(W2))
-        ∇b2 = zeros(size(b2))
-        
-        new(W1, b1, W2, b2, ∇W1, ∇b1, ∇W2, ∇b2)
+        ∇W1 = zeros(size(W1)); ∇b1 = zeros(size(b1))
+        ∇W2 = zeros(size(W2)); ∇b2 = zeros(size(b2))
+        m_W1 = zeros(size(W1)); v_W1 = zeros(size(W1))
+        m_b1 = zeros(size(b1)); v_b1 = zeros(size(b1))
+        m_W2 = zeros(size(W2)); v_W2 = zeros(size(W2))
+        m_b2 = zeros(size(b2)); v_b2 = zeros(size(b2))
+
+        new(W1, b1, W2, b2, ∇W1, ∇b1, ∇W2, ∇b2, m_W1, v_W1, m_b1, v_b1, m_W2, v_W2, m_b2, v_b2)
     end
 end
 
@@ -231,6 +266,11 @@ mutable struct Transformer
     ∇token_embedding::Matrix{Float64}
     ∇lm_head::Matrix{Float64}
 
+    m_token_embedding::Matrix{Float64}
+    v_token_embedding::Matrix{Float64}
+    m_lm_head::Matrix{Float64}
+    v_lm_head::Matrix{Float64}
+
     function Transformer(vocab_size::Int, embed_size::Int, seq_len::Int, num_heads::Int, num_layers::Int, ff_hidden_size::Int)
         token_embedding = randn(Float64, embed_size, vocab_size) .* 0.02
         pos_encoding = positional_encoding(seq_len, embed_size)
@@ -242,8 +282,13 @@ mutable struct Transformer
         
         ∇token_embedding = zeros(size(token_embedding))
         ∇lm_head = zeros(size(lm_head))
+
+        m_token_embedding = zeros(size(token_embedding))
+        v_token_embedding = zeros(size(token_embedding))
+        m_lm_head = zeros(size(lm_head))
+        v_lm_head = zeros(size(lm_head))
         
-        new(token_embedding, pos_encoding, blocks, ln_final, lm_head, ∇token_embedding, ∇lm_head)
+        new(token_embedding, pos_encoding, blocks, ln_final, lm_head, ∇token_embedding, ∇lm_head, m_token_embedding, v_token_embedding, m_lm_head, v_lm_head)
     end
 end
 
@@ -423,34 +468,77 @@ end
 
 # --- Optimizer ---
 
+mutable struct Adam
+    lr::Float64
+    beta1::Float64
+    beta2::Float64
+    epsilon::Float64
+    t::Int
+end
+
+function Adam(lr=1e-3; beta1=0.9, beta2=0.999, epsilon=1e-8)
+    Adam(lr, beta1, beta2, epsilon, 0)
+end
+
 function zero_gradients!(ff::FeedForward)
     fill!(ff.∇W1, 0); fill!(ff.∇b1, 0); fill!(ff.∇W2, 0); fill!(ff.∇b2, 0)
 end
-function update!(ff::FeedForward, lr)
-    ff.W1 .-= lr .* ff.∇W1; ff.b1 .-= lr .* ff.∇b1
-    ff.W2 .-= lr .* ff.∇W2; ff.b2 .-= lr .* ff.∇b2
+function update!(ff::FeedForward, optimizer::Adam)
+    for p in [:W1, :b1, :W2, :b2]
+        param = getfield(ff, p)
+        grad = getfield(ff, Symbol("∇", p))
+        m = getfield(ff, Symbol("m_", p))
+        v = getfield(ff, Symbol("v_", p))
+
+        @. m = optimizer.beta1 * m + (1 - optimizer.beta1) * grad
+        @. v = optimizer.beta2 * v + (1 - optimizer.beta2) * (grad .^ 2)
+        m_hat = m / (1 - optimizer.beta1^optimizer.t)
+        v_hat = v / (1 - optimizer.beta2^optimizer.t)
+        @. param -= optimizer.lr * m_hat / (sqrt.(v_hat) + optimizer.epsilon)
+    end
 end
 
 function zero_gradients!(ln::LayerNorm)
     fill!(ln.∇gamma, 0); fill!(ln.∇beta, 0)
 end
-function update!(ln::LayerNorm, lr)
-    ln.gamma .-= lr .* ln.∇gamma; ln.beta .-= lr .* ln.∇beta
+function update!(ln::LayerNorm, optimizer::Adam)
+    for p in [:gamma, :beta]
+        param = getfield(ln, p)
+        grad = getfield(ln, Symbol("∇", p))
+        m = getfield(ln, Symbol("m_", p))
+        v = getfield(ln, Symbol("v_", p))
+
+        @. m = optimizer.beta1 * m + (1 - optimizer.beta1) * grad
+        @. v = optimizer.beta2 * v + (1 - optimizer.beta2) * (grad .^ 2)
+        m_hat = m / (1 - optimizer.beta1^optimizer.t)
+        v_hat = v / (1 - optimizer.beta2^optimizer.t)
+        @. param -= optimizer.lr * m_hat / (sqrt.(v_hat) + optimizer.epsilon)
+    end
 end
 
 function zero_gradients!(mha::MultiHeadAttention)
     fill!(mha.∇W_q, 0); fill!(mha.∇W_k, 0); fill!(mha.∇W_v, 0); fill!(mha.∇W_o, 0)
 end
-function update!(mha::MultiHeadAttention, lr)
-    mha.W_q .-= lr .* mha.∇W_q; mha.W_k .-= lr .* mha.∇W_k
-    mha.W_v .-= lr .* mha.∇W_v; mha.W_o .-= lr .* mha.∇W_o
+function update!(mha::MultiHeadAttention, optimizer::Adam)
+    for p in [:W_q, :W_k, :W_v, :W_o]
+        param = getfield(mha, p)
+        grad = getfield(mha, Symbol("∇", p))
+        m = getfield(mha, Symbol("m_", p))
+        v = getfield(mha, Symbol("v_", p))
+
+        @. m = optimizer.beta1 * m + (1 - optimizer.beta1) * grad
+        @. v = optimizer.beta2 * v + (1 - optimizer.beta2) * (grad .^ 2)
+        m_hat = m / (1 - optimizer.beta1^optimizer.t)
+        v_hat = v / (1 - optimizer.beta2^optimizer.t)
+        @. param -= optimizer.lr * m_hat / (sqrt.(v_hat) + optimizer.epsilon)
+    end
 end
 
 function zero_gradients!(block::TransformerBlock)
     zero_gradients!(block.mha); zero_gradients!(block.ln1); zero_gradients!(block.ff); zero_gradients!(block.ln2)
 end
-function update!(block::TransformerBlock, lr)
-    update!(block.mha, lr); update!(block.ln1, lr); update!(block.ff, lr); update!(block.ln2, lr)
+function update!(block::TransformerBlock, optimizer::Adam)
+    update!(block.mha, optimizer); update!(block.ln1, optimizer); update!(block.ff, optimizer); update!(block.ln2, optimizer)
 end
 
 function zero_gradients!(model::Transformer)
@@ -460,11 +548,24 @@ function zero_gradients!(model::Transformer)
     end
     zero_gradients!(model.ln_final)
 end
-function update!(model::Transformer, lr)
-    model.token_embedding .-= lr .* model.∇token_embedding
-    model.lm_head .-= lr .* model.∇lm_head
-    for block in model.blocks
-        update!(block, lr)
+function update!(model::Transformer, optimizer::Adam)
+    optimizer.t += 1
+    
+    for p in [:token_embedding, :lm_head]
+        param = getfield(model, p)
+        grad = getfield(model, Symbol("∇", p))
+        m = getfield(model, Symbol("m_", p))
+        v = getfield(model, Symbol("v_", p))
+
+        @. m = optimizer.beta1 * m + (1 - optimizer.beta1) * grad
+        @. v = optimizer.beta2 * v + (1 - optimizer.beta2) * (grad .^ 2)
+        m_hat = m / (1 - optimizer.beta1^optimizer.t)
+        v_hat = v / (1 - optimizer.beta2^optimizer.t)
+        @. param -= optimizer.lr * m_hat / (sqrt.(v_hat) + optimizer.epsilon)
     end
-    update!(model.ln_final, lr)
+
+    for block in model.blocks
+        update!(block, optimizer)
+    end
+    update!(model.ln_final, optimizer)
 end
