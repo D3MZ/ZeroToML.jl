@@ -292,11 +292,12 @@ mutable struct Transformer
     end
 end
 
-function (model::Transformer)(x_indices)
+function (model::Transformer)(x_indices; start_pos=1)
     current_seq_len = length(x_indices)
     
     x_emb = model.token_embedding[:, x_indices]
-    x = x_emb .+ model.pos_encoding[:, eachindex(x_indices)]
+    pos_indices = start_pos:(start_pos + current_seq_len - 1)
+    x = x_emb .+ model.pos_encoding[:, pos_indices]
     
     mask = triu(fill(-Inf, current_seq_len, current_seq_len), 1)
 
@@ -316,15 +317,23 @@ function (model::Transformer)(x_indices)
 end
 
 function generate(model::Transformer, idx, max_new_tokens; greedy::Bool=true)
-    seq_len = size(model.pos_encoding, 2)
+    original_pos_encoding = model.pos_encoding
+    embed_size, original_seq_len = size(original_pos_encoding)
+    max_len = length(idx) + max_new_tokens
+    if max_len > original_seq_len
+        model.pos_encoding = positional_encoding(max_len, embed_size)
+    end
+
     for _ in 1:max_new_tokens
-        idx_cond = if length(idx) > seq_len
-            idx[(end - seq_len + 1):end]
+        idx_cond = if length(idx) > original_seq_len
+            idx[(end - original_seq_len + 1):end]
         else
             idx
         end
+        
+        start_pos = length(idx) - length(idx_cond) + 1
 
-        logits, _ = model(idx_cond)
+        logits, _ = model(idx_cond; start_pos=start_pos)
         logits = logits[:, end]
         probs = softmax(logits)
 
@@ -340,6 +349,8 @@ function generate(model::Transformer, idx, max_new_tokens; greedy::Bool=true)
         end
         idx = vcat(idx, idx_next)
     end
+
+    model.pos_encoding = original_pos_encoding
     return idx
 end
 
