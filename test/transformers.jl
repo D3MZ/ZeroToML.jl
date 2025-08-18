@@ -140,7 +140,7 @@ const generate = ZeroToML.generate
 
         # Training parameters
         learning_rate = 1e-2
-        num_steps = 10000
+        num_steps = 100_000
         optimizer = Adam(lr=learning_rate)
 
         # Training loop
@@ -156,7 +156,7 @@ const generate = ZeroToML.generate
             backward!(model, dlogits, cache)
             update!(model, optimizer)
 
-            if step % 100 == 0
+            if step % 1000 == 0
                 loss = cross_entropy_loss(logits, y)
                 if loss < best_loss
                     best_loss = loss
@@ -166,7 +166,8 @@ const generate = ZeroToML.generate
         end
 
         # Generation
-        start_index = rand(1:(length(data) - seq_len))
+        # start_index = rand(1:(length(data) - seq_len))
+        start_index = 1
         context_indices = data[start_index:(start_index + seq_len - 1)]
         context_str = decode(context_indices, vocab)
         
