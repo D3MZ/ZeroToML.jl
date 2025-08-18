@@ -476,7 +476,7 @@ mutable struct Adam
     t::Int
 end
 
-function Adam(lr=1e-3; beta1=0.9, beta2=0.999, epsilon=1e-8)
+function Adam(; lr=1e-3, beta1=0.9, beta2=0.999, epsilon=1e-8)
     Adam(lr, beta1, beta2, epsilon, 0)
 end
 
