@@ -22,10 +22,12 @@ function positional_encoding(seq_len::Int, embed_size::Int)
     return PE
 end
 
- function positional_encoding_tullio(seq_len::Int, embed_size::Int)                                                        
-     PE = zeros(Float64, embed_size, seq_len)                                                                              
-     log_val = -log(10000.0) / embed_size                                                                                  
-     @tullio PE[i, p] = sin(p * exp((i-1) * log_val)) (i in 1:2:embed_size)                                                
-     @tullio PE[i, p] = cos(p * exp((i-2) * log_val)) (i in 2:2:embed_size)                                                
-     return PE                                                                                                             
- end 
+ function positional_encoding_tullio(seq_len::Int, embed_size::Int)
+    PE = zeros(Float64, embed_size, seq_len)
+    log_val = -log(10000.0) / embed_size
+    @tullio PE[i, p] = begin
+        val = exp(2 * ((i - 1) ÷ 2) * log_val)
+        isodd(i) ? sin(p * val) : cos(p * val)
+    end
+    return PE
+end
