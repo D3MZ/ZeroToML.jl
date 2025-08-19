@@ -1,9 +1,8 @@
 ## Summary
 
-1. [Tokenization](#1-tokenization) — Converts input text into a sequence of integer token IDs.  
-2. [Input Embedding](#2-input-embedding) — Maps tokens to dense vectors.  
+1. [Tokenization & Input Embedding](#1-tokenization--input-embedding) — Converts input text into a sequence of integer token IDs and maps tokens to dense vectors.  
+2. [Positional Encoding](#2-positional-encoding)
 3. [Encoder Stack](#3-encoder-stack)
-   - [Positional Encoding](#positional-encoding)
    - [Linear Projections for Multi-Head Attention](#linear-projections-for-multi-head-attention)
    - [Scaled Dot-Product Attention](#scaled-dot-product-attention)
    - [Concatenate Heads & Project](#concatenate-heads--project)
@@ -12,34 +11,12 @@
 9. [Add & LayerNorm (Post-FFN)](#9-add--layernorm-post-ffn) — Adds residual connection and normalizes post-FFN output.  
 10. [Final Projection & Softmax](#10-final-projection--softmax) — Maps hidden states to vocabulary logits and converts to probabilities.  
 
-| Symbol | Definition |
-|--------|------------|
-| $n$ | String (sequence) length |
-| $V$ | Vocabulary size |
-| $d_{\mathrm{model}}$ | Model (embedding) dimension |
-| $d_k$ | Attention head dimension |
-| $d_{\mathrm{ff}}$ | Feed-forward hidden dimension |
-| $t_i$ | Token index at position $i$, integer in $\{0, \dots, V-1\}$ |
-| $E$ | Embedding matrix, $\mathbb{R}^{V \times d_{\mathrm{model}}}$ |
-| $X$ | Token embedding matrix for input sequence, $\mathbb{R}^{n \times d_{\mathrm{model}}}$ |
-| $P$ | Positional encoding matrix, $\mathbb{R}^{n \times d_{\mathrm{model}}}$ |
-| $Z^{(0)}$ | Combined input (token embeddings + positional encodings), $\mathbb{R}^{n \times d_{\mathrm{model}}}$ |
-| $W^Q, W^K, W^V$ | Query, Key, and Value projection matrices, $\mathbb{R}^{d_{\mathrm{model}} \times d_k}$ |
-| $Q, K, V$ | Projected queries, keys, and values, $\mathbb{R}^{n \times d_k}$ |
-| $S$ | Attention score matrix, $\mathbb{R}^{n \times n}$ |
-| $A$ | Attention weight matrix after softmax, $\mathbb{R}^{n \times n}$ |
-| $O_h$ | Output from attention head $h$, $\mathbb{R}^{n \times d_k}$ |
-| $O$ | Concatenated output from all heads, $\mathbb{R}^{n \times (H \cdot d_k)}$ |
-| $W^O$ | Output projection matrix after concatenating heads, $\mathbb{R}^{(H \cdot d_k) \times d_{\mathrm{model}}}$ |
-| $W_1, W_2$ | Feed-forward layer weights |
-| $b_1, b_2$ | Feed-forward layer biases |
-| $W^{\mathrm{out}}$ | Final projection matrix to vocabulary logits, $\mathbb{R}^{d_{\mathrm{model}} \times V}$ |
+## 1. Tokenization & Input Embedding
 
+A tokenizer chunks a datastream, maps those segments to integer IDs, and saves into a lookup table. 
+Each token is then mapped to a dense vector forming a trainable embedding matrix ($E \in \mathbb{R}^{V \times d_{\mathrm{model}}}$). 
 
-## 1. Tokenization
-
-A tokenizer chunks a datastream, maps those segments to integer IDs, and saves into a lookup table.
-
+A variety of tokenizers exist below:
 | Medium   | Method                                                          | Reference                                                        |
 |------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------|
 | Text       | Character-level: each character gets an ID                                 | [Zhang et al., 2015](https://arxiv.org/abs/1508.06615)          |
@@ -53,29 +30,23 @@ A tokenizer chunks a datastream, maps those segments to integer IDs, and saves i
 | Time series| TS2Vec: discretize or embed continuous readings                            | [Yue et al., 2021](https://arxiv.org/abs/2106.10466)             |
 | 3D geometry| Point-BERT: discretize point cloud into discrete tokens                    | [Yu et al., 2022](https://arxiv.org/abs/2111.14819)              |
 
-## 2. Input Embedding
+## 2. Positional Encoding
 
-Each token is then mapped to a dense vector forming a trainable embedding matrix ($E \in \mathbb{R}^{V \times d_{\mathrm{model}}}$).
-
-The embedding matrix $E$ is learned during training to represent token semantics, allowing the model to capture meaningful relationships between tokens.
-
-## 3. Encoder Stack
-
-The encoder is composed of a stack of N identical layers, where the outputs of the previous encoder layer are used as inputs in the current encoder layer. [Attention Is All You Need's](https://arxiv.org/abs/1706.03762) transformer had a 6 encoding layer stack.
-
-### Positional Encoding
-
-The embeddings are combined with positional encodings ($P \in \mathbb{R}^{n \times d_{\mathrm{model}}}$). 
+The token embeddings are then combined with positional encodings ($P \in \mathbb{R}^{n \times d_{\mathrm{model}}}$), with it's own variety of implementations:
 
 | Type                          | Method                                                                                                                                                     | Reference                                                      |
 |-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Fixed sinusoidal encodings     | $P_{i, 2k} = \sin(i / 10000^{2k / d_{\text{model}}}), \; P_{i, 2k+1} = \cos(i / 10000^{2k / d_{\text{model}}})$ | [Vaswani et al., 2017](https://arxiv.org/abs/1706.03762)      |
-| Learned absolute position embeddings | learned vector $p_i \in \mathbb{R}^{d_{\text{model}}}$ updated through training, allowing the model to adapt position representations to the task | [Devlin et al., 2019](https://arxiv.org/abs/1810.04805)       |
 | Relative position encodings    | Positions are encoded relative to each other within the attention mechanism, letting the model focus on pairwise distances rather than absolute positions       | [Shaw et al., 2018](https://arxiv.org/abs/1803.02155)         |
+| Learned absolute position embeddings | learned vector $p_i \in \mathbb{R}^{d_{\text{model}}}$ updated through training, allowing the model to adapt position representations to the task | [Devlin et al., 2019](https://arxiv.org/abs/1810.04805)       |
 
 The token embeddings and positional encodings are combined via element-wise addition: $Z^{(0)} = X + P$..  This has two benefits:
 1. The linearity between $X$ and $Z$, and $P$ and $Z$ preserves separate contributions of $X$ and $P$ in the dot products from the "Attention" operation. 
 2. The combined input $Z^{(0)}$ retains the same shape as both the token embeddings and positional encodings, preserving the sequence length $n$ and model dimension $d_{\mathrm{model}}$.
+
+## 3. Encoder Stack
+
+The encoder is composed of a stack of N identical layers, where the outputs of the previous encoder layer are used as inputs in the current encoder layer. [Attention Is All You Need's](https://arxiv.org/abs/1706.03762) transformer had a 6 encoding layer stack.
 
 ### Linear Projections
 
@@ -89,8 +60,6 @@ V &= Z^{(0)} W^V = X W^V + P W^V
 \end{aligned}
 \quad\text{where}\quad Q, K, V \in \mathbb{R}^{n \times d_k}
 $$
-
-Given $n$ being the sequence length, and $d_k$ as the feature length for the model.
 
 ### Scaled Dot-Product Attention
 
@@ -120,13 +89,23 @@ $$
 \mathrm{Attention}(Q, K, V) = \mathrm{softmax}\!\left( \frac{Q K^\top}{\sqrt{d_k}} \right) V
 $$
 
-Thus given Q and K, you get a weighted sum of V. Which is why the original paper named Q, K, V as Query, Key, and Value respectively. 
+Thus given Q and K, you get a weighted sum of V. The original paper named Q, K, V as Query, Key, and Value respectively. 
 
 This creates two drawbacks:
 1. All tokens, frequent or rare, share the same computational budget.
 2. Attention is soft search: it retrieves values based on learned associations only.
 
 ### Concatenate Heads & Project
+
+For multi-head attention, the outputs of each head $H$ are concatenated along the feature dimension: $O = [O_1; O_2; \dots; O_H] \in \mathbb{R}^{n \times (H \cdot d_k)}$
+
+This concatenated output is then linearly projected back to the model dimension:
+
+$O' = O W^O \quad \in \mathbb{R}^{n \times d_{\mathrm{model}}}$
+
+where $W^O \in \mathbb{R}^{(H \cdot d_k) \times d_{\mathrm{model}}}$ is the output projection matrix.  
+
+
 
 ### Add & LayerNorm (Post-Attention)
 
@@ -182,3 +161,28 @@ $$
 \mathrm{probs} = \mathrm{softmax}(\mathrm{logits}) \quad \in \mathbb{R}^{n \times V}
 $$  
 where softmax is applied row-wise to produce valid probability distributions for each token position.
+
+
+## Symbols
+| Symbol | Definition |
+|--------|------------|
+| $n$ | String (sequence) length |
+| $V$ | Vocabulary size |
+| $d_{\mathrm{model}}$ | Model (embedding) dimension |
+| $d_k$ | Attention head dimension |
+| $d_{\mathrm{ff}}$ | Feed-forward hidden dimension |
+| $t_i$ | Token index at position $i$, integer in $\{0, \dots, V-1\}$ |
+| $E$ | Embedding matrix, $\mathbb{R}^{V \times d_{\mathrm{model}}}$ |
+| $X$ | Token embedding matrix for input sequence, $\mathbb{R}^{n \times d_{\mathrm{model}}}$ |
+| $P$ | Positional encoding matrix, $\mathbb{R}^{n \times d_{\mathrm{model}}}$ |
+| $Z^{(0)}$ | Combined input (token embeddings + positional encodings), $\mathbb{R}^{n \times d_{\mathrm{model}}}$ |
+| $W^Q, W^K, W^V$ | Query, Key, and Value projection matrices, $\mathbb{R}^{d_{\mathrm{model}} \times d_k}$ |
+| $Q, K, V$ | Projected queries, keys, and values, $\mathbb{R}^{n \times d_k}$ |
+| $S$ | Attention score matrix, $\mathbb{R}^{n \times n}$ |
+| $A$ | Attention weight matrix after softmax, $\mathbb{R}^{n \times n}$ |
+| $O_h$ | Output from attention head $h$, $\mathbb{R}^{n \times d_k}$ |
+| $O$ | Concatenated output from all heads, $\mathbb{R}^{n \times (H \cdot d_k)}$ |
+| $W^O$ | Output projection matrix after concatenating heads, $\mathbb{R}^{(H \cdot d_k) \times d_{\mathrm{model}}}$ |
+| $W_1, W_2$ | Feed-forward layer weights |
+| $b_1, b_2$ | Feed-forward layer biases |
+| $W^{\mathrm{out}}$ | Final projection matrix to vocabulary logits, $\mathbb{R}^{d_{\mathrm{model}} \times V}$ |

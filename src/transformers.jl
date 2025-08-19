@@ -233,16 +233,6 @@ function (block::TransformerBlock)(x; mask=nothing)
     return x_norm2, cache
 end
 
-# --- Positional Encoding ---
-function positional_encoding(seq_len::Int, embed_size::Int)
-    PE = zeros(embed_size, seq_len)
-    pos = reshape(1:seq_len, seq_len, 1)
-    div_term = exp.((0:2:embed_size-1) .* -(log(10000.0) / embed_size))'
-    PE[1:2:end, :] = sin.(pos * div_term)'
-    PE[2:2:end, :] = cos.(pos * div_term)'
-    return PE
-end
-
 # --- Transformer Model ---
 mutable struct Transformer
     token_embedding::Matrix{Float64}
