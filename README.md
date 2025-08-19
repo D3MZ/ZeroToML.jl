@@ -10,5 +10,6 @@ Yet another AI from scratch repo.
     - See [test](/test) for it in action. 
 - May contain AI slop.
 
-### Quick links
-- Work in Progress: [Transformer](notes/transformers.md)
+### Work in Progress:
+- [Optimizers](notes/optimizers.md)
+- [Transformer](notes/transformers.md)
