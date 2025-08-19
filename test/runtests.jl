@@ -8,6 +8,9 @@ using Test
     @testset "Encoding" begin
         include("encoding.jl")
     end
+    @testset "Optimizers" begin
+        include("optimizers.jl")
+    end
     @testset "Transformers" begin
         include("transformers.jl")
     end
