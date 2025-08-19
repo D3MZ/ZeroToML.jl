@@ -54,10 +54,10 @@ end
     @testset "positional_encoding_tullio" begin
         seq_len = 50
         embed_size = 20
-        @test positional_encoding(seq_len, embed_size) ≈ positional_encoding_tullio(seq_len, embed_size)
+        @test positional_encoding(seq_len, embed_size) ≈ ZeroToML.positional_encoding_tullio(seq_len, embed_size)
 
         seq_len_small = 10
         embed_size_small = 4
-        @test positional_encoding(seq_len_small, embed_size_small) ≈ positional_encoding_tullio(seq_len_small, embed_size_small)
+        @test positional_encoding(seq_len_small, embed_size_small) ≈ ZeroToML.positional_encoding_tullio(seq_len_small, embed_size_small)
     end
 end
