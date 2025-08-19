@@ -2,8 +2,8 @@ using ZeroToML
 using Test
 
 @testset "ZeroToML.jl" begin
-    @testset "Tokenizer" begin
-        include("tokenizer.jl")
+    @testset "Encoding" begin
+        include("encoding.jl")
     end
     @testset "Transformers" begin
         include("transformers.jl")
