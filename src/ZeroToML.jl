@@ -3,6 +3,8 @@ module ZeroToML
 using LinearAlgebra, Random, Statistics, Logging
 
 include("activations.jl")
+using .Activations: softmax # Import softmax from the Activations module
+
 include("encoding.jl")
 export build_vocab, encode, decode, positional_encoding
 
