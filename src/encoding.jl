@@ -1,5 +1,3 @@
-using Tullio
-
 # --- Tokenizer Functions ---
 build_vocab(text) = sort(unique(collect(text)))
 

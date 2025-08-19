@@ -3,7 +3,7 @@ module ZeroToML
 using LinearAlgebra, Random, Statistics, Logging
 
 include("encoding.jl")
-export build_vocab, encode, decode, positional_encoding
+export build_vocab, encode, decode, positional_encoding, positional_encoding_tullio
 
 include("transformers.jl")
 export LayerNorm, ScaledDotProductAttention, MultiHeadAttention, FeedForward, TransformerBlock, Transformer,
