@@ -483,6 +483,7 @@ end
 function zero_gradients!(mha::MultiHeadAttention)
     fill!(mha.∇W_q, 0); fill!(mha.∇W_k, 0); fill!(mha.∇W_v, 0); fill!(mha.∇W_o, 0)
 end
+
 function update!(mha::MultiHeadAttention, optimizer::Adam)
     for p in [:W_q, :W_k, :W_v, :W_o]
         param = getfield(mha, p)
@@ -512,6 +513,7 @@ function zero_gradients!(model::Transformer)
     end
     zero_gradients!(model.ln_final)
 end
+
 function update!(model::Transformer, optimizer::Adam)
     optimizer.t += 1
     

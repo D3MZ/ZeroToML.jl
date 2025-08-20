@@ -133,7 +133,7 @@ const softmax = ZeroToML.softmax # Ensure softmax is accessible for internal che
     #     # Model parameters
     #     vocab_size = length(vocab)
     #     embed_size = 32
-    #     block_size = 8
+    #     block_size = 64
     #     num_heads = 2
     #     num_layers = 2
     #     ff_hidden_size = 4 * embed_size
@@ -142,8 +142,8 @@ const softmax = ZeroToML.softmax # Ensure softmax is accessible for internal che
     #     model = Transformer(vocab_size, embed_size, max_pos, num_heads, num_layers, ff_hidden_size)
 
     #     # Training parameters
-    #     learning_rate = 3e-4
-    #     num_steps = 150_000
+    #     learning_rate = 1e-2
+    #     num_steps = 10000
     #     optimizer = Adam(lr=learning_rate)
 
     #     # Training loop
@@ -169,8 +169,7 @@ const softmax = ZeroToML.softmax # Ensure softmax is accessible for internal che
     #     end
 
     #     # Generation
-    #     # start_index = rand(1:(length(data) - block_size))
-    #     start_index = 1
+    #     start_index = rand(1:(length(data) - block_size))
     #     context_indices = data[start_index:(start_index + block_size - 1)]
     #     context_str = decode(context_indices, vocab)
         
