@@ -4,36 +4,31 @@ import Optimisers
 
 @testset "Optimizers" begin
     @testset "Adam ≈ Optimisers.Adam" begin
-        # Model under test
         ff = FeedForward(2, 2)
-
-        # Deterministic init
-        ff.W1 .= 1.0; ff.b1 .= 1.0; ff.W2 .= 1.0; ff.b2 .= 1.0
-        ff.∇W1 .= 0.1; ff.∇b1 .= 0.1; ff.∇W2 .= 0.1; ff.∇b2 .= 0.1
-        fill!(ff.m_W1, 0); fill!(ff.v_W1, 0); fill!(ff.m_b1, 0); fill!(ff.v_b1, 0)
-        fill!(ff.m_W2, 0); fill!(ff.v_W2, 0); fill!(ff.m_b2, 0); fill!(ff.v_b2, 0)
-
+        
         # Mirror parameters for Optimisers.jl as a NamedTuple
         params = (
-            W1 = ones(size(ff.W1)),
-            b1 = ones(size(ff.b1)),
-            W2 = ones(size(ff.W2)),
-            b2 = ones(size(ff.b2)),
+            W1 = copy(ff.W1),
+            b1 = copy(ff.b1),
+            W2 = copy(ff.W2),
+            b2 = copy(ff.b2),
         )
         grads = (
-            W1 = fill(0.1, size(ff.W1)),
-            b1 = fill(0.1, size(ff.b1)),
-            W2 = fill(0.1, size(ff.W2)),
-            b2 = fill(0.1, size(ff.b2)),
+            W1 = copy(ff.∇W1),
+            b1 = copy(ff.∇b1),
+            W2 = copy(ff.∇W2),
+            b2 = copy(ff.∇b2),
         )
 
+        η, β1, β2 = rand(), rand(), rand()
+
         # Optimisers.jl Adam update (first step, bias-corrected)
-        opt_ref = Optimisers.Adam(0.001)
+        opt_ref = Optimisers.Adam(η, (β1, β2))
         state = Optimisers.setup(opt_ref, params)
-        params_ref, state = Optimisers.update!(state, params, grads)
+        state, params_ref = Optimisers.update!(state, params, grads)
 
         # Our Adam update (first step, bias-corrected)
-        opt = Adam(lr=0.001)
+        opt = Adam(lr=η, beta1=β1, beta2=β2)
         opt.t = 1
         update!(ff, opt)
 
