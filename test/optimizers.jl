@@ -1,7 +1,6 @@
 using ZeroToML
 using Test
-using Optimisers
-import Optimisers: Adam as optimisers_adam
+import Optimisers
 
 @testset "Optimizers" begin
     @testset "Adam ≈ Optimisers.Adam" begin
@@ -29,7 +28,7 @@ import Optimisers: Adam as optimisers_adam
         )
 
         # Optimisers.jl Adam update (first step, bias-corrected)
-        opt_ref = optimisers_adam(0.001)
+        opt_ref = Optimisers.Adam(0.001)
         state = Optimisers.setup(opt_ref, params)
         params_ref, state = Optimisers.update!(state, params, grads)
 
