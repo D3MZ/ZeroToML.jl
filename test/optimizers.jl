@@ -1,7 +1,7 @@
 using ZeroToML
 using Test
+using Optimisers
 import Optimisers: Adam as optimisers_adam
-import Optimisers: setup
 
 @testset "Optimizers" begin
     @testset "Adam ≈ Optimisers.Adam" begin
