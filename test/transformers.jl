@@ -2,9 +2,6 @@ using ZeroToML
 using Test
 using LinearAlgebra, Random
 
-const generate = ZeroToML.generate
-const softmax = ZeroToML.softmax # Ensure softmax is accessible for internal checks if needed, though it's less likely to be directly used here now.
-
 @testset "Transformer Components" begin
     embed_size = 32
     seq_len = 8
