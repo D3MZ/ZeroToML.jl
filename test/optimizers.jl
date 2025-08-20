@@ -30,7 +30,7 @@ import Optimisers: Adam as optimisers_adam
 
         # Optimisers.jl Adam update (first step, bias-corrected)
         opt_ref = optimisers_adam(0.001)
-        state = setup(opt_ref, params)
+        state = Optimisers.setup(opt_ref, params)
         params_ref, state = Optimisers.update!(state, params, grads)
 
         # Our Adam update (first step, bias-corrected)
