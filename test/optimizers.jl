@@ -20,6 +20,7 @@ import Optimisers
             b2 = copy(ff.∇b2),
         )
 
+        # Adam parameters
         η, β1, β2 = rand(), rand(), rand()
 
         # Optimisers.jl Adam update (first step, bias-corrected)
