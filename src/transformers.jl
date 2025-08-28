@@ -445,8 +445,12 @@ end
 # --- Optimizer ---
 
 function zero_gradients!(ff::FeedForward)
-    fill!(ff.∇W1, 0); fill!(ff.∇b1, 0); fill!(ff.∇W2, 0); fill!(ff.∇b2, 0)
+    fill!(ff.∇W1, 0)
+    fill!(ff.∇b1, 0)
+    fill!(ff.∇W2, 0)
+    fill!(ff.∇b2, 0)
 end
+
 function update!(ff::FeedForward, optimizer::Adam)
     for p in [:W1, :b1, :W2, :b2]
         param = getfield(ff, p)
@@ -465,6 +469,7 @@ end
 function zero_gradients!(ln::LayerNorm)
     fill!(ln.∇gamma, 0); fill!(ln.∇beta, 0)
 end
+
 function update!(ln::LayerNorm, optimizer::Adam)
     for p in [:gamma, :beta]
         param = getfield(ln, p)
@@ -481,7 +486,10 @@ function update!(ln::LayerNorm, optimizer::Adam)
 end
 
 function zero_gradients!(mha::MultiHeadAttention)
-    fill!(mha.∇W_q, 0); fill!(mha.∇W_k, 0); fill!(mha.∇W_v, 0); fill!(mha.∇W_o, 0)
+    fill!(mha.∇W_q, 0)
+    fill!(mha.∇W_k, 0)
+    fill!(mha.∇W_v, 0)
+    fill!(mha.∇W_o, 0)
 end
 
 function update!(mha::MultiHeadAttention, optimizer::Adam)
@@ -500,10 +508,17 @@ function update!(mha::MultiHeadAttention, optimizer::Adam)
 end
 
 function zero_gradients!(block::TransformerBlock)
-    zero_gradients!(block.mha); zero_gradients!(block.ln1); zero_gradients!(block.ff); zero_gradients!(block.ln2)
+    zero_gradients!(block.mha)
+    zero_gradients!(block.ln1)
+    zero_gradients!(block.ff)
+    zero_gradients!(block.ln2)
 end
+
 function update!(block::TransformerBlock, optimizer::Adam)
-    update!(block.mha, optimizer); update!(block.ln1, optimizer); update!(block.ff, optimizer); update!(block.ln2, optimizer)
+    update!(block.mha, optimizer)
+    update!(block.ln1, optimizer)
+    update!(block.ff, optimizer)
+    update!(block.ln2, optimizer)
 end
 
 function zero_gradients!(model::Transformer)
