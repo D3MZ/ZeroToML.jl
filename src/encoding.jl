@@ -19,4 +19,3 @@ function positional_encoding(seq_len::Int, embed_size::Int)
     PE[2:2:end, :] = cos.(pos * div_term)'
     return PE
 end
-

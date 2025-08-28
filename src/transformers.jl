@@ -1,8 +1,8 @@
-# --- Model Components ---
-
 @fastmath function glorot(m, n)
     (rand(Float64, m, n) .- 0.5) .* √(2.0 / (m + n))
 end
+
+# --- Model Components ---
 
 mutable struct LayerNorm
     gamma::Vector{Float64}
