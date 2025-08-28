@@ -146,7 +146,7 @@ end
 
 Θ = (; (k => θ[k] for k in keys(θ))...)
 ∂Θ = map(zero, Θ)
-Enzyme.autodiff(Reverse, loss, Duplicated(Θ, ∂Θ), Const(x), Const(y))
+Enzyme.autodiff(Reverse, loss, Active, Duplicated(Θ, ∂Θ), Const(x), Const(y))
 
 # for epoch in 1:epochs
 #     ℓ, (∇θ,) = Zygote.withgradient(loss, θ)
