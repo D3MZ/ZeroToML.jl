@@ -43,19 +43,17 @@ end
 # Attention
 causal_mask(L) = tril(ones(Float32, L, L))
 
-function attention(Q, K, V; mask::Union{Function,Nothing}=nothing)
+apply_mask(S, mask) = ifelse.(mask(size(S, 1)) .== 1, S, -Inf)
+apply_mask(S, ::Nothing) = S
+
+function attention(Q, K, V; mask=nothing)
     S = (Q * K') ./ sqrt(eltype(Q)(size(K, 2)))
-
-    if mask !== nothing
-        M = mask(size(S, 1))
-        S = ifelse.(M .== 1, S, -Inf)
-    end
-
+    S = apply_mask(S, mask)
     return softmax(S) * V
 end
 
 # One pre-norm Transformer block (single-head for clarity)
-function transformer_block(X, θ; mask::Union{Function,Nothing}=nothing)
+function transformer_block(X, θ; mask=nothing)
     # Self-attention sublayer (pre-norm + residual)
     X₁ = layernorm(X, θ[:ln1_γ], θ[:ln1_β])
     Q  = X₁ * θ[:W_Q]'
