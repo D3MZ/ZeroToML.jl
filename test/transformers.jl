@@ -101,7 +101,7 @@ using LinearAlgebra, Random
     end
 
     @testset "Full training and generation" begin
-        input_text = "The quick brown fox jumps over the lazy dog. " ^ 100
+        input_text = "The quick brown fox jumps over the lazy dog. " ^ 3
         vocab = build_vocab(input_text)
         data = encode(input_text, vocab)
 
@@ -118,7 +118,7 @@ using LinearAlgebra, Random
 
         # Training parameters
         learning_rate = 1e-2
-        num_steps = 10000
+        num_steps = 100
         optimizer = Adam(lr=learning_rate)
 
         # Training loop
@@ -144,15 +144,14 @@ using LinearAlgebra, Random
         end
 
         # Generation
-        start_index = rand(1:(length(data) - block_size))
+        num_generate = 50
+        start_index = rand(1:(length(data) - block_size - num_generate + 1))
         context_indices = data[start_index:(start_index + block_size - 1)]
-        context_str = decode(context_indices, vocab)
-        
-        num_generate = 10
         generated_indices = generate(model, context_indices, num_generate; start_pos=start_index)
         generated_text = decode(generated_indices, vocab)
+        generated_continuation = decode(generated_indices[(block_size+1):end], vocab)
 
-        @info "Full training test generation" context=context_str generated=generated_text
+        @info "Full training test generation" context=decode(context_indices, vocab) generated=generated_continuation
         
         expected_indices = data[start_index:(start_index + block_size - 1 + num_generate)]
         @test generated_indices == expected_indices
