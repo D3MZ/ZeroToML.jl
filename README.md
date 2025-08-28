@@ -15,9 +15,9 @@ Yet another AI from scratch repo. This tests the from-scratch versions against e
 - [Transformer](notes/transformers.md)
 
 ### Roadmap:
+- [ ] Refactor to stateless
 - [ ] Breakout loss to it's own file and test
 - [ ] Transformers
   - [ ] Encoder vs Lux
   - [ ] Decoder vs Lux
   - [ ] Encode + Decode vs Lux
-  - [ ] Refactor
