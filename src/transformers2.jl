@@ -24,7 +24,7 @@ function positional_encoding(seq_len::Int, embed_size::Int)
 end
 
 # Weight initialization
-glorot(m, n) = (rand(Float64, m, n) .- 0.5) .* √(2.0 / (m + n))
+glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
 
 # Activation
 function softmax(M)
@@ -44,7 +44,7 @@ end
 causal_mask(L) = tril(ones(Float32, L, L))
 
 function attention(Q, K, V; mask::Union{Function,Nothing}=nothing)
-    S = (Q * K') ./ √(size(K, 2))
+    S = (Q * K') ./ sqrt(eltype(Q)(size(K, 2)))
 
     if mask !== nothing
         M = mask(size(S, 1))
@@ -91,7 +91,7 @@ encode(text, vocab)
 dₑ      = 8      # embedding dimension
 d_ff    = 16     # feed‑forward hidden dimension
 h       = 1      # number of heads (kept = 1 for clarity)
-η       = 1e-2   # ADAM learning rate
+η       = 1f-2   # ADAM learning rate
 epochs  = 500
 
 # --------------------
