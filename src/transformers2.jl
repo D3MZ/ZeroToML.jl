@@ -48,7 +48,7 @@ function attention(Q, K, V; mask::Union{Function,Nothing}=nothing)
 
     if mask !== nothing
         M = mask(size(S, 1))
-        S = ifelse.(M .== 1, S, oftype(S, -Inf))
+        S = ifelse.(M .== 1, S, -Inf)
     end
 
     return softmax(S) * V
@@ -72,11 +72,11 @@ function transformer_block(X, θ; mask::Union{Function,Nothing}=nothing)
 end
 
 # End-to-end single-layer decoder forward (emb + block + head)
-function decoder_forward(x, Θ)
-    L  = length(x)
-    X  = Θ[:E][x, :] .+ Θ[:P][1:L, :]
-    X  = transformer_block(X, Θ; mask=causal_mask)
-    logits = X * Θ[:W_out]' .+ Θ[:b_out]'      # (L × |vocab|)
+function forward(x, θ)
+    L = length(x)
+    X = θ[:E][x, :] .+ θ[:P][1:L, :]      # now both are (L×dₑ)
+    X = transformer_block(X, θ; mask=causal_mask)
+    logits = X * θ[:W_out]' .+ θ[:b_out]'
     return logits
 end
 
@@ -121,52 +121,55 @@ epochs  = 500
 # Core operations
 # --------------------
 
-const x_train = encode(text[1:end-1], vocab)
-const y_train = encode(text[2:end], vocab)
+x = encode(text[1:end-1], vocab)
+y = encode(text[2:end], vocab)
 
-function loss(θ)
-    ŷ = decoder_forward(x_train, θ)
+function loss(θ, x, y)
     ℓ = 0f0
-    for i in eachindex(y_train)
+    ŷ = forward(x, θ)
+    for i in eachindex(y)
         p = softmax(ŷ[i:i, :])[1, :]
-        ℓ -= log(p[y_train[i]])
+        ℓ -= log(p[y[i]])
     end
-    ℓ / length(y_train)
+    ℓ / length(y)
 end
+
+transformer_block(X, θ; mask=causal_mask)
+forward(x, θ)
 
 # --------------------
 # Optimisation loop
 # --------------------
-for epoch in 1:epochs
-    # compute scalar loss
-    ℓ = loss(θ)
+# for epoch in 1:epochs
+#     # compute scalar loss
+#     ℓ = loss(θ, x, y)    
+#     autodiff(Reverse, loss, )
+#     epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
+# end
 
-    # Enzyme reverse-mode gradient for each parameter array
-    for (k, v) in θ
-        if v isa AbstractArray{<:Real}
-            f = p -> begin
-                θ[k] = p
-                loss(θ)
-            end
-            ∇v = Enzyme.gradient(Enzyme.Reverse, f, Enzyme.Active(v))[1]
-            θ[k] .= v .- η .* ∇v
-        end
-    end
+Θ = (; (k => θ[k] for k in keys(θ))...)
+∂Θ = map(zero, Θ)
+Enzyme.autodiff(Reverse, loss, Duplicated(Θ, ∂Θ), Const(x), Const(y))
 
-    epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
-end
+# for epoch in 1:epochs
+#     ℓ, (∇θ,) = Zygote.withgradient(loss, θ)
+#     for (k, v) in θ
+#         θ[k] .= v .- η .* ∇θ[k]
+#     end
+#     epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
+# end
 
 # --------------------
 # Sampling
 # --------------------
-function generate(seed::Char, n::Int)
-    idx = [vocab_idx[seed]]
-    for _ in 1:n
-        logits = decoder_forward(idx, θ)
-        p = softmax(logits[end:end, :])[1, :]
-        push!(idx, sample(1:length(vocab), Weights(p)))
-    end
-    join(vocab[i] for i in idx)
-end
+# function generate(seed::Char, n::Int)
+#     idx = [vocab_idx[seed]]
+#     for _ in 1:n
+#         logits = forward(idx, θ)
+#         p = softmax(logits[end:end, :])[1, :]
+#         push!(idx, sample(1:length(vocab), Weights(p)))
+#     end
+#     join(vocab[i] for i in idx)
+# end
 
-@info "Sample: $(generate('A', 20))"
+# @info "Sample: $(generate('A', 20))"
