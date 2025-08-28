@@ -134,9 +134,6 @@ function loss(θ, x, y)
     ℓ / length(y)
 end
 
-transformer_block(X, θ; mask=causal_mask)
-forward(x, θ)
-
 # --------------------
 # Optimisation loop
 # --------------------
