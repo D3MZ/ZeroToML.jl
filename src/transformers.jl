@@ -1,5 +1,9 @@
 # --- Model Components ---
 
+@fastmath function glorot(m, n)
+    (rand(Float64, m, n) .- 0.5) .* √(2.0 / (m + n))
+end
+
 mutable struct LayerNorm
     gamma::Vector{Float64}
     beta::Vector{Float64}
@@ -81,11 +85,10 @@ mutable struct MultiHeadAttention
         @assert embed_size % num_heads == 0
         head_dim = embed_size ÷ num_heads
         
-        limit = sqrt(3.0 / embed_size)
-        W_q = rand(Float64, embed_size, embed_size) .* 2 .* limit .- limit
-        W_k = rand(Float64, embed_size, embed_size) .* 2 .* limit .- limit
-        W_v = rand(Float64, embed_size, embed_size) .* 2 .* limit .- limit
-        W_o = rand(Float64, embed_size, embed_size) .* 2 .* limit .- limit
+        W_q = glorot(embed_size, embed_size)
+        W_k = glorot(embed_size, embed_size)
+        W_v = glorot(embed_size, embed_size)
+        W_o = glorot(embed_size, embed_size)
 
         ∇W_q = zeros(size(W_q))
         ∇W_k = zeros(size(W_k))
@@ -150,12 +153,10 @@ mutable struct FeedForward
     v_b2::Vector{Float64}
 
     function FeedForward(embed_size::Int, hidden_size::Int)
-        limit1 = sqrt(6.0 / (embed_size + hidden_size))
-        W1 = rand(Float64, hidden_size, embed_size) .* 2 .* limit1 .- limit1
+        W1 = glorot(hidden_size, embed_size)
         b1 = zeros(hidden_size)
         
-        limit2 = sqrt(6.0 / (hidden_size + embed_size))
-        W2 = rand(Float64, embed_size, hidden_size) .* 2 .* limit2 .- limit2
+        W2 = glorot(embed_size, hidden_size)
         b2 = zeros(embed_size)
         
         ∇W1 = zeros(size(W1)); ∇b1 = zeros(size(b1))
@@ -249,8 +250,7 @@ mutable struct Transformer
         blocks = [TransformerBlock(embed_size, num_heads, ff_hidden_size) for _ in 1:num_layers]
         ln_final = LayerNorm(embed_size)
         
-        limit_head = sqrt(6.0 / (embed_size + vocab_size))
-        lm_head = rand(Float64, vocab_size, embed_size) .* 2 .* limit_head .- limit_head
+        lm_head = glorot(vocab_size, embed_size)
         
         ∇token_embedding = zeros(size(token_embedding))
         ∇lm_head = zeros(size(lm_head))
