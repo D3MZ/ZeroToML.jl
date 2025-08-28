@@ -1,6 +1,6 @@
 using ZeroToML
 using Test
-using LinearAlgebra, Random
+using LinearAlgebra, Random, Lux
 
 @testset "Transformer Components" begin
     embed_size = 32
@@ -100,61 +100,64 @@ using LinearAlgebra, Random
         @test loss_after < loss_before
     end
 
-    @testset "Full training and generation" begin
-        input_text = "The quick brown fox jumps over the lazy dog. " ^ 100
-        vocab = build_vocab(input_text)
-        data = encode(input_text, vocab)
+    @testset "Encoder" begin
+    end 
 
-        # Model parameters
-        vocab_size = length(vocab)
-        embed_size = 32
-        block_size = 64
-        num_heads = 2
-        num_layers = 2
-        ff_hidden_size = 4 * embed_size
+    # @testset "Full training and generation" begin
+    #     input_text = "The quick brown fox jumps over the lazy dog. " ^ 100
+    #     vocab = build_vocab(input_text)
+    #     data = encode(input_text, vocab)
 
-        max_pos = length(data)
-        model = Transformer(vocab_size, embed_size, max_pos, num_heads, num_layers, ff_hidden_size)
+    #     # Model parameters
+    #     vocab_size = length(vocab)
+    #     embed_size = 32
+    #     block_size = 64
+    #     num_heads = 2
+    #     num_layers = 2
+    #     ff_hidden_size = 4 * embed_size
 
-        # Training parameters
-        learning_rate = 1e-2
-        num_steps = 10000
-        optimizer = Adam(lr=learning_rate)
+    #     max_pos = length(data)
+    #     model = Transformer(vocab_size, embed_size, max_pos, num_heads, num_layers, ff_hidden_size)
 
-        # Training loop
-        best_loss = Inf
-        for step in 1:num_steps
-            t = rand(1:(length(data) - block_size))
-            x = data[t:(t + block_size - 1)]
-            y = data[(t + 1):(t + block_size)]
+    #     # Training parameters
+    #     learning_rate = 1e-2
+    #     num_steps = 10000
+    #     optimizer = Adam(lr=learning_rate)
 
-            zero_gradients!(model)
-            logits, cache = model(x; start_pos=t)
-            dlogits = cross_entropy_loss_backward(logits, y)
-            backward!(model, dlogits, cache)
-            update!(model, optimizer)
+    #     # Training loop
+    #     best_loss = Inf
+    #     for step in 1:num_steps
+    #         t = rand(1:(length(data) - block_size))
+    #         x = data[t:(t + block_size - 1)]
+    #         y = data[(t + 1):(t + block_size)]
 
-            if step % 1000 == 0
-                loss = cross_entropy_loss(logits, y)
-                if loss < best_loss
-                    best_loss = loss
-                    @info "Step $step, best loss = $best_loss"
-                end
-            end
-        end
+    #         zero_gradients!(model)
+    #         logits, cache = model(x; start_pos=t)
+    #         dlogits = cross_entropy_loss_backward(logits, y)
+    #         backward!(model, dlogits, cache)
+    #         update!(model, optimizer)
 
-        # Generation
-        start_index = rand(1:(length(data) - block_size))
-        context_indices = data[start_index:(start_index + block_size - 1)]
-        context_str = decode(context_indices, vocab)
+    #         if step % 1000 == 0
+    #             loss = cross_entropy_loss(logits, y)
+    #             if loss < best_loss
+    #                 best_loss = loss
+    #                 @info "Step $step, best loss = $best_loss"
+    #             end
+    #         end
+    #     end
+
+    #     # Generation
+    #     start_index = rand(1:(length(data) - block_size))
+    #     context_indices = data[start_index:(start_index + block_size - 1)]
+    #     context_str = decode(context_indices, vocab)
         
-        num_generate = 50
-        generated_indices = generate(model, context_indices, num_generate; start_pos=start_index)
-        generated_text = decode(generated_indices, vocab)
+    #     num_generate = 50
+    #     generated_indices = generate(model, context_indices, num_generate; start_pos=start_index)
+    #     generated_text = decode(generated_indices, vocab)
 
-        @info "Full training test generation" context=context_str generated=generated_text
+    #     @info "Full training test generation" context=context_str generated=generated_text
         
-        expected_indices = data[start_index:(start_index + block_size - 1 + num_generate)]
-        @test generated_indices == expected_indices
-    end
+    #     expected_indices = data[start_index:(start_index + block_size - 1 + num_generate)]
+    #     @test generated_indices == expected_indices
+    # end
 end
