@@ -1,5 +1,7 @@
 using StatsBase
-using Random, Logging, LinearAlgebra, Statistics, Enzyme
+using Random, Logging, LinearAlgebra, Statistics
+# using Enzyme # Compile time not worth the speed boost for simple projects
+using Zygote
 
 # Tokenizer Functions
 build_vocab(text) = sort(unique(collect(text)))
@@ -27,9 +29,9 @@ end
 glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
 
 # Activation
-function softmax(M)
-    ex = exp.(M .- maximum(M; dims = 2))
-    ex ./ sum(ex; dims = 2)
+function softmax(M; dims=2)
+    ex = exp.(M .- maximum(M; dims))
+    ex ./ sum(ex; dims)
 end
 
 # LayerNorm (per-token over features)
@@ -41,26 +43,32 @@ function layernorm(X, γ, β; ϵ::Float32=1f-5)
 end
 
 # Attention
-causal_mask(L) = tril(ones(Float32, L, L))
+# causal_mask(L) = triu(fill(-Inf, L, L), 1)
 
-apply_mask(S, mask) = ifelse.(mask(size(S, 1)) .== 1, S, -Inf)
-apply_mask(S, ::Nothing) = S
-
-function attention(Q, K, V; mask=nothing)
-    S = (Q * K') ./ sqrt(eltype(Q)(size(K, 2)))
-    S = apply_mask(S, mask)
-    return softmax(S) * V
-end
+# function attention(Q, K, V)
+#     d_k = size(K, 2)
+#     S = (Q * K') ./ sqrt(eltype(Q)(d_k))
+#     L = size(Q, 1)
+#     S .+= causal_mask(L)
+#     return softmax(S; dims=2) * V
+# end
 
 # One pre-norm Transformer block (single-head for clarity)
-function transformer_block(X, θ; mask=nothing)
+function transformer_block(X, θ)
     # Self-attention sublayer (pre-norm + residual)
     X₁ = layernorm(X, θ[:ln1_γ], θ[:ln1_β])
     Q  = X₁ * θ[:W_Q]'
     K  = X₁ * θ[:W_K]'
-    Vh = X₁ * θ[:W_V]'
-    Z  = attention(Q, K, Vh; mask=mask) * θ[:W_O]'
-    X̃  = X .+ Z
+    V = X₁ * θ[:W_V]'
+
+    # Attention 
+    d_k = size(K, 2)
+    S = (Q * K') ./ sqrt(d_k)
+    L = size(Q, 1)
+    S .+= triu(fill(-Inf, L, L), 1) # causal mask
+    Z = softmax(S; dims=2) * V * θ[:W_O]'
+
+    X̃  = X .+ Z # Add residual (skip) connections
 
     # MLP sublayer (pre-norm + residual)
     X₂ = layernorm(X̃, θ[:ln2_γ], θ[:ln2_β])
@@ -73,7 +81,7 @@ end
 function forward(x, θ)
     L = length(x)
     X = θ[:E][x, :] .+ θ[:P][1:L, :]      # now both are (L×dₑ)
-    X = transformer_block(X, θ; mask=causal_mask)
+    X = transformer_block(X, θ)
     logits = X * θ[:W_out]' .+ θ[:b_out]'
     return logits
 end
@@ -89,7 +97,7 @@ encode(text, vocab)
 dₑ      = 8      # embedding dimension
 d_ff    = 16     # feed‑forward hidden dimension
 h       = 1      # number of heads (kept = 1 for clarity)
-η       = 1f-2   # ADAM learning rate
+η       = 1f-2   # learning rate
 epochs  = 500
 
 # --------------------
@@ -132,27 +140,16 @@ function loss(θ, x, y)
     ℓ / length(y)
 end
 
-# --------------------
+
 # Optimisation loop
-# --------------------
-# for epoch in 1:epochs
-#     # compute scalar loss
-#     ℓ = loss(θ, x, y)    
-#     autodiff(Reverse, loss, )
-#     epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
-# end
 
-Θ = (; (k => θ[k] for k in keys(θ))...)
-∂Θ = map(zero, Θ)
-Enzyme.autodiff(Reverse, loss, Active, Duplicated(Θ, ∂Θ), Const(x), Const(y))
-
-# for epoch in 1:epochs
-#     ℓ, (∇θ,) = Zygote.withgradient(loss, θ)
-#     for (k, v) in θ
-#         θ[k] .= v .- η .* ∇θ[k]
-#     end
-#     epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
-# end
+for epoch in 1:epochs
+    ℓ, (∇θ,) = Zygote.withgradient(loss, θ, x, y)
+    for (k, v) in θ
+        θ[k] .= v .- η .* ∇θ[k]
+    end
+    epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
+end
 
 # --------------------
 # Sampling
