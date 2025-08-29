@@ -1,5 +1,6 @@
 using ZeroToML
 using Test
+using Statistics
 
 @testset "Decoder" begin
     text = "ABABAABBAAABBB"
