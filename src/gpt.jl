@@ -71,10 +71,11 @@ d_ff    = 16
 h       = 1
 η       = 1f-2
 epochs  = 500
+max_seq_len = 100
 
 θ = Dict{Symbol, Any}(
     :E     => glorot(length(vocab), dₑ),
-    :P     => positional_encoding(length(text), dₑ),
+    :P     => positional_encoding(max_seq_len, dₑ),
     :W_Q   => glorot(dₑ, dₑ),
     :W_K   => glorot(dₑ, dₑ),
     :W_V   => glorot(dₑ, dₑ),
