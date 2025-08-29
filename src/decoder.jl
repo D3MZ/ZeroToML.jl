@@ -69,23 +69,14 @@ function loss(θ, x, y)
     -mean(correct_log_probs)
 end
 
-function train!(model, x, y, epochs, η)
+function train(model, x, y, epochs, η)
     losses = Vector{Float32}(undef, epochs)
-    for i in eachindex(losses)
-        losses[i], (∇model,) = withgradient(m -> loss(m, x, y), model)
-        model = map((p, g) -> p .- η .* g, model, ∇model)
+    final_model = foldl(eachindex(losses); init=model) do m, i
+        losses[i], (∇,) = withgradient(mm -> loss(mm, x, y), m)
+        map((p, g) -> p .- η .* g, m, ∇)
     end
-    return losses, model
+    return losses, final_model
 end
-
-# function train(model, x, y, epochs, η)
-#     foldl(1:epochs; init=model) do m, epoch
-#         ℓ, (∇,) = withgradient(mm -> loss(mm, x, y), m)
-#         next_model = map((p, g) -> p .- η .* g, m, ∇)
-#         epoch % 50 == 0 && @info "epoch=$epoch loss=$(ℓ)"
-#         next_model
-#     end
-# end
 
 function generate(model, vocab, seed; n::Int=20)
     idx = [findfirst(==(seed), vocab)]
