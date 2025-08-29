@@ -17,5 +17,5 @@ using BenchmarkTools
     @info sample
     @test loss(model, x, y) < 1
     
-    @btime train!(model, x, y, epochs, learning_rate)
+    @btime train!($model, $x, $y, $epochs, $learning_rate)
 end
