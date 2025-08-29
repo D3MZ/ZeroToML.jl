@@ -88,6 +88,7 @@ end
 
 text = "ABABAABBAAABBB"
 vocab = build_vocab(text)
+vocab_idx = Dict(c => i for (i, c) in enumerate(vocab))
 encode(text, vocab)
 
 # --------------------
