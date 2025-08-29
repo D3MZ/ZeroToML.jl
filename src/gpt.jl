@@ -12,11 +12,11 @@ function decode(encoded_text, vocab)
 end
 
 function positional_encoding(seq_len, embed_size)
-    PE = zeros(embed_size, seq_len)
+    PE = zeros(Float32, seq_len, embed_size)
     pos = reshape(1:seq_len, seq_len, 1)
-    div_term = exp.((0:2:embed_size-1) .* -(log(10000.0) / embed_size))'
-    PE[1:2:end, :] = sin.(pos * div_term)'
-    PE[2:2:end, :] = cos.(pos * div_term)'
+    div_term = exp.((0:2:embed_size-1) .* -(log(10000.0f0) / embed_size))'
+    PE[:, 1:2:end] = sin.(pos * div_term)
+    PE[:, 2:2:end] = cos.(pos * div_term)
     return PE
 end
 
@@ -65,7 +65,6 @@ end
 text = "ABABAABBAAABBB"
 vocab = build_vocab(text)
 vocab_idx = Dict(c => i for (i, c) in enumerate(vocab))
-encode(text, vocab)
 
 dₑ      = 8
 d_ff    = 16
@@ -75,7 +74,7 @@ epochs  = 500
 
 θ = Dict{Symbol, Any}(
     :E     => glorot(length(vocab), dₑ),
-    :P     => glorot(length(text), dₑ),
+    :P     => positional_encoding(length(text), dₑ),
     :W_Q   => glorot(dₑ, dₑ),
     :W_K   => glorot(dₑ, dₑ),
     :W_V   => glorot(dₑ, dₑ),
@@ -106,6 +105,7 @@ end
 for epoch in 1:epochs
     ℓ, (∇θ,) = Zygote.withgradient(loss, θ, x, y)
     for (k, v) in θ
+        ∇θ[k] === nothing && continue
         θ[k] = v .- η .* ∇θ[k]
     end
     epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
