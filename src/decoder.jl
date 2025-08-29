@@ -69,18 +69,11 @@ function loss(θ, x, y)
     -mean(correct_log_probs)
 end
 
-function update(model, ∇model, η)
-    return map(model, ∇model) do param, grad
-        param .- η .* grad
-        # grad === nothing ? param : param .- η .* grad
-    end
-end
-
 function train!(model, x, y, epochs, η)
     losses = Vector{Float32}(undef, epochs)
     for i in eachindex(losses)
         losses[i], (∇model,) = withgradient(m -> loss(m, x, y), model)
-        model = update(model, ∇model, η)
+        model = model .- η .* ∇model
     end
     return losses, model
 end
@@ -88,7 +81,7 @@ end
 # function train(model, x, y, epochs, η)
 #     foldl(1:epochs; init=model) do m, epoch
 #         ℓ, (∇,) = withgradient(mm -> loss(mm, x, y), m)
-#         next_model = update(m, ∇, η)
+#         next_model = m .- η .* ∇
 #         epoch % 50 == 0 && @info "epoch=$epoch loss=$(ℓ)"
 #         next_model
 #     end
