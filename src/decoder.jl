@@ -74,7 +74,7 @@ end
 
 function forward(x, θ::Parameters)
     L = length(x)
-    X = θ.E[x, :] .+ θ.P[1:L, :]
+    X = θ.E[x, :] .+ θ.P[:, 1:L]'
     X = transformer_block(X, θ)
     logits = X * θ.W_out' .+ θ.b_out'
     return logits
@@ -99,7 +99,7 @@ end
 
 function train!(model, x, y, epochs, η)
     losses = Vector{Float32}(undef, epochs)
-    for i in eachindex(epochs)
+    for i in 1:epochs
         l, (∇model,) = withgradient(m -> loss(m, x, y), model)
         update!(model, ∇model, η)
         losses[i] = l
