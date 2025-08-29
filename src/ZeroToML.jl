@@ -1,6 +1,6 @@
 module ZeroToML
 
-using LinearAlgebra, Random, Statistics, Logging
+using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
 include("activations.jl")
 export softmax
@@ -16,6 +16,6 @@ include("optimizers.jl")
 #        generate
 
 include("decoder.jl")
-export Parameters, forward, loss, train!
+export Parameters, forward, loss, train!, generate
 
 end

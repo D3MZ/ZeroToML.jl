@@ -1,5 +1,3 @@
-using Random, Logging, LinearAlgebra, Statistics, Zygote
-
 @kwdef mutable struct Parameters{T}
     E::Matrix{T}
     P::Matrix{T}
@@ -109,8 +107,8 @@ function train!(model, x, y, epochs, η)
     return losses, model
 end
 
-function generate(model, seed, n)
-    idx = [vocab_idx[seed]]
+function generate(model, vocab, seed; n::Int=20)
+    idx = [findfirst(==(seed), vocab)]
     for _ in 1:n
         logits = forward(idx, model)
         p = softmax(logits[end:end, :])[1, :]
