@@ -38,7 +38,8 @@ mutable struct Parameters
     W_out::Matrix{Float32}
     b_out::Vector{Float32}
 
-    function Parameters(vocab_size, dₑ, d_ff, max_seq_len)
+    function Parameters(vocab, dₑ=8, d_ff=16, max_seq_len=100)
+        vocab_size = length(vocab)
         new(
             glorot(vocab_size, dₑ),
             positional_encoding(max_seq_len, dₑ),
@@ -106,14 +107,10 @@ text = "ABABAABBAAABBB"
 vocab = build_vocab(text)
 vocab_idx = Dict(c => i for (i, c) in enumerate(vocab))
 
-dₑ      = 8
-d_ff    = 16
-h       = 1
 η       = 1f-2
 epochs  = 500
-max_seq_len = 100
 
-model = Parameters(length(vocab), dₑ, d_ff, max_seq_len)
+model = Parameters(vocab)
 
 x = encode(text[1:end-1], vocab)
 y = encode(text[2:end], vocab)
