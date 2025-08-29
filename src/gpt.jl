@@ -37,6 +37,27 @@ mutable struct Parameters
     b₂::Vector{Float32}
     W_out::Matrix{Float32}
     b_out::Vector{Float32}
+
+    function Parameters(vocab_size, dₑ, d_ff, max_seq_len)
+        new(
+            glorot(vocab_size, dₑ),
+            positional_encoding(max_seq_len, dₑ),
+            glorot(dₑ, dₑ),
+            glorot(dₑ, dₑ),
+            glorot(dₑ, dₑ),
+            glorot(dₑ, dₑ),
+            ones(Float32, dₑ),
+            zeros(Float32, dₑ),
+            ones(Float32, dₑ),
+            zeros(Float32, dₑ),
+            glorot(d_ff, dₑ),
+            zeros(Float32, d_ff),
+            glorot(dₑ, d_ff),
+            zeros(Float32, dₑ),
+            glorot(vocab_size, dₑ),
+            zeros(Float32, vocab_size),
+        )
+    end
 end
 
 glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
@@ -92,24 +113,7 @@ h       = 1
 epochs  = 500
 max_seq_len = 100
 
-model = Parameters(
-    glorot(length(vocab), dₑ),
-    positional_encoding(max_seq_len, dₑ),
-    glorot(dₑ, dₑ),
-    glorot(dₑ, dₑ),
-    glorot(dₑ, dₑ),
-    glorot(dₑ, dₑ),
-    ones(Float32, dₑ),
-    zeros(Float32, dₑ),
-    ones(Float32, dₑ),
-    zeros(Float32, dₑ),
-    glorot(d_ff, dₑ),
-    zeros(Float32, d_ff),
-    glorot(dₑ, d_ff),
-    zeros(Float32, dₑ),
-    glorot(length(vocab), dₑ),
-    zeros(Float32, length(vocab)),
-)
+model = Parameters(length(vocab), dₑ, d_ff, max_seq_len)
 
 x = encode(text[1:end-1], vocab)
 y = encode(text[2:end], vocab)
