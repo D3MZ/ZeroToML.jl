@@ -99,13 +99,29 @@ end
 
 function train!(model, x, y, epochs, η)
     losses = Vector{Float32}(undef, epochs)
-    for i in 1:epochs
-        l, (∇model,) = withgradient(m -> loss(m, x, y), model)
+    for i in eachindex(losses)
+        losses[i], (∇model,) = withgradient(m -> loss(m, x, y), model)
         update!(model, ∇model, η)
-        losses[i] = l
     end
     return losses, model
 end
+
+# function train(model::Parameters{T}, x, y, epochs::Int, η::T) where {T}
+#     foldl(1:epochs; init=model) do m, epoch
+#         ℓ, ∇ = withgradient(mm -> loss(mm, x, y), m)
+
+#         vals_model = Tuple(m)
+#         vals_grad  = Tuple(∇)
+
+#         next_vals = ntuple(i -> vals_model[i] .- η .* vals_grad[i],
+#                            length(vals_model))
+
+#         next_model = Parameters{T}(next_vals...)
+
+#         epoch % 50 == 0 && @info "epoch=$epoch loss=$(ℓ)"
+#         next_model
+#     end
+# end
 
 function generate(model, vocab, seed; n::Int=20)
     idx = [findfirst(==(seed), vocab)]
