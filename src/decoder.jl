@@ -73,7 +73,7 @@ function train!(model, x, y, epochs, η)
     losses = Vector{Float32}(undef, epochs)
     for i in eachindex(losses)
         losses[i], (∇model,) = withgradient(m -> loss(m, x, y), model)
-        model = model .- η .* ∇model
+        model = map((p, g) -> p .- η .* g, model, ∇model)
     end
     return losses, model
 end
@@ -81,7 +81,7 @@ end
 # function train(model, x, y, epochs, η)
 #     foldl(1:epochs; init=model) do m, epoch
 #         ℓ, (∇,) = withgradient(mm -> loss(mm, x, y), m)
-#         next_model = m .- η .* ∇
+#         next_model = map((p, g) -> p .- η .* g, m, ∇)
 #         epoch % 50 == 0 && @info "epoch=$epoch loss=$(ℓ)"
 #         next_model
 #     end
