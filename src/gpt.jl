@@ -1,25 +1,5 @@
 using StatsBase, Random, Logging, LinearAlgebra, Statistics, Zygote
 
-build_vocab(text) = sort(unique(collect(text)))
-
-function encode(text, vocab)
-    char_to_int = Dict(c => i for (i, c) in enumerate(vocab))
-    [char_to_int[c] for c in text]
-end
-
-function decode(encoded_text, vocab)
-    join([vocab[i] for i in encoded_text])
-end
-
-function positional_encoding(seq_len, embed_size)
-    PE = zeros(Float32, seq_len, embed_size)
-    pos = reshape(1:seq_len, seq_len, 1)
-    div_term = exp.((0:2:embed_size-1) .* -(log(10000.0f0) / embed_size))'
-    PE[:, 1:2:end] = sin.(pos * div_term)
-    PE[:, 2:2:end] = cos.(pos * div_term)
-    return PE
-end
-
 @kwdef mutable struct Parameters{T}
     E::Matrix{T}
     P::Matrix{T}
@@ -59,6 +39,26 @@ function Parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
         W_out = glorot(vocab_size, dₑ),
         b_out = zeros(Float32, vocab_size),
     )
+end
+
+build_vocab(text) = sort(unique(collect(text)))
+
+function encode(text, vocab)
+    char_to_int = Dict(c => i for (i, c) in enumerate(vocab))
+    [char_to_int[c] for c in text]
+end
+
+function decode(encoded_text, vocab)
+    join([vocab[i] for i in encoded_text])
+end
+
+function positional_encoding(seq_len, embed_size)
+    PE = zeros(Float32, seq_len, embed_size)
+    pos = reshape(1:seq_len, seq_len, 1)
+    div_term = exp.((0:2:embed_size-1) .* -(log(10000.0f0) / embed_size))'
+    PE[:, 1:2:end] = sin.(pos * div_term)
+    PE[:, 2:2:end] = cos.(pos * div_term)
+    return PE
 end
 
 glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
@@ -103,18 +103,6 @@ function forward(x, θ::Parameters)
     return logits
 end
 
-text = "ABABAABBAAABBB"
-vocab = build_vocab(text)
-vocab_idx = Dict(c => i for (i, c) in enumerate(vocab))
-
-η       = 1f-2
-epochs  = 500
-
-model = Parameters(vocab)
-
-x = encode(text[1:end-1], vocab)
-y = encode(text[2:end], vocab)
-
 function loss(θ::Parameters, x, y)
     ŷ = forward(x, θ)
     max_ŷ = maximum(ŷ; dims=2)
@@ -150,6 +138,18 @@ function generate(model, seed, n)
     end
     join(vocab[i] for i in idx)
 end
+
+text = "ABABAABBAAABBB"
+vocab = build_vocab(text)
+vocab_idx = Dict(c => i for (i, c) in enumerate(vocab))
+
+η       = 1f-2
+epochs  = 500
+
+model = Parameters(vocab)
+
+x = encode(text[1:end-1], vocab)
+y = encode(text[2:end], vocab)
 
 train!(model, x, y, epochs, η)                                                                      
 
