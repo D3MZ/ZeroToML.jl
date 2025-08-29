@@ -71,7 +71,8 @@ end
 
 function update(model, ∇model, η)
     return map(model, ∇model) do param, grad
-        grad === nothing ? param : param .- η .* grad
+        param .- η .* grad
+        # grad === nothing ? param : param .- η .* grad
     end
 end
 
