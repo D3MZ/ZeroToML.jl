@@ -123,15 +123,19 @@ function loss(θ::Parameters, x, y)
     -mean(correct_log_probs)
 end
 
+function update!(model::Parameters, ∇model, η)
+    for name in fieldnames(Parameters)
+        grad = getfield(∇model, name)
+        grad === nothing && continue
+        param = getfield(model, name)
+        setfield!(model, name, param .- η .* grad)
+    end
+end
+
 function train!(model, x, y, epochs, η)
     for epoch in 1:epochs
         ℓ, (∇model,) = Zygote.withgradient(loss, model, x, y)
-        for name in fieldnames(Parameters)
-            grad = getfield(∇model, name)
-            grad === nothing && continue
-            param = getfield(model, name)
-            setfield!(model, name, param .- η .* grad)
-        end
+        update!(model, ∇model, η)
         epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
     end
     return model
