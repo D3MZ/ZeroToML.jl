@@ -20,23 +20,23 @@ function positional_encoding(seq_len, embed_size)
     return PE
 end
 
-Base.@kwdef mutable struct Parameters
-    E::Matrix{Float32}
-    P::Matrix{Float32}
-    W_Q::Matrix{Float32}
-    W_K::Matrix{Float32}
-    W_V::Matrix{Float32}
-    W_O::Matrix{Float32}
-    ln1_γ::Vector{Float32}
-    ln1_β::Vector{Float32}
-    ln2_γ::Vector{Float32}
-    ln2_β::Vector{Float32}
-    W₁::Matrix{Float32}
-    b₁::Vector{Float32}
-    W₂::Matrix{Float32}
-    b₂::Vector{Float32}
-    W_out::Matrix{Float32}
-    b_out::Vector{Float32}
+@kwdef mutable struct Parameters{T}
+    E::Matrix{T}
+    P::Matrix{T}
+    W_Q::Matrix{T}
+    W_K::Matrix{T}
+    W_V::Matrix{T}
+    W_O::Matrix{T}
+    ln1_γ::Vector{T}
+    ln1_β::Vector{T}
+    ln2_γ::Vector{T}
+    ln2_β::Vector{T}
+    W₁::Matrix{T}
+    b₁::Vector{T}
+    W₂::Matrix{T}
+    b₂::Vector{T}
+    W_out::Matrix{T}
+    b_out::Vector{T}
 end
 
 function Parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
@@ -147,6 +147,6 @@ function generate(model, seed, n)
     join(vocab[i] for i in idx)
 end
 
-train!(model, x, y, epochs, η)
+@code_warntype train!(model, x, y, epochs, η)
 
-@info "Sample: $(generate(model, 'A', 20))"
+# @info "Sample: $(generate(model, 'A', 20))"
