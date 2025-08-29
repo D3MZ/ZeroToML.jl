@@ -20,7 +20,7 @@ function positional_encoding(seq_len, embed_size)
     return PE
 end
 
-mutable struct Parameters
+Base.@kwdef mutable struct Parameters
     E::Matrix{Float32}
     P::Matrix{Float32}
     W_Q::Matrix{Float32}
@@ -37,28 +37,28 @@ mutable struct Parameters
     b₂::Vector{Float32}
     W_out::Matrix{Float32}
     b_out::Vector{Float32}
+end
 
-    function Parameters(vocab, dₑ=8, d_ff=16, max_seq_len=100)
-        vocab_size = length(vocab)
-        new(
-            glorot(vocab_size, dₑ),
-            positional_encoding(max_seq_len, dₑ),
-            glorot(dₑ, dₑ),
-            glorot(dₑ, dₑ),
-            glorot(dₑ, dₑ),
-            glorot(dₑ, dₑ),
-            ones(Float32, dₑ),
-            zeros(Float32, dₑ),
-            ones(Float32, dₑ),
-            zeros(Float32, dₑ),
-            glorot(d_ff, dₑ),
-            zeros(Float32, d_ff),
-            glorot(dₑ, d_ff),
-            zeros(Float32, dₑ),
-            glorot(vocab_size, dₑ),
-            zeros(Float32, vocab_size),
-        )
-    end
+function Parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
+    vocab_size = length(vocab)
+    Parameters(
+        E = glorot(vocab_size, dₑ),
+        P = positional_encoding(max_seq_len, dₑ),
+        W_Q = glorot(dₑ, dₑ),
+        W_K = glorot(dₑ, dₑ),
+        W_V = glorot(dₑ, dₑ),
+        W_O = glorot(dₑ, dₑ),
+        ln1_γ = ones(Float32, dₑ),
+        ln1_β = zeros(Float32, dₑ),
+        ln2_γ = ones(Float32, dₑ),
+        ln2_β = zeros(Float32, dₑ),
+        W₁ = glorot(d_ff, dₑ),
+        b₁ = zeros(Float32, d_ff),
+        W₂ = glorot(dₑ, d_ff),
+        b₂ = zeros(Float32, dₑ),
+        W_out = glorot(vocab_size, dₑ),
+        b_out = zeros(Float32, vocab_size),
+    )
 end
 
 glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
