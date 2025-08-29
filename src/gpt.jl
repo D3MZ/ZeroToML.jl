@@ -1,9 +1,5 @@
-using StatsBase
-using Random, Logging, LinearAlgebra, Statistics
-# using Enzyme # Compile time not worth the speed boost for simple projects
-using Zygote
+using StatsBase, Random, Logging, LinearAlgebra, Statistics, Zygote
 
-# Tokenizer Functions
 build_vocab(text) = sort(unique(collect(text)))
 
 function encode(text, vocab)
@@ -15,8 +11,7 @@ function decode(encoded_text, vocab)
     join([vocab[i] for i in encoded_text])
 end
 
-# Positional Encoding functions
-function positional_encoding(seq_len::Int, embed_size::Int)
+function positional_encoding(seq_len, embed_size)
     PE = zeros(embed_size, seq_len)
     pos = reshape(1:seq_len, seq_len, 1)
     div_term = exp.((0:2:embed_size-1) .* -(log(10000.0) / embed_size))'
@@ -25,62 +20,43 @@ function positional_encoding(seq_len::Int, embed_size::Int)
     return PE
 end
 
-# Weight initialization
 glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
 
-# Activation
 function softmax(M; dims=2)
     ex = exp.(M .- maximum(M; dims))
     ex ./ sum(ex; dims)
 end
 
-# LayerNorm (per-token over features)
-function layernorm(X, γ, β; ϵ::Float32=1f-5)
+function layernorm(X, γ, β; ϵ=1f-5)
     μ  = mean(X; dims=2)
     σ2 = var(X; dims=2, corrected=false)
     X̂  = (X .- μ) ./ sqrt.(σ2 .+ ϵ)
     return X̂ .* γ' .+ β'
 end
 
-# Attention
-# causal_mask(L) = triu(fill(-Inf, L, L), 1)
-
-# function attention(Q, K, V)
-#     d_k = size(K, 2)
-#     S = (Q * K') ./ sqrt(eltype(Q)(d_k))
-#     L = size(Q, 1)
-#     S .+= causal_mask(L)
-#     return softmax(S; dims=2) * V
-# end
-
-# One pre-norm Transformer block (single-head for clarity)
 function transformer_block(X, θ)
-    # Self-attention sublayer (pre-norm + residual)
     X₁ = layernorm(X, θ[:ln1_γ], θ[:ln1_β])
     Q  = X₁ * θ[:W_Q]'
     K  = X₁ * θ[:W_K]'
     V = X₁ * θ[:W_V]'
 
-    # Attention 
     d_k = size(K, 2)
     S = (Q * K') ./ sqrt(d_k)
     L = size(Q, 1)
-    S = S .+ triu(fill(-Inf, L, L), 1) # causal mask
+    S = S .+ triu(fill(-Inf, L, L), 1)
     Z = softmax(S; dims=2) * V * θ[:W_O]'
 
-    X̃  = X .+ Z # Add residual (skip) connections
+    X̃  = X .+ Z
 
-    # MLP sublayer (pre-norm + residual)
     X₂ = layernorm(X̃, θ[:ln2_γ], θ[:ln2_β])
-    H₁ = max.(X₂ * θ[:W₁]' .+ θ[:b₁]', 0f0)   # L × d_ff
-    H₂ = H₁ * θ[:W₂]' .+ θ[:b₂]'              # L × dₑ
-    return X̃ .+ H₂                            # L × dₑ
+    H₁ = max.(X₂ * θ[:W₁]' .+ θ[:b₁]', 0f0)
+    H₂ = H₁ * θ[:W₂]' .+ θ[:b₂]'
+    return X̃ .+ H₂
 end
 
-# End-to-end single-layer decoder forward (emb + block + head)
 function forward(x, θ)
     L = length(x)
-    X = θ[:E][x, :] .+ θ[:P][1:L, :]      # now both are (L×dₑ)
+    X = θ[:E][x, :] .+ θ[:P][1:L, :]
     X = transformer_block(X, θ)
     logits = X * θ[:W_out]' .+ θ[:b_out]'
     return logits
@@ -91,22 +67,15 @@ vocab = build_vocab(text)
 vocab_idx = Dict(c => i for (i, c) in enumerate(vocab))
 encode(text, vocab)
 
-# --------------------
-# Hyper‑parameters
-# --------------------
-dₑ      = 8      # embedding dimension
-d_ff    = 16     # feed‑forward hidden dimension
-h       = 1      # number of heads (kept = 1 for clarity)
-η       = 1f-2   # learning rate
+dₑ      = 8
+d_ff    = 16
+h       = 1
+η       = 1f-2
 epochs  = 500
 
-# --------------------
-# Parameter initialisation
-# --------------------
-
 θ = Dict{Symbol, Any}(
-    :E     => glorot(length(vocab), dₑ),      # token embeddings
-    :P     => glorot(length(text), dₑ),       # position embeddings
+    :E     => glorot(length(vocab), dₑ),
+    :P     => glorot(length(text), dₑ),
     :W_Q   => glorot(dₑ, dₑ),
     :W_K   => glorot(dₑ, dₑ),
     :W_V   => glorot(dₑ, dₑ),
@@ -123,25 +92,16 @@ epochs  = 500
     :b_out => zeros(Float32, length(vocab)),
 )
 
-# --------------------
-# Core operations
-# --------------------
-
 x = encode(text[1:end-1], vocab)
 y = encode(text[2:end], vocab)
 
 function loss(θ, x, y)
-    ℓ = 0f0
     ŷ = forward(x, θ)
-    for i in eachindex(y)
-        p = softmax(ŷ[i:i, :])[1, :]
-        ℓ -= log(p[y[i]])
-    end
-    ℓ / length(y)
+    max_ŷ = maximum(ŷ; dims=2)
+    log_probs = ŷ .- max_ŷ .- log.(sum(exp.(ŷ .- max_ŷ); dims=2))
+    correct_log_probs = log_probs[CartesianIndex.(eachindex(y), y)]
+    -mean(correct_log_probs)
 end
-
-
-# Optimisation loop
 
 for epoch in 1:epochs
     ℓ, (∇θ,) = Zygote.withgradient(loss, θ, x, y)
@@ -151,10 +111,7 @@ for epoch in 1:epochs
     epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
 end
 
-# --------------------
-# Sampling
-# --------------------
-function generate(seed::Char, n::Int)
+function generate(seed, n)
     idx = [vocab_idx[seed]]
     for _ in 1:n
         logits = forward(idx, θ)
