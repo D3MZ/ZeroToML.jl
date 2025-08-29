@@ -65,7 +65,7 @@ function transformer_block(X, θ)
     d_k = size(K, 2)
     S = (Q * K') ./ sqrt(d_k)
     L = size(Q, 1)
-    S .+= triu(fill(-Inf, L, L), 1) # causal mask
+    S = S .+ triu(fill(-Inf, L, L), 1) # causal mask
     Z = softmax(S; dims=2) * V * θ[:W_O]'
 
     X̃  = X .+ Z # Add residual (skip) connections
@@ -146,7 +146,7 @@ end
 for epoch in 1:epochs
     ℓ, (∇θ,) = Zygote.withgradient(loss, θ, x, y)
     for (k, v) in θ
-        θ[k] .= v .- η .* ∇θ[k]
+        θ[k] = v .- η .* ∇θ[k]
     end
     epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
 end
