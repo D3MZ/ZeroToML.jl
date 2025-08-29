@@ -20,7 +20,7 @@ function positional_encoding(seq_len, embed_size)
     return PE
 end
 
-mutable struct GPTModel
+mutable struct Parameters
     E::Matrix{Float32}
     P::Matrix{Float32}
     W_Q::Matrix{Float32}
@@ -53,7 +53,7 @@ function layernorm(X, γ, β; ϵ=1f-5)
     return X̂ .* γ' .+ β'
 end
 
-function transformer_block(X, θ::GPTModel)
+function transformer_block(X, θ::Parameters)
     X₁ = layernorm(X, θ.ln1_γ, θ.ln1_β)
     Q  = X₁ * θ.W_Q'
     K  = X₁ * θ.W_K'
@@ -73,7 +73,7 @@ function transformer_block(X, θ::GPTModel)
     return X̃ .+ H₂
 end
 
-function forward(x, θ::GPTModel)
+function forward(x, θ::Parameters)
     L = length(x)
     X = θ.E[x, :] .+ θ.P[1:L, :]
     X = transformer_block(X, θ)
@@ -92,7 +92,7 @@ h       = 1
 epochs  = 500
 max_seq_len = 100
 
-model = GPTModel(
+model = Parameters(
     glorot(length(vocab), dₑ),
     positional_encoding(max_seq_len, dₑ),
     glorot(dₑ, dₑ),
@@ -114,7 +114,7 @@ model = GPTModel(
 x = encode(text[1:end-1], vocab)
 y = encode(text[2:end], vocab)
 
-function loss(θ::GPTModel, x, y)
+function loss(θ::Parameters, x, y)
     ŷ = forward(x, θ)
     max_ŷ = maximum(ŷ; dims=2)
     log_probs = ŷ .- max_ŷ .- log.(sum(exp.(ŷ .- max_ŷ); dims=2))
@@ -125,7 +125,7 @@ end
 function train!(model, x, y, epochs, η)
     for epoch in 1:epochs
         ℓ, (∇model,) = Zygote.withgradient(loss, model, x, y)
-        for name in fieldnames(GPTModel)
+        for name in fieldnames(Parameters)
             grad = getfield(∇model, name)
             grad === nothing && continue
             param = getfield(model, name)
