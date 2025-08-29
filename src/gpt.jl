@@ -151,5 +151,7 @@ function generate(model, seed, n)
     join(vocab[i] for i in idx)
 end
 
+train!(model, x, y, epochs, η)                                                                      
 
 # @info "Sample: $(generate(model, 'A', 20))"
+#  @code_warntype train!(model, x, y, epochs, η)                                                                      
