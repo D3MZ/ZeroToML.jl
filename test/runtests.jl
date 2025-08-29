@@ -12,6 +12,6 @@ using Test
         include("optimizers.jl")
     end
     @testset "Transformers" begin
-        include("transformers.jl")
+        include("decoder.jl")
     end
 end

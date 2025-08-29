@@ -1,5 +1,4 @@
-using StatsBase, Random, Logging, LinearAlgebra, Statistics, Zygote
-using BenchmarkTools
+using Random, Logging, LinearAlgebra, Statistics, Zygote
 
 @kwdef mutable struct Parameters{T}
     E::Matrix{T}
@@ -42,32 +41,7 @@ function Parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
     )
 end
 
-build_vocab(text) = sort(unique(collect(text)))
-
-function encode(text, vocab)
-    char_to_int = Dict(c => i for (i, c) in enumerate(vocab))
-    [char_to_int[c] for c in text]
-end
-
-function decode(encoded_text, vocab)
-    join([vocab[i] for i in encoded_text])
-end
-
-function positional_encoding(seq_len, embed_size)
-    PE = zeros(Float32, seq_len, embed_size)
-    pos = reshape(1:seq_len, seq_len, 1)
-    div_term = exp.((0:2:embed_size-1) .* -(log(10000.0f0) / embed_size))'
-    PE[:, 1:2:end] = sin.(pos * div_term)
-    PE[:, 2:2:end] = cos.(pos * div_term)
-    return PE
-end
-
 glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
-
-function softmax(M; dims=2)
-    ex = exp.(M .- maximum(M; dims))
-    ex ./ sum(ex; dims)
-end
 
 function layernorm(X, γ, β; ϵ=1f-5)
     μ  = mean(X; dims=2)
@@ -95,7 +69,7 @@ function transformer_block(X, θ::Parameters)
     X̃  = X .+ Z
 
     X₂ = layernorm(X̃, θ.ln2_γ, θ.ln2_β)
-    H₁ = max.(X₂ * θ.W₁' .+ θ.b₁', T(0))                # ReLU in T
+    H₁ = max.(X₂ * θ.W₁' .+ θ.b₁', T(0))
     H₂ = H₁ * θ.W₂' .+ θ.b₂'
     return X̃ .+ H₂
 end
@@ -126,11 +100,13 @@ function update!(model::Parameters, ∇model, η)
 end
 
 function train!(model, x, y, epochs, η)
-    for _ in eachindex(epochs)
-        ∇model = only(gradient(m -> loss(m, x, y), model))
+    losses = Vector{Float32}(undef, epochs)
+    for i in eachindex(epochs)
+        l, (∇model,) = withgradient(m -> loss(m, x, y), model)
         update!(model, ∇model, η)
+        losses[i] = l
     end
-    return model
+    return losses, model
 end
 
 function generate(model, seed, n)
@@ -142,32 +118,3 @@ function generate(model, seed, n)
     end
     join(vocab[i] for i in idx)
 end
-
-text = "ABABAABBAAABBB"
-vocab = build_vocab(text)
-vocab_idx = Dict(c => i for (i, c) in enumerate(vocab))
-
-η       = 1f-2
-epochs  = 500
-
-model = Parameters(vocab)
-
-x = encode(text[1:end-1], vocab)
-y = encode(text[2:end], vocab)
-
-# train!(model, x, y, epochs, η)                                                                      
-
-# @info "Sample: $(generate(model, 'A', 20))"
-@benchmark train!(model, x, y, epochs, η)                                                                      
-@code_warntype train!(model, x, y, epochs, η)                                                                      
-
-# @code_warntype loss(model, x, y)
-
-
-# function grad_loss2(model::Parameters, x::AbstractVector{<:Integer}, y::AbstractVector{<:Integer})
-#     return only(gradient(m -> loss(m, x, y), model))::Parameters
-# end
-
-# @code_warntype grad_loss2(model,x,y)
-
-
