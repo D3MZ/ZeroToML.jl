@@ -90,7 +90,6 @@ text = "ABABAABBAAABBB"
 vocab = build_vocab(text)
 encode(text, vocab)
 
-
 # --------------------
 # Hyper‑parameters
 # --------------------
@@ -154,14 +153,14 @@ end
 # --------------------
 # Sampling
 # --------------------
-# function generate(seed::Char, n::Int)
-#     idx = [vocab_idx[seed]]
-#     for _ in 1:n
-#         logits = forward(idx, θ)
-#         p = softmax(logits[end:end, :])[1, :]
-#         push!(idx, sample(1:length(vocab), Weights(p)))
-#     end
-#     join(vocab[i] for i in idx)
-# end
+function generate(seed::Char, n::Int)
+    idx = [vocab_idx[seed]]
+    for _ in 1:n
+        logits = forward(idx, θ)
+        p = softmax(logits[end:end, :])[1, :]
+        push!(idx, sample(1:length(vocab), Weights(p)))
+    end
+    join(vocab[i] for i in idx)
+end
 
-# @info "Sample: $(generate('A', 20))"
+@info "Sample: $(generate('A', 20))"
