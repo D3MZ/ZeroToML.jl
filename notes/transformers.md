@@ -1,15 +1,19 @@
+Read bottom up; sections below:
+![Transformer model architecture](transformer-encoder-decoder-architecture.png)
+
 ## Summary
 
-1. [Tokenization & Input Embedding](#1-tokenization--input-embedding) — Converts input text into a sequence of integer token IDs and maps tokens to dense vectors.  
+1. [Tokenization & Input and Output Embedding](#1-tokenization--input-embedding) — Converts input text into a sequence of integer token IDs and maps tokens to dense vectors.  
 2. [Positional Encoding](#2-positional-encoding)
-3. [Encoder Stack](#3-encoder-stack)
-   - [Linear Projections for Multi-Head Attention](#linear-projections-for-multi-head-attention)
-   - [Scaled Dot-Product Attention](#scaled-dot-product-attention)
+3. Attention & Multi-head Attention
+  - [Linear Projections for Multi-Head Attention](#linear-projections-for-multi-head-attention)
+  - [Scaled Dot-Product Attention](#scaled-dot-product-attention)
+      - Masking
    - [Concatenate Heads & Project](#concatenate-heads--project)
-   - [Add & LayerNorm (Post-Attention)](#add--layernorm-post-attention)  
-8. [Position-wise Feed-Forward Network](#8-position-wise-feed-forward-network) — Applies a two-layer feed-forward network to each position independently.  
-9. [Add & LayerNorm (Post-FFN)](#9-add--layernorm-post-ffn) — Adds residual connection and normalizes post-FFN output.  
-10. [Final Projection & Softmax](#10-final-projection--softmax) — Maps hidden states to vocabulary logits and converts to probabilities.  
+ - [Add & LayerNorm (Post-Attention)](#add--layernorm-post-attention)  
+4. [Position-wise Feed-Forward Network](#8-position-wise-feed-forward-network) — Applies a two-layer feed-forward network to each position independently.  
+5. [Add & LayerNorm (Post-FFN)](#9-add--layernorm-post-ffn) — Adds residual connection and normalizes post-FFN output.  
+6. [Final Projection & Softmax](#10-final-projection--softmax) — Maps hidden states to vocabulary logits and converts to probabilities.  
 
 ## 1. Tokenization & Input Embedding
 
@@ -44,11 +48,7 @@ The token embeddings and positional encodings are combined via element-wise addi
 1. The linearity between $X$ and $Z$, and $P$ and $Z$ preserves separate contributions of $X$ and $P$ in the dot products from the "Attention" operation. 
 2. The combined input $Z^{(0)}$ retains the same shape as both the token embeddings and positional encodings, preserving the sequence length $n$ and model dimension $d_{\mathrm{model}}$.
 
-## 3. Encoder Stack
-
-The encoder is composed of a stack of N identical layers, where the outputs of the previous encoder layer are used as inputs in the current encoder layer. [Attention Is All You Need's](https://arxiv.org/abs/1706.03762) transformer had a 6 encoding layer stack.
-
-### Linear Projections
+## 3. Attention & Multi-head Attention
 
 The combined token embeddings and positional encodings $Z^{(0)} = X + P$ are factorized into three different learnable vector spaces: $Q$, $K$, and $V$.
 

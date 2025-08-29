@@ -1,4 +1,5 @@
 using StatsBase, Random, Logging, LinearAlgebra, Statistics, Zygote
+using BenchmarkTools
 
 @kwdef mutable struct Parameters{T}
     E::Matrix{T}
@@ -76,21 +77,25 @@ function layernorm(X, γ, β; ϵ=1f-5)
 end
 
 function transformer_block(X, θ::Parameters)
+    T  = eltype(X)
+
     X₁ = layernorm(X, θ.ln1_γ, θ.ln1_β)
     Q  = X₁ * θ.W_Q'
     K  = X₁ * θ.W_K'
-    V = X₁ * θ.W_V'
+    V  = X₁ * θ.W_V'
 
-    d_k = size(K, 2)
-    S = (Q * K') ./ sqrt(d_k)
+    d_k   = size(K, 2)
+    scale = inv(sqrt(T(d_k)))
+    S     = (Q * K') .* scale
+
     L = size(Q, 1)
-    S = S .+ triu(fill(-Inf, L, L), 1)
-    Z = softmax(S; dims=2) * V * θ.W_O'
+    S = S .+ triu(fill(eltype(S)(-Inf), L, L), 1)
 
+    Z  = softmax(S; dims=2) * V * θ.W_O'
     X̃  = X .+ Z
 
     X₂ = layernorm(X̃, θ.ln2_γ, θ.ln2_β)
-    H₁ = max.(X₂ * θ.W₁' .+ θ.b₁', 0f0)
+    H₁ = max.(X₂ * θ.W₁' .+ θ.b₁', T(0))                # ReLU in T
     H₂ = H₁ * θ.W₂' .+ θ.b₂'
     return X̃ .+ H₂
 end
@@ -121,10 +126,9 @@ function update!(model::Parameters, ∇model, η)
 end
 
 function train!(model, x, y, epochs, η)
-    for epoch in 1:epochs
-        ℓ, (∇model,) = Zygote.withgradient(loss, model, x, y)
+    for _ in eachindex(epochs)
+        ∇model = only(gradient(m -> loss(m, x, y), model))
         update!(model, ∇model, η)
-        epoch % 50 == 0 && @info "epoch=$epoch loss=$(round(ℓ; digits = 4))"
     end
     return model
 end
@@ -151,7 +155,19 @@ model = Parameters(vocab)
 x = encode(text[1:end-1], vocab)
 y = encode(text[2:end], vocab)
 
-train!(model, x, y, epochs, η)                                                                      
+# train!(model, x, y, epochs, η)                                                                      
 
 # @info "Sample: $(generate(model, 'A', 20))"
-#  @code_warntype train!(model, x, y, epochs, η)                                                                      
+@benchmark train!(model, x, y, epochs, η)                                                                      
+@code_warntype train!(model, x, y, epochs, η)                                                                      
+
+# @code_warntype loss(model, x, y)
+
+
+# function grad_loss2(model::Parameters, x::AbstractVector{<:Integer}, y::AbstractVector{<:Integer})
+#     return only(gradient(m -> loss(m, x, y), model))::Parameters
+# end
+
+# @code_warntype grad_loss2(model,x,y)
+
+
