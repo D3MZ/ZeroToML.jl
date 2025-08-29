@@ -8,7 +8,7 @@ export softmax
 include("encoding.jl")
 export build_vocab, encode, decode, positional_encoding
 
-include("optimizers.jl")
+# include("optimizers.jl")
 # include("transformers.jl")
 # export LayerNorm, ScaledDotProductAttention, MultiHeadAttention, FeedForward, TransformerBlock, Transformer,
 #        cross_entropy_loss, cross_entropy_loss_backward,
