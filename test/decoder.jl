@@ -11,7 +11,7 @@ using BenchmarkTools
 
     learning_rate = 1f-1
     epochs  = 10_000
-    model = Parameters(vocab)
+    model = Parameters(vocab; max_seq_len=length(text))
     model = train!(model, x, y, epochs, learning_rate)
     start_idx = rand(1:length(text)-1)
     sample = generate(model, vocab, text[start_idx]; n=length(text)-start_idx)
