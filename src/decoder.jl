@@ -29,7 +29,10 @@ function layernorm(X, γ, β; ϵ=1f-5)
     return X̂ .* γ .+ β
 end
 
-function transformer_block(X, θ)
+function forward(x, θ)
+    L = length(x)
+    X = θ.E[:, x] .+ θ.P[:, 1:L]
+
     T  = eltype(X)
 
     X₁ = layernorm(X, θ.ln1_γ, θ.ln1_β)
@@ -41,7 +44,6 @@ function transformer_block(X, θ)
     scale = inv(sqrt(T(d_k)))
     S     = (K' * Q) .* scale
 
-    L = size(Q, 2)
     S = S .+ triu(fill(eltype(S)(-Inf), L, L), 1)
 
     Z  = θ.W_O * (V * softmax(S; dims=2)')
@@ -50,13 +52,8 @@ function transformer_block(X, θ)
     X₂ = layernorm(X̃, θ.ln2_γ, θ.ln2_β)
     H₁ = max.(θ.W₁ * X₂ .+ θ.b₁, T(0))
     H₂ = θ.W₂ * H₁ .+ θ.b₂
-    return X̃ .+ H₂
-end
+    X = X̃ .+ H₂
 
-function forward(x, θ)
-    L = length(x)
-    X = θ.E[:, x] .+ θ.P[:, 1:L]
-    X = transformer_block(X, θ)
     logits = θ.W_out * X .+ θ.b_out
     return logits
 end
