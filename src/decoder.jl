@@ -1,4 +1,4 @@
-function Parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
+function parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
     vocab_size = length(vocab)
     (
         E = glorot(dₑ, vocab_size),

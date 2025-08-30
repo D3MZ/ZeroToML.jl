@@ -4,6 +4,7 @@ authors = ["Demetrius Michael <arrrwalktheplank@gmail.com> and contributors"]
 version = "1.0.0-DEV"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -15,6 +16,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
+BenchmarkTools = "1.6.0"
 Enzyme = "0.13.71"
 LinearAlgebra = "1.11.0"
 Logging = "1.11.0"

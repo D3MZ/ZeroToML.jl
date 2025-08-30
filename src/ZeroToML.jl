@@ -16,6 +16,6 @@ export build_vocab, encode, decode, positional_encoding
 #        generate
 
 include("decoder.jl")
-export Parameters, forward, loss, train!, generate
+export parameters, forward, loss, train!, generate
 
 end
