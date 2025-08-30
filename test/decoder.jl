@@ -6,7 +6,7 @@ using Random
 
 @testset "Decoder" begin
     Random.seed!(0xBAADF00D)
-    text = "A quick brown fox jumps over the lazy dog. " ^ 5
+    text = "A quick brown fox jumps over the lazy dog. " ^ 2
     vocab = build_vocab(text)
     x = encode(text[1:end-1], vocab)
     y = encode(text[2:end], vocab)
@@ -23,7 +23,6 @@ using Random
     start_idx = rand(1:(length(text) - n_generate))
     generated = generate(model, vocab, text[start_idx]; n=n_generate)
     @info "Generated" seed=text[start_idx] generated=generated actual=text[start_idx:start_idx+n_generate]
-    # @test sample == text[start_idx:start_idx+n_generate]
     
     # @btime train!($model, $x, $y, 1, $learning_rate)
 end
