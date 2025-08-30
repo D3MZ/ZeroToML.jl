@@ -4,18 +4,20 @@ using Statistics
 using BenchmarkTools
 
 @testset "Decoder" begin
-    text = "ABABAABBAAABBB"
+    text = "A quick brown fox jumps over the lazy dog. " ^ 10
     vocab = build_vocab(text)
     x = encode(text[1:end-1], vocab)
     y = encode(text[2:end], vocab)
 
-    learning_rate = 1f-2
-    epochs  = 1000
+    learning_rate = 1f-1
+    epochs  = 10_000
     model = Parameters(vocab)
     model = train!(model, x, y, epochs, learning_rate)
-    sample = generate(model, vocab, 'A'; n=length(text)-1)
-    @info sample
+    start_idx = rand(1:length(text)-1)
+    sample = generate(model, vocab, text[start_idx]; n=length(text)-start_idx)
+    @info "Generated sample" seed=text[start_idx] sample=sample
+    # @test sample == text[start_idx:end]
     @test loss(model, x, y) < 1
     
-    @btime train!($model, $x, $y, $epochs, $learning_rate)
+    # @btime train!($model, $x, $y, 1, $learning_rate)
 end
