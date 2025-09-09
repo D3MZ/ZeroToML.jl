@@ -15,11 +15,11 @@ model = parameters(vocab; max_seq_len=max_seq_len)
 x = encode(text[1:end-1], vocab)
 y = encode(text[2:end], vocab)
 
-learning_rate = 1e-2
+learning_rate = 1e-1
 # epochs  = 10
 
 for (x, y) in zip(Iterators.partition(x, max_seq_len), Iterators.partition(y, max_seq_len))
-    train!(model, x, y, 1, learning_rate)
+    model = ZeroToML.step(model, x, y, learning_rate)
     @info "Post-train loss" loss=loss(model, x, y)
 end
 
