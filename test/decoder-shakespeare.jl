@@ -7,9 +7,9 @@ using BenchmarkTools
 using Random
 
 Random.seed!(0xBAADF00D)
-text = read("./data/shakespeare.txt", String)[1:1000]
+text = read("./data/shakespeare.txt", String)[1:100]
 vocab = build_vocab(text)
-max_seq_len = 100
+max_seq_len = length(text)
 model = parameters(vocab; max_seq_len=max_seq_len)
 
 x = encode(text[1:end-1], vocab)
