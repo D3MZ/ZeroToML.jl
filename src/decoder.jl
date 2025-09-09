@@ -1,3 +1,4 @@
+# --- Weight Initialization ---
 glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
 
 # --- Tokenizer ---
@@ -95,13 +96,12 @@ function loss(θ, x, y)
     -mean(correct_log_probs)
 end
 
-function train!(model, x, y, epochs, η)
-    for _ in 1:epochs
-        (∇,) = gradient(m -> loss(m, x, y), model)
-        model = map((p, g) -> p .- η .* g, model, ∇)
-    end
-    return model
+function step(model, x, y, η)
+    (∇,) = gradient(m -> loss(m, x, y), model)
+    map((p, g) -> p .- η .* g, model, ∇)
 end
+
+train(model, x, y, η, epochs) = foldl((m, _) -> step(m, x, y, η), 1:epochs; init=model)
 
 function generate(model, vocab, seed; n::Int=20)
     idx = encode(string(seed), vocab)

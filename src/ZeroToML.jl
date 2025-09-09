@@ -10,6 +10,6 @@ using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 #        generate
 
 include("decoder.jl")
-export build_vocab, encode, decode, positional_encoding, parameters, forward, loss, train!, generate
+export build_vocab, encode, decode, positional_encoding, parameters, forward, loss, train, generate
 
 end

@@ -14,7 +14,7 @@ using Random
     learning_rate = 9f-1
     epochs  = 1_000
     model = parameters(vocab; max_seq_len=length(text))
-    model = train!(model, x, y, epochs, learning_rate)
+    model = train(model, x, y, learning_rate, epochs)
     ℓ = loss(model, x, y)
     @info "Post-train loss" loss=ℓ
     @test ℓ < 1e-3
