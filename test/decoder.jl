@@ -19,8 +19,11 @@ using Random
     @info "Post-train loss" loss=ℓ
     @test ℓ < 1e-3
 
-    n_generate = 50
-    start_idx = rand(1:(length(text) - n_generate))
-    generated = generate(model, vocab, text[start_idx]; n=n_generate)
-    @info "Generated" seed=text[start_idx] generated=generated actual=text[start_idx:start_idx+n_generate]
+    n_generate = 40
+    seed_len = 10
+    start_idx = rand(1:(length(text) - (n_generate + seed_len)))
+    seed_text = text[start_idx:start_idx+seed_len-1]
+    generated = generate(model, vocab, seed_text; n=n_generate)
+    actual_text = text[start_idx:start_idx+seed_len+n_generate-1]
+    @info "Generated" seed=seed_text generated=generated actual=actual_text
 end

@@ -104,7 +104,7 @@ function train!(model, x, y, epochs, η)
 end
 
 function generate(model, vocab, seed; n::Int=20)
-    idx = [findfirst(==(seed), vocab)]
+    idx = encode(string(seed), vocab)
     for _ in 1:n
         logits = forward(idx, model)
         p = softmax(logits[:, end])
