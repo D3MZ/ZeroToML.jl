@@ -18,7 +18,7 @@ y = encode(text[2:end], vocab)
 learning_rate = 1e-2
 # epochs  = 10
 
-for (x,y) in [Iterators.partition(x, max_seq_len), Iterators.partition(y, max_seq_len)]
+for (x, y) in zip(Iterators.partition(x, max_seq_len), Iterators.partition(y, max_seq_len))
     train!(model, x, y, 1, learning_rate)
     @info "Post-train loss" loss=loss(model, x, y)
 end
