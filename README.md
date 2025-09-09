@@ -21,5 +21,5 @@ Yet another AI from scratch repo. This tests the from-scratch versions against e
   - [ ] Encode + Decode vs Lux
 - [ ] Diffusion
 - [ ] RL
-- [ ] Refactor to stateless
+- [x] Refactor to stateless
 - [ ] Breakout loss to it's own file and test
