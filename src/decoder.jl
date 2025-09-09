@@ -1,3 +1,34 @@
+glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
+
+# --- Tokenizer ---
+build_vocab(text) = sort(unique(collect(text)))
+
+function encode(text, vocab)
+    char_to_int = Dict(c => i for (i, c) in enumerate(vocab))
+    [char_to_int[c] for c in text]
+end
+
+function decode(encoded_text, vocab)
+    join([vocab[i] for i in encoded_text])
+end
+
+# --- Positional Encoding ---
+function positional_encoding(seq_len, embed_size)
+    PE = zeros(Float32, seq_len, embed_size)
+    pos = reshape(1:seq_len, seq_len, 1)
+    div_term = exp.((0:2:embed_size-1) .* -(log(10000.0f0) / embed_size))'
+    PE[:, 1:2:end] = sin.(pos * div_term)
+    PE[:, 2:2:end] = cos.(pos * div_term)
+    return Matrix(PE')
+end
+
+# --- Activation function ---
+function softmax(x; dims=1)
+    e_x = exp.(x .- maximum(x, dims=dims))
+    return e_x ./ sum(e_x, dims=dims)
+end
+
+
 function parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
     vocab_size = length(vocab)
     (
@@ -19,8 +50,6 @@ function parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
         b_out = zeros(Float32, vocab_size, 1),
     )
 end
-
-glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
 
 function layernorm(X, γ, β; ϵ=1f-5)
     μ  = mean(X; dims=1)

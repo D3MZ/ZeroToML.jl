@@ -2,12 +2,6 @@ module ZeroToML
 
 using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
-include("activations.jl")
-export softmax
-
-include("encoding.jl")
-export build_vocab, encode, decode, positional_encoding
-
 # include("optimizers.jl")
 # include("transformers.jl")
 # export LayerNorm, ScaledDotProductAttention, MultiHeadAttention, FeedForward, TransformerBlock, Transformer,
@@ -16,6 +10,6 @@ export build_vocab, encode, decode, positional_encoding
 #        generate
 
 include("decoder.jl")
-export parameters, forward, loss, train!, generate
+export build_vocab, encode, decode, positional_encoding, parameters, forward, loss, train!, generate
 
 end

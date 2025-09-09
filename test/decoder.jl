@@ -23,6 +23,4 @@ using Random
     start_idx = rand(1:(length(text) - n_generate))
     generated = generate(model, vocab, text[start_idx]; n=n_generate)
     @info "Generated" seed=text[start_idx] generated=generated actual=text[start_idx:start_idx+n_generate]
-    
-    # @btime train!($model, $x, $y, 1, $learning_rate)
 end
