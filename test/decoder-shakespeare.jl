@@ -18,9 +18,10 @@ y = encode(text[2:end], vocab)
 learning_rate = 1e-1
 # epochs  = 10
 
-for (x, y) in zip(Iterators.partition(x, max_seq_len), Iterators.partition(y, max_seq_len))
-    model = ZeroToML.step(model, x, y, learning_rate)
-    @info "Post-train loss" loss=loss(model, x, y)
+model = foldl(zip(Iterators.partition(x, max_seq_len), Iterators.partition(y, max_seq_len)); init=model) do m, (x, y)
+    m = ZeroToML.step(m, x, y, learning_rate)
+    @info "Post-train loss" loss=loss(m, x, y)
+    m
 end
 
 # model = train!(model, x, y, epochs, learning_rate)
