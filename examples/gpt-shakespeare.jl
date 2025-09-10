@@ -1,8 +1,6 @@
 #This takes about an hour to train on a M1 Max CPU
 using ZeroToML
-using Test
 using Statistics
-using BenchmarkTools
 using Random
 
 Random.seed!(0xBAADF00D)
