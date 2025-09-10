@@ -1,3 +1,4 @@
+#This takes about an hour to train on a M1 Max CPU
 using ZeroToML
 using Test
 using Statistics
@@ -14,7 +15,7 @@ x = encode(text[1:end-1], vocab)
 y = encode(text[2:end], vocab)
 
 learning_rate = 1f-1
-epochs  = 100 
+epochs  = 1
 
 @time model = train(model, x, y, max_seq_len, learning_rate, epochs)
 @info param_count(model)
