@@ -29,7 +29,7 @@ function softmax(x; dims=1)
     return e_x ./ sum(e_x, dims=dims)
 end
 
-
+# --- Network ---
 function parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
     vocab_size = length(vocab)
     (
@@ -72,9 +72,9 @@ function forward(x, θ)
 
     d_k   = size(K, 1)
     scale = inv(sqrt(T(d_k)))
-    S     = (K' * Q) .* scale
+    S     = (K' * Q) .* scale #Attention score
 
-    S = S .+ triu(fill(eltype(S)(-Inf), L, L), 1)
+    S = S .+ triu(fill(eltype(S)(-Inf), L, L), 1) #Casual mask
 
     Z  = θ.W_O * (V * softmax(S; dims=2)')
     X̃  = X .+ Z
@@ -101,10 +101,10 @@ function step(model, x, y, η)
     map((p, g) -> p .- η .* g, model, ∇)
 end
 
+# --- Training, Inference, and Helpers ---
 dataloader(x, y, L) = zip(Iterators.partition(x, L), Iterators.partition(y, L))
 train(model, x, y, L, η) = foldl(((m,(xb,yb))->ZeroToML.step(m, xb, yb, η)), dataloader(x, y, L); init = model)
 train(model, x, y, L, η, epochs) = foldl((m, _) -> train(m, x, y, L, η),1:epochs;init=model)
-
 param_count(model) = sum(length, values(model))
 
 function generate(model, vocab, seed; n::Int=20)
