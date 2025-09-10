@@ -5,7 +5,7 @@ using BenchmarkTools
 using Random
 
 Random.seed!(0xBAADF00D)
-text = read("shakespeare.txt", String)
+text = read("examples/shakespeare.txt", String)
 vocab = build_vocab(text)
 max_seq_len = 1000
 model = parameters(vocab; dₑ=128, d_ff=512, max_seq_len=max_seq_len)
