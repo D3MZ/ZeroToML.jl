@@ -13,7 +13,7 @@ using Random
 
     learning_rate = 9f-1
     epochs  = 1_000
-    max_seq_length = length(text)
+    max_seq_len = length(text)
     model = parameters(vocab; max_seq_len=max_seq_len)
     model = train(model, x, y, max_seq_len, learning_rate, epochs)
     ℓ = loss(model, x, y)
