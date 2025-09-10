@@ -6,8 +6,9 @@
 Yet another AI from scratch repo. This tests the from-scratch versions against established libraries for correctness.
 
 - The files are appropriately named.
-    - See [notes](/notes) on my notes on the math.
-    - See [test](/test) for it in action. 
+    - [notes](/notes) on my notes on the math.
+    - [test](/test) for it in action on limited resources.
+    - [examples](/examples) long training on more novel things.
 - May contain AI slop.
 
 ### Work in Progress:
