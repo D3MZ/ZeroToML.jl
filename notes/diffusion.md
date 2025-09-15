@@ -8,18 +8,22 @@ variational inference to produce samples matching the data after finite time. Tr
 Diffusion models are latent variable models of the form pθ(x0) := pθ(x0:T) dx1:T. Latent variables are hidden random variables that capture underlying structure in the data. They are not directly observed but are inferred during training or sampling. 
 
 Let
-	•	x \in \mathcal{X}: observed data (image, text, etc.),
-	•	z \in \mathcal{Z}: latent variable (hidden cause),
-	•	p(z): prior distribution on latent variable,
-	•	p_\theta(x \mid z): likelihood of x given z parameterized by \theta.
+* $x \in \mathcal{X}$: observed data (image, text, etc.),
+* $z \in \mathcal{Z}$: latent variable (hidden cause),
+* $p(z)$: prior distribution on latent variable,
+* $p_\theta(x \mid z)$: likelihood of x given z parameterized by $\theta$.
 
 Then the joint distribution is
 
+```math
 p_\theta(x, z) = p_\theta(x \mid z) \, p(z)
+```
 
 and the marginal is
 
+```math
 p_\theta(x) = \int p_\theta(x \mid z) \, p(z) \, dz
+```
 
 In probability, marginalization means summing or integrating over variables you do not care about, leaving a probability distribution over the variables you do care about.
 
@@ -27,6 +31,6 @@ In probability, marginalization means summing or integrating over variables you 
 
 
 
-•	\prod = “product over a range of indices” (just like \sum means sum).
+* $\prod$ = “product over a range of indices” (just like $\sum$ means sum).
 
 
