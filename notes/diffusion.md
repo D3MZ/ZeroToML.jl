@@ -5,7 +5,7 @@ A diffusion probabilistic model is a parameterized Markov chain trained using
 variational inference to produce samples matching the data after finite time. Transitions of this chain are learned to reverse a diffusion process, which is a Markov chain that gradually adds noise to the data in the opposite direction of sampling until signal is destroyed. When the diffusion consists of small amounts of Gaussian noise, it is sufficient to set the sampling chain transitions to conditional Gaussians too, allowing for a particularly simple neural network parameterization.
 
 
-Diffusion models are latent variable models of the form pθ(x0) := pθ(x0:T) dx1:T. Latent variables are hidden random variables that capture underlying structure in the data. They are not directly observed but are inferred during training or sampling. 
+Diffusion models are latent variable models of the form $p_\theta(x_0) := p_\theta(x_{0:T}) dx_{1:T}$. Latent variables are hidden random variables that capture underlying structure in the data. They are not directly observed but are inferred during training or sampling. 
 
 Let
 * $x \in \mathcal{X}$: observed data (image, text, etc.),
