@@ -3,12 +3,12 @@
 ## Background
 
 ### Probability
-| Concept | Description |
-|---|---|
-| Joint | $p(x_0, x_1)$ is the joint probability of the pair $(x_0, x_1)$ occuring at the same time (not ordered, such that $p(x_0, x_1) = p(x_1, x_0)$). This can be factorized via Chain Rule: $p(x_0, x_1) = p(x_1)\,p(x_0 \mid x_1) = p(x_0)\,p(x_1 \mid x_0)$. |
-| Conditional | $p(x_0 \mid x_1)$ is the probability of $x_0$ given $x_1$, defined as $p(x_0 \mid x_1) = \frac{p(x_0, x_1)}{p(x_1)}$. |
-| Marginal | $p(x_0)$ is the probability of $x_0$ regardless of $x_1$, found by summing or integrating over $x_1$: $p(x_0) = \sum_{x_1} p(x_0, x_1)$ or $p(x_0) = \int p(x_0, x_1)\,dx_1$. |
-| Gaussian | A Gaussian (normal) distribution has density $p(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$ where $\mu$ is the mean and $\sigma^2$ is the variance. |
+| Concept | Formula | Explanation |
+|---|---|---|
+| Joint | $p(x_0, x_1) = p(x_1)\,p(x_0 \mid x_1) = p(x_0)\,p(x_1 \mid x_0)$ | The joint probability of the pair $(x_0, x_1)$ occurring at the same time (not ordered, such that $p(x_0, x_1) = p(x_1, x_0)$). This is factorized using the Chain Rule. |
+| Conditional | $p(x_0 \mid x_1) = \frac{p(x_0, x_1)}{p(x_1)}$ | The probability of $x_0$ given $x_1$. |
+| Marginal | $p(x_0) = \sum_{x_1} p(x_0, x_1)$ or $p(x_0) = \int p(x_0, x_1)\,dx_1$ | The probability of $x_0$ regardless of $x_1$, found by summing or integrating over $x_1$. |
+| Gaussian | $p(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$ | A Gaussian (normal) distribution with density where $\mu$ is the mean and $\sigma^2$ is the variance. |
 
 #### Discrete Example
 Given 
