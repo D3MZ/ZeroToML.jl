@@ -1,4 +1,3 @@
-#This takes about an hour to train on a M1 Max CPU
 using ZeroToML
 using Statistics
 using Random
