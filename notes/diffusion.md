@@ -1,6 +1,6 @@
 # Diffusion
 
-## Background
+## General Background
 
 | Symbol              | Meaning                                 | Notes                                                      |
 |:--------------------|:----------------------------------------|:-----------------------------------------------------------|
@@ -8,7 +8,9 @@
 | $z$                 | latent variable (hidden cause)          | element of space $\mathcal{Z}$                             |
 | $p(z)$              | prior distribution on latent variable   | typically standard Gaussian $\mathcal{N}(0,I)$; here, $\mathcal{N}(\mu,\Sigma)$ denotes a (possibly multivariate) normal distribution with mean vector $\mu$ and covariance matrix $\Sigma$ |
 | $I$                 | identity matrix                        | square matrix with ones on the diagonal and zeros elsewhere; used as covariance in standard normal $\mathcal{N}(0,I)$ |
-| $\mathcal{N}(\mu,\Sigma)$ | Gaussian (normal) distribution; $\mathcal{N}$ is short for "Normal"  | mean $\mu$, covariance $\Sigma$; special case $\mathcal{N}(0,I)$ = standard normal |
+| $\mathcal{N}(x; \mu, \Sigma)$ | Gaussian (normal) probability density function evaluated at $x$ | $x$ is the vector, $\mu$ is the mean, $\Sigma$ is the Covariance (or Variance if scalar) |
+| $\mathcal{N}(\mu,\Sigma)$ | Gaussian (normal) distribution (as a distribution object) |
+| $\mathcal{N}(0,I)$ |  standard normal |
 | $p_\theta(x \mid z)$| likelihood of $x$ given $z$             | parameterized by neural network weights $\theta$           |
 | $p_\theta(x, z)$    | joint distribution                      | factorizes as $p_\theta(x \mid z)p(z)$                     |
 | $p_\theta(x)$       | marginal likelihood                     | obtained by integrating out $z$                            |
@@ -24,7 +26,7 @@
 
 ## [Denoising Diffusion Probabilistic Models](https://arxiv.org/pdf/2006.11239)
 
-The model only predicts the parameters of the Gaussian reverse transition, not the entire distribution explicitly.
+The model only predicts the parameters of the Gaussian reverse transition (Mean $\mu_\theta(x_t,t)$ and Variance $\Sigma_\theta(x_t,t)$), not the entire distribution explicitly.
 
 | Symbol / Formula                                                                                                  | Explanation |
 |:---------------------------------------------------------------------------------------------------------|:-------------|
@@ -66,4 +68,16 @@ $x_t = \sqrt{1-\beta_t}\,x_{t-1} + \sqrt{\beta_t}\,\varepsilon_t,
 1. You start from noise $x_T \sim \mathcal{N}(0,I)$.
 2. At each step $t=T,\dots,1:$ Sample $x_{t-1}$ from a Gaussian with mean and variance predicted by the model:
 $x_{t-1} \sim \mathcal{N}(\mu_\theta(x_t,t), \Sigma_\theta(x_t,t))$.
-4. After T steps, you have $x_0$, which should look like real data.
+3. After T steps, you have $x_0$, which should look like real data.
+
+For any joint distribution $q(x_{0:T})$, we could use the Chain Rule to get the next step by computing all the historical steps:
+```math
+\begin{aligned}
+q(x_{0:T}) &= q(x_0)\, q(x_1 \mid x_0)\, q(x_2 \mid x_1) \,\dots q(x_T \mid x_{T-1}) \\
+          &= q(x_0) \prod_{t=1}^{T} q(x_t \mid x_{t-1})
+\end{aligned}
+```
+
+But allowing for the Markov assumption, where the step is only dependent on previous step, $q(x_t \mid x_{0:t-1}) = q(x_t \mid x_{t-1})$, this can be defined as:
+
+$q(x_t \mid x_{t-1}) := \mathcal{N}\bigl(x_t; \sqrt{1-\beta_t}\,x_{t-1}, \beta_t I\bigr)$
