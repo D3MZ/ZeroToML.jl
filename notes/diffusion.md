@@ -2,106 +2,37 @@
 
 ## Background
 
-### Probability
-| Concept | Formula | Explanation |
-|---|---|---|
-| Joint | $p(x_0, x_1) = p(x_1)\,p(x_0 \mid x_1) = p(x_0)\,p(x_1 \mid x_0)$ | The joint probability of the pair $(x_0, x_1)$ occurring at the same time (not ordered, such that $p(x_0, x_1) = p(x_1, x_0)$). This is factorized using the Chain Rule. |
-| Conditional | $p(x_0 \mid x_1) = \frac{p(x_0, x_1)}{p(x_1)}$ | The probability of $x_0$ given $x_1$. |
-| Marginal | $p(x_0) = \sum_{x_1} p(x_0, x_1)$ or $p(x_0) = \int p(x_0, x_1)\,dx_1$ | The probability of $x_0$ regardless of $x_1$, found by summing or integrating over $x_1$. |
-| Gaussian | $p(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$ | A Gaussian (normal) distribution with density where $\mu$ is the mean and $\sigma^2$ is the variance. |
+| Symbol              | Meaning                                 | Notes                                                      |
+|:--------------------|:----------------------------------------|:-----------------------------------------------------------|
+| $x$                 | observed data (image, text, etc.)       | element of space $\mathcal{X}$                             |
+| $z$                 | latent variable (hidden cause)          | element of space $\mathcal{Z}$                             |
+| $p(z)$              | prior distribution on latent variable   | typically standard Gaussian $\mathcal{N}(0,I)$; here, $\mathcal{N}(\mu,\Sigma)$ denotes a (possibly multivariate) normal distribution with mean vector $\mu$ and covariance matrix $\Sigma$ |
+| $I$                 | identity matrix                        | square matrix with ones on the diagonal and zeros elsewhere; used as covariance in standard normal $\mathcal{N}(0,I)$ |
+| $\mathcal{N}(\mu,\Sigma)$ | Gaussian (normal) distribution; $\mathcal{N}$ is short for "Normal"  | mean $\mu$, covariance $\Sigma$; special case $\mathcal{N}(0,I)$ = standard normal |
+| $p_\theta(x \mid z)$| likelihood of $x$ given $z$             | parameterized by neural network weights $\theta$           |
+| $p_\theta(x, z)$    | joint distribution                      | factorizes as $p_\theta(x \mid z)p(z)$                     |
+| $p_\theta(x)$       | marginal likelihood                     | obtained by integrating out $z$                            |
+| $x \sim p(x)$       | sampled from distribution               | In statistics and probability theory, the tilde means "is distributed as" (e.g. X ~ B(n, p) for a binomial distribution)|
 
-#### Discrete Example
-Given 
-* $p(rain) = 0.3$ (probability of rain is 30%)
-* $p(sun) = 1 - p(rain) = 0.7$ (probability of sun is 70%)
-* $p(heavy | rain) = 0.8$ (probability of heavy traffic given rain)
-* $p(heavy | sun) = 0.3$ (probability of heavy traffic given sun)
+| Formula                                                                                                  | Explanation                                                                                                                                                                                                     |
+|:---------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| $p(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$                     | A Gaussian (normal) distribution with density where $\mu$ is the mean and $\sigma^2$ is the variance.                                                                   |
+| $p(x_0, x_1) \\= p(x_1, x_0) \\= p(x_1)\,p(x_0 \mid x_1) \\= p(x_0)\,p(x_1 \mid x_0)$                                        | The joint probability of the pair $(x_0, x_1)$ occurring at the same time.                                       |
+| $p(x_0 \mid x_1) = \frac{p(x_0, x_1)}{p(x_1)}$                                                           | The Conditional probability of $x_0$ given $x_1$.                                                                                                                                                                          |
+| $p(x_0)=\sum_{x_1}p(x_0,x_1)$   | The probability of $x_0$ regardless of $x_1$ in the discrete case (summing over $x_1$). |
+| $p(x_0)=\int p(x_0,x_1) dx_1$   | The probability of $x_0$ regardless of $x_1$ in the continuous case (integrating over $x_1$). |
 
-Then we can calculate the joint probability of heavy traffic and rain occuring at the same through:
-$p(rain, heavy) = p(rain) * p(heavy | rain) = 0.3 * 0.8 = 0.24$.
+## [Denoising Diffusion Probabilistic Models](https://arxiv.org/pdf/2006.11239)
 
-And we can calculate the marginal probability of it being heavy traffic regardless of weather by summing all the states:
-
-#### Continuous Example
-
-Suppose $x$ and $z$ are jointly Gaussian random variables. Here, $x \sim \mathcal{N}(\mu, \sigma^2)$ means that $x$ follows a normal distribution with mean $\mu$ and variance $\sigma^2$. The variable $z$ is standard normal, i.e., $z \sim \mathcal{N}(0, 1)$. The conditional distribution $p(x \mid z)$ can shift the mean of $x$ based on $z$, for example, $x \mid z \sim \mathcal{N}(\mu + \alpha z, \sigma^2)$, where $\alpha$ controls how $z$ influences $x$. This is why we integrate over $z$ to obtain the marginal distribution of $x$: 
-
-$$
-p(x) = \int p(x \mid z)\, p(z)\, dz
-$$
-
-
-Suppose $x \sim \mathcal{N}(\mu, \sigma^2)$ and $z \sim \mathcal{N}(0, 1)$, and the joint density is given by $p(x, z) = p(x \mid z)\, p(z)$, where $p(x \mid z)$ could be, for example, a normal distribution whose mean depends on $z$.
-
-To obtain the marginal distribution $p(x)$, we integrate out $z$:
-
-$$
-p(x) = \int p(x \mid z)\, p(z)\, dz
-$$
-
-This is how marginalization works for continuous variables: you integrate over the variable you do not care about (here, $z$) to get the marginal distribution for the variable of interest (here, $x$).
-
-
-
-
-$$
-\begin{aligned}
-p(heavy) 
-&= p(rain) \times p(heavy \mid rain) + p(sun) \times p(heavy \mid sun) \\
-&= 0.3 \times 0.8 + 0.7 \times 0.3 \\
-&= 0.45 \\
-\end{aligned}
-$$
-
-
-
-
-
-### Marginal probability
-
-
-
-
-
-
-
-
-
-
-## Papers
-[Denoising Diffusion Probabilistic Models](https://arxiv.org/pdf/2006.11239)
-
-A diffusion probabilistic model is a parameterized Markov chain trained using
-variational inference to produce samples matching the data after finite time. Transitions of this chain are learned to reverse a diffusion process, which is a Markov chain that gradually adds noise to the data in the opposite direction of sampling until signal is destroyed. When the diffusion consists of small amounts of Gaussian noise, it is sufficient to set the sampling chain transitions to conditional Gaussians too, allowing for a particularly simple neural network parameterization.
-
-
-Diffusion models are latent variable models of the form $p_\theta(x_0) := p_\theta(x_{0:T}) dx_{1:T}$. Latent variables are hidden random variables that capture underlying structure in the data. They are not directly observed but are inferred during training or sampling. 
-
-Let
-* $x \in \mathcal{X}$: observed data (image, text, etc.),
-* $z \in \mathcal{Z}$: latent variable (hidden cause),
-* $p(z)$: prior distribution on latent variable,
-* $p_\theta(x \mid z)$: likelihood of x given z parameterized by $\theta$.
-
-Then the joint distribution is
-
-```math
-p_\theta(x, z) = p_\theta(x \mid z) \, p(z)
-```
-
-and the marginal is
-
-```math
-p_\theta(x) = \int p_\theta(x \mid z) \, p(z) \, dz
-```
-
-
-In probability, marginalization means summing or integrating over variables you do not care about, leaving a probability distribution over the variables you do care about.
-
-
-
-
-
-* $\prod$ = “product over a range of indices” (just like $\sum$ means sum).
-
-
+| Symbol / Formula                                                                                                  | Explanation |
+|:---------------------------------------------------------------------------------------------------------|:-------------|
+| $x_0$ | observed data vector | can represent arbitrary vector (e.g. if $x_0$ is a $32\times 32\times 3$ image, it is that shape) |
+| $x_{1:T}$ | latent variables | hidden / unobserved variables with same dimensionality as $x_0$ |
+| $p(x_0) = \int p(x_0, x_1) \, dx_1$ | The probability of $x_0$ regardless of $x_1$ in the continuous case (integrating over $x_1$). |
+| $p_\theta(x_{0:T}) = p(x_T) \prod_{t=1}^{T} p_\theta(x_{t-1}\mid x_t)$ | Definition of the reverse process as a Markov chain with learned Gaussian transitions. |
+| $p_\theta(x_{t-1}\mid x_t) = \mathcal{N}(x_{t-1}; \mu_\theta(x_t,t), \Sigma_\theta(x_t,t))$ | Gaussian conditional transition in the reverse process with learned mean and covariance. |
+| $q(x_{1:T}\mid x_0) = \prod_{t=1}^{T} q(x_t \mid x_{t-1})$ | Forward (diffusion) process: fixed Markov chain gradually adding Gaussian noise. |
+| $\beta_t$ | variance schedule | controls noise level added at diffusion step t (small positive scalar, often linearly or cosine scheduled) |
+| $q(x_t \mid x_{t-1}) = \mathcal{N}(x_t; \sqrt{1-\beta_t}x_{t-1}, \beta_t I)$ | Single-step Gaussian noise addition with variance schedule $\beta_t$. |
+| $\bar{\alpha}_t$ | cumulative product of $(1-\beta_t)$ | $\bar{\alpha}_t = \prod_{s=1}^t (1-\beta_s)$, used for closed-form $q(x_t \mid x_0)$ |
+| $q(x_t\mid x_0) = \mathcal{N}(x_t; \sqrt{\bar{\alpha}_t}x_0, (1-\bar{\alpha}_t)I)$ | Closed-form distribution of $x_t$ given $x_0$ using cumulative noise schedule. |
