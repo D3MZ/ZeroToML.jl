@@ -24,15 +24,46 @@
 
 ## [Denoising Diffusion Probabilistic Models](https://arxiv.org/pdf/2006.11239)
 
+The model only predicts the parameters of the Gaussian reverse transition, not the entire distribution explicitly.
+
 | Symbol / Formula                                                                                                  | Explanation |
 |:---------------------------------------------------------------------------------------------------------|:-------------|
 | $x_0$ | observed data vector | can represent arbitrary vector (e.g. if $x_0$ is a $32\times 32\times 3$ image, it is that shape) |
 | $x_{1:T}$ | latent variables | hidden / unobserved variables with same dimensionality as $x_0$ |
+| $\varepsilon_t \sim \mathcal{N}(0, I)$ | random noise | 
 | $p(x_0) = \int p(x_0, x_1) \, dx_1$ | The probability of $x_0$ regardless of $x_1$ in the continuous case (integrating over $x_1$). |
 | $p_\theta(x_{0:T}) = p(x_T) \prod_{t=1}^{T} p_\theta(x_{t-1}\mid x_t)$ | Definition of the reverse process as a Markov chain with learned Gaussian transitions. |
 | $p_\theta(x_{t-1}\mid x_t) = \mathcal{N}(x_{t-1}; \mu_\theta(x_t,t), \Sigma_\theta(x_t,t))$ | Gaussian conditional transition in the reverse process with learned mean and covariance. |
 | $q(x_{1:T}\mid x_0) = \prod_{t=1}^{T} q(x_t \mid x_{t-1})$ | Forward (diffusion) process: fixed Markov chain gradually adding Gaussian noise. |
-| $\beta_t$ | variance schedule | controls noise level added at diffusion step t (small positive scalar, often linearly or cosine scheduled) |
+| $\beta_t = \beta_{\min} + (\beta_{\max}-\beta_{\min})\frac{t-1}{T-1}$ | Evenly increases noise per step |
+| $\beta_t = \beta_{\min} + (\beta_{\max}-\beta_{\min})\left(\frac{t-1}{T-1}\right)^2$ | Adds very little noise early, more near the end. |
+| $\bar{\alpha}_t = \frac{\cos^2(\frac{\pi}{2}(t/T+0.008))}{\cos^2(0.008\pi/2)}\\$ $\beta_t = 1-\bar{\alpha}_t/\bar{\alpha}_{t-1}$ | Cosine variance schedule; here $\bar{\alpha}_t$ is defined directly as a cosine-squared function of $t$ (not as a cumulative product), and $\beta_t$ is derived via $\beta_t = 1-\bar{\alpha}_t/\bar{\alpha}_{t-1}$; empirically better because it keeps $\bar{\alpha}_t$ high in early steps, making denoising easier. |
 | $q(x_t \mid x_{t-1}) = \mathcal{N}(x_t; \sqrt{1-\beta_t}x_{t-1}, \beta_t I)$ | Single-step Gaussian noise addition with variance schedule $\beta_t$. |
-| $\bar{\alpha}_t$ | cumulative product of $(1-\beta_t)$ | $\bar{\alpha}_t = \prod_{s=1}^t (1-\beta_s)$, used for closed-form $q(x_t \mid x_0)$ |
+| $\alpha_t := 1-\beta_t$ | per-step signal retention factor | |
+| $\bar{\alpha}_t := \prod_{s=1}^t \alpha_s$ | cumulative product of per-step $\alpha_s$ | used for closed-form $q(x_t \mid x_0)$ |
 | $q(x_t\mid x_0) = \mathcal{N}(x_t; \sqrt{\bar{\alpha}_t}x_0, (1-\bar{\alpha}_t)I)$ | Closed-form distribution of $x_t$ given $x_0$ using cumulative noise schedule. |
+
+Both $q(x_{0:T})$ and $p_\theta(x_{0:T})$ are distributions over the same path $x_0,\dots,x_T$, but factorized in opposite directions:
+
+| Term | Factorization | Direction |
+|------|---------------|-----------|
+| $q(x_{0:T})$ | $q(x_0)\prod_{t=1}^{T} q(x_t \mid x_{t-1})$ | Forward (data → noise) |
+| $p_\theta(x_{0:T})$ | $p(x_T)\prod_{t=1}^{T} p_\theta(x_{t-1} \mid x_t)$ | Reverse (noise → data) |
+
+### Forward
+
+$x_t = \sqrt{1-\beta_t}\,x_{t-1} + \sqrt{\beta_t}\,\varepsilon_t,
+\quad
+\varepsilon_t \sim \mathcal{N}(0,I)$
+
+1. Start from data $x_0$.
+2.	For each timestep $t$, iteratively apply noise:
+    - Decrease signal $x_t$ by $\sqrt{1-\beta_t}$.
+    - Increase noise $\varepsilon_t$ by $\sqrt{\beta_t}$.
+3.	After T steps, $x_T$ is nearly pure Gaussian noise $\mathcal{N}(0,I)$ based on $\beta_t$ scheduling.
+
+### Reverse 
+1. You start from noise $x_T \sim \mathcal{N}(0,I)$.
+2. At each step $t=T,\dots,1:$ Sample $x_{t-1}$ from a Gaussian with mean and variance predicted by the model:
+$x_{t-1} \sim \mathcal{N}(\mu_\theta(x_t,t), \Sigma_\theta(x_t,t))$.
+4. After T steps, you have $x_0$, which should look like real data.
