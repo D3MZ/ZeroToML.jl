@@ -1,5 +1,58 @@
 # Diffusion
 
+Suppose $P = \{p_{1}, \ldots, p_{n}\}$ and $Q = \{q_{1}, \ldots, q_{n}\}$ are discrete probability distributions. 
+
+[Gibbs' inequality](https://en.wikipedia.org/wiki/Gibbs%27_inequality) states the information entropy of $P$ is less than or equal to its cross entropy with any other distribution $Q$. 
+```math
+-\sum_{i=1}^{n} p_{i} \log p_{i} \;\leq\; -\sum_{i=1}^{n} p_{i} \log q_{i}
+```
+
+The difference between the two quantities is the [Kullback–Leibler divergence](https://en.wikipedia.org/wiki/Kullback–Leibler_divergence) (or relative entropy) and the expected excess [surprisal](https://en.wikipedia.org/wiki/Information_content):
+
+```math
+D_{\mathrm{KL}}(P \parallel Q) \;\equiv\; \sum_{i=1}^{n} p_{i} \log \frac{p_{i}}{q_{i}} \;\geq\; 0
+```
+This is a [divergence](https://en.wikipedia.org/wiki/Divergence_(statistics)) that only tells us a few things:
+1. The divergence is a real number $\ge 0$. 
+2. P $=$ Q only when there's there's no divergence anywhere: $p_i - q_i = 0$.
+3. $D_{\mathrm{KL}}(P \parallel Q) = \infty$ if $p_i > 0,\ q_i = 0$ is anywhere.
+
+The key is that KL divergence is just a measure of discrepancy between two distributions, but in diffusion models we add the Markov assumption to factorize the path distribution:
+
+```math
+D_{\mathrm{KL}}\bigl(q(x_{0:T}) \parallel p_\theta(x_{0:T})\bigr)
+= \mathbb{E}_{q}\!\Biggl[\log \frac{q(x_{0:T})}{p_\theta(x_{0:T})}\Biggr]
+```
+
+Using the Markov factorization:
+
+```math
+q(x_{0:T}) = q(x_0)\prod_{t=1}^{T} q(x_t \mid x_{t-1}), \quad
+p_\theta(x_{0:T}) = p(x_T)\prod_{t=1}^{T} p_\theta(x_{t-1}\mid x_t)
+```
+
+we expand:
+
+```math
+\log \frac{q(x_{0:T})}{p_\theta(x_{0:T})}
+= \log q(x_0) - \log p(x_T) + \sum_{t=1}^{T} \log \frac{q(x_t \mid x_{t-1})}{p_\theta(x_{t-1}\mid x_t)}
+```
+
+Taking expectation under $q$ gives a sum of per-step KL terms:
+
+```math
+D_{\mathrm{KL}}\bigl(q(x_{0:T}) \parallel p_\theta(x_{0:T})\bigr)
+= \underbrace{\mathbb{E}_q[\log q(x_0) - \log p(x_T)]}_{\text{constant wrt $\theta$}}
++ \sum_{t=1}^{T} \mathbb{E}_q\!\Bigl[\log \frac{q(x_t \mid x_{t-1})}{p_\theta(x_{t-1}\mid x_t)}\Bigr]
+```
+
+Training therefore matches each reverse conditional $p_\theta(x_{t-1}\mid x_t)$ to the true forward conditional $q(x_t\mid x_{t-1})$, step by step.
+
+
+
+
+
+
 ## General Background
 
 | Symbol              | Meaning                                 | Notes                                                      |
@@ -88,14 +141,103 @@ $q(x_t \mid x_{t-1}) := \mathcal{N}\bigl(x_t; \sqrt{1-\beta_t}\,x_{t-1}, \beta_t
 
 ### Training
 
+#### Loss function 
+
+
+
+
+
+
+
+
+
+```math
+\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]
+\;\le\;
+\mathbb{E}_{q}\!\!\Biggl[-\log \frac{p_{\theta}(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}\Biggr]
+=
+\mathbb{E}_{q}\!\!\Biggl[-\log p(\mathbf{x}_T)
+-\sum_{t \ge 1} \log \frac{p_{\theta}(\mathbf{x}_{t-1}\mid \mathbf{x}_t)}{q(\mathbf{x}_t \mid \mathbf{x}_{t-1})}\Biggr]
+=: \mathcal{L}
+```
+
+The Loss, $\mathcal{L}$, as stated is not providing much guarantees as it's stating the expected loss from the forward diffusion process, $\mathbb{E}_{q}$, is going to be worse or equal to the real data, $\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]$.
+
+
+
+However,
+
+If p(x) is the true probability density for X, and q(x) is another density, then applying Jensen's inequality for the random variable Y(X) = q(X)/p(X) and the convex function φ(y) = −log(y) gives
+
+Since −log(x) is a strictly convex function for x > 0, it follows that equality holds when p(x) equals q(x) almost everywhere.
+
+
+
+But, given Jensen’s Inequality such that
+```math
+\underbrace{f(\mathbb{E}[X])}{\text{true but intractable objective}}
+\;\le\;
+\underbrace{\mathbb{E}[f(X)]}{\text{tractable upper bound}}.
+```
+- $\mathbb{E}[f(X)] \ge f(\mathbb{E}[X])$ for all $X$.
+- If we minimize $\mathbb{E}[f(X)]$, we push it downwards toward its smallest achievable value.
+- Because it is always above $f(\mathbb{E}[X])$, minimizing the upper bound also reduces $f(\mathbb{E}[X])$.
+
+ ```math
+\arg\min_{\theta}\,\mathbb{E}[f(X)]
+\;\approx\;
+\arg\min_{\theta}\, f(\mathbb{E}[X])
+```
+
+
+
+
+
+-----
+
+
+
+This is because
+1. From the chain rule you get $p_{\theta}(\mathbf{x}_0) = \frac{p_{\theta}(\mathbf{x}_{0:T})}{p_{\theta}(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}$
+2. The model's goal is for $p_{\theta}(\mathbf{x}_0) \stackrel{\text{ideal}}{=} q(\mathbf{x_0})$
+
+Therefore, it'll probably be better to say
+```math
+\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]
+\stackrel{\text{ideal}}{=}
+\mathbb{E}_{q}\!\!\Biggl[-\log \frac{p_{\theta}(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}\Biggr]
+```
+
+
+With that said, the probability density function for the real data, $x_0$, and rest of the path generated from diffusion $p_{\theta}(\mathbf{x}_{0:T})$, would be 
+
+$\mathbb{E}_{q}\!\!\Biggl[-\log \frac{p_{\theta}(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}\Biggr]$
+
+
+
+$q(x_{0:T}) = q(x_0)\, q(x_{1:T}\mid x_0)$
+
+
+The Expected $\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]$
+
+
+
+| Formula | Case | Examples |
+|--------|------|----------|
+| $\mathbb{E}_{q}[-\log p_{\theta}(x_0)] = \sum_{x_0} q(x_0)[-\log p_{\theta}(x_0)]$ | Discrete | Tokens or words in NLP ($x_0 \in \{1,\dots,V\}$), or discrete categories (e.g. class labels) |
+| $\mathbb{E}_{q}[-\log p_{\theta}(x_0)] = \int q(x_0)[-\log p_{\theta}(x_0)] dx_0$ | Continuous | • Pixel intensities (images normalized to [0,1] or [-1,1])<br>• Audio waveforms (real-valued amplitudes)<br>• Time series values (real numbers)<br>• Any continuous latent variable |
+
+
+
+
 ### [Variational Calculus](https://en.wikipedia.org/wiki/Calculus_of_variations)
 
-| Concept    | Notation                                     | Example                                                |
-|------------|----------------------------------------------|--------------------------------------------------------|
-| Function   | $f:\mathbb{R}\to\mathbb{R}$                  | $f(x)=x^2 \Rightarrow f(3)=9$                          |
-| Functional | $J:\{y:\mathbb{R}\to\mathbb{R}\}\to\mathbb{R}$ | $J[y]=\int_0^1 y(x)^2\,dx$ takes the entire function $y(x)$ and outputs a number |
+Given a space of possible functions \mathcal{A}, we find the function y^\star inside that space that makes the number J[y] as small (or as large) as possible.
 
-Variational Calculus finds the function $y(x)$ that minimizes or maximizes a functional:
+Variational Calculus, where the unknown is a function y (not a number), and we seek y^\star that extremizes a functional J (a map from functions to numbers).
+
+ finds the function $y(x)$ that minimizes or maximizes a [functional](https://en.wikipedia.org/wiki/Functional_(mathematics)).
+
 
 $$
 J[y] = \int_{x_0}^{x_1} F(x, y, y')\, dx,
@@ -145,16 +287,10 @@ D_{\mathrm{KL}}\!\bigl(\lambda P_1 + (1-\lambda)P_2 \,\|\, \lambda Q_1 + (1-\lam
 #### Jensen’s Inequality 
 Evidence lower bound (ELBO) a.k.a variational lower bound or negative variational free energy.
 
-```math
-\underbrace{f(\mathbb{E}[X])}{\text{true but intractable objective}}
-\;\le\;
-\underbrace{\mathbb{E}[f(X)]}{\text{tractable upper bound}}.
-```
+
 We cannot evaluate $f(\mathbb{E}[X])$ directly (because the expectation inside is an intractable integral over latent variables).
 But we know:
-- $\mathbb{E}[f(X)] \ge f(\mathbb{E}[X])$ for all $X$.
-- If we minimize $\mathbb{E}[f(X)]$, we push it downwards toward its smallest achievable value.
-- Because it is always above $f(\mathbb{E}[X])$, minimizing the upper bound also reduces $f(\mathbb{E}[X])$.
+
 
 Formally, if
 $f(\mathbb{E}[X]) \le \mathbb{E}[f(X)]$,
@@ -167,48 +303,6 @@ then
 ,
 because both are minimized at the same parameter values when $q = p_\theta$ (the bound is tight there).
 
-
-#### Loss function 
-```math
-\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]
-\;\le\;
-\mathbb{E}_{q}\!\!\Biggl[-\log \frac{p_{\theta}(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}\Biggr]
-=
-\mathbb{E}_{q}\!\!\Biggl[-\log p(\mathbf{x}_T)
--\sum_{t \ge 1} \log \frac{p_{\theta}(\mathbf{x}_{t-1}\mid \mathbf{x}_t)}{q(\mathbf{x}_t \mid \mathbf{x}_{t-1})}\Biggr]
-=: \mathcal{L}
-```
-
-The Loss, $\mathcal{L}$, is not providing much guarantees as it's stating the expected loss from the forward diffusion process, $\mathbb{E}_{q}$, is going to be worse or equal to the real data, $\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]$.
-This is because
-1. From the chain rule you get $p_{\theta}(\mathbf{x}_0) = \frac{p_{\theta}(\mathbf{x}_{0:T})}{p_{\theta}(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}$
-2. The model's goal is for $p_{\theta}(\mathbf{x}_0) \stackrel{\text{ideal}}{=} q(\mathbf{x_0})$
-
-Therefore, it'll probably be better to say
-```math
-\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]
-\stackrel{\text{ideal}}{=}
-\mathbb{E}_{q}\!\!\Biggl[-\log \frac{p_{\theta}(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}\Biggr]
-```
-
-
-With that said, the probability density function for the real data, $x_0$, and rest of the path generated from diffusion $p_{\theta}(\mathbf{x}_{0:T})$, would be 
-
-$\mathbb{E}_{q}\!\!\Biggl[-\log \frac{p_{\theta}(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}\Biggr]$
-
-
-
-$q(x_{0:T}) = q(x_0)\, q(x_{1:T}\mid x_0)$
-
-
-The Expected $\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]$
-
-
-
-| Formula | Case | Examples |
-|--------|------|----------|
-| $\mathbb{E}_{q}[-\log p_{\theta}(x_0)] = \sum_{x_0} q(x_0)[-\log p_{\theta}(x_0)]$ | Discrete | Tokens or words in NLP ($x_0 \in \{1,\dots,V\}$), or discrete categories (e.g. class labels) |
-| $\mathbb{E}_{q}[-\log p_{\theta}(x_0)] = \int q(x_0)[-\log p_{\theta}(x_0)] dx_0$ | Continuous | • Pixel intensities (images normalized to [0,1] or [-1,1])<br>• Audio waveforms (real-valued amplitudes)<br>• Time series values (real numbers)<br>• Any continuous latent variable |
 
 
 TODO:
