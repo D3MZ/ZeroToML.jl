@@ -1,23 +1,49 @@
 # Diffusion
 
+## Background 
 Suppose $P = \{p_{1}, \ldots, p_{n}\}$ and $Q = \{q_{1}, \ldots, q_{n}\}$ are discrete probability distributions. 
 
-[Gibbs' inequality](https://en.wikipedia.org/wiki/Gibbs%27_inequality) states the information entropy of $P$ is less than or equal to its cross entropy with any other distribution $Q$. 
+The [Gibbs' inequality](https://en.wikipedia.org/wiki/Gibbs%27_inequality), derived from [Jensen's inequality](https://en.wikipedia.org/wiki/Jensen%27s_inequality#Probabilistic_form), states the information entropy of $P$ is less than or equal to its cross entropy with any other distribution $Q$. 
 ```math
 -\sum_{i=1}^{n} p_{i} \log p_{i} \;\leq\; -\sum_{i=1}^{n} p_{i} \log q_{i}
 ```
-
-The difference between the two quantities is the [Kullback–Leibler divergence](https://en.wikipedia.org/wiki/Kullback–Leibler_divergence) (or relative entropy) and the expected excess [surprisal](https://en.wikipedia.org/wiki/Information_content):
+This is an [evidence lower bound (ELBO)](https://en.wikipedia.org/wiki/Evidence_lower_bound) that by itself is obvious and not much of a guarantee. However, when rearranged into the [Kullback–Leibler divergence](https://en.wikipedia.org/wiki/Kullback–Leibler_divergence), it's easier to spot that as the gap between P and Q narrows, the distributions must be getting similar:
 
 ```math
 D_{\mathrm{KL}}(P \parallel Q) \;\equiv\; \sum_{i=1}^{n} p_{i} \log \frac{p_{i}}{q_{i}} \;\geq\; 0
 ```
-This is a [divergence](https://en.wikipedia.org/wiki/Divergence_(statistics)) that only tells us a few things:
+This [divergence](https://en.wikipedia.org/wiki/Divergence_(statistics)) that has a few useful properties:
 1. The divergence is a real number $\ge 0$. 
 2. P $=$ Q only when there's there's no divergence anywhere: $p_i - q_i = 0$.
-3. $D_{\mathrm{KL}}(P \parallel Q) = \infty$ if $p_i > 0,\ q_i = 0$ is anywhere.
+3. As aformentioned, the ELBO implies as the gap P(X) and Q(X) gets smaller, then Q -> P. This is used as a loss function, because reducing the expected [surprisal](https://en.wikipedia.org/wiki/Information_content) implies the model is gaining information.
+4. $D_{\mathrm{KL}}(P \parallel Q) = \infty$ if $p_i > 0,\ q_i = 0$ is anywhere. We'll earmark this for now, this is problematic as a loss functiond.
+5. Additive for independent distributions: 
+${\displaystyle D_{\text{KL}}(P\parallel Q)=D_{\text{KL}}(P_{1}\parallel Q_{1})+D_{\text{KL}}(P_{2}\parallel Q_{2}).}$
+6. [Convex](https://en.wikipedia.org/wiki/Convex_function) in the pair of probability measures: ${\displaystyle (P,Q)}$, i.e. if ${\displaystyle (P_{1},Q_{1})}$ and $ {\displaystyle (P_{2},Q_{2})}$ are two pairs of probability measures then ${\displaystyle D_{\text{KL}}(\lambda P_{1}+(1-\lambda )P_{2}\parallel \lambda Q_{1}+(1-\lambda )Q_{2})\leq \lambda D_{\text{KL}}(P_{1}\parallel Q_{1})+(1-\lambda )D_{\text{KL}}(P_{2}\parallel Q_{2}){\text{ for }}0\leq \lambda \leq 1.}$
 
-The key is that KL divergence is just a measure of discrepancy between two distributions, but in diffusion models we add the Markov assumption to factorize the path distribution:
+### [Denoising Diffusion Probabilistic Models](https://arxiv.org/pdf/2006.11239) 
+
+Instead of building a model, Q(X), to satisfy P(X) directly. The insight is that we can generate data by sampling, and estimate distributions 
+
+
+
+The insight is that you could use noise to prevent "overfitting" the model to the data. 
+
+ could be many possible models, Q, that could satisfy 
+
+ 
+
+
+
+
+instead of creating a model Q directly from P, which could lead to memorizing 
+
+ KL divergence still holds when add noise.
+
+
+KL divergence is just a measure of discrepancy between two distributions, but in diffusion models we can have Q model P without directly fitting on the data.
+
+add the Markov assumption to factorize the path distribution:
 
 ```math
 D_{\mathrm{KL}}\bigl(q(x_{0:T}) \parallel p_\theta(x_{0:T})\bigr)
@@ -48,262 +74,61 @@ D_{\mathrm{KL}}\bigl(q(x_{0:T}) \parallel p_\theta(x_{0:T})\bigr)
 
 Training therefore matches each reverse conditional $p_\theta(x_{t-1}\mid x_t)$ to the true forward conditional $q(x_t\mid x_{t-1})$, step by step.
 
+### Reverse Posterior and Learned Reverse Transition (Explicit)
 
+**Definitions.** Let $\beta_t\in(0,1)$ be the noise schedule, $\alpha_t := 1-\beta_t$, and $\bar{\alpha}_t := \prod_{s=1}^{t} \alpha_s$. Let $I$ denote the identity matrix and $\mathbf{x}_t\in\mathbb{R}^d$.
 
-
-
-
-## General Background
-
-| Symbol              | Meaning                                 | Notes                                                      |
-|:--------------------|:----------------------------------------|:-----------------------------------------------------------|
-| $x$                 | observed data (image, text, etc.)       | element of space $\mathcal{X}$                             |
-| $z$                 | latent variable (hidden cause)          | element of space $\mathcal{Z}$                             |
-| $p(z)$              | prior distribution on latent variable   | typically standard Gaussian $\mathcal{N}(0,I)$; here, $\mathcal{N}(\mu,\Sigma)$ denotes a (possibly multivariate) normal distribution with mean vector $\mu$ and covariance matrix $\Sigma$ |
-| $I$                 | identity matrix                        | square matrix with ones on the diagonal and zeros elsewhere; used as covariance in standard normal $\mathcal{N}(0,I)$ |
-| $\mathcal{N}(x; \mu, \Sigma)$ | Gaussian (normal) probability density function evaluated at $x$ | $x$ is the vector, $\mu$ is the mean, $\Sigma$ is the Covariance (or Variance if scalar) |
-| $\mathcal{N}(\mu,\Sigma)$ | Gaussian (normal) distribution (as a distribution object) |
-| $\mathcal{N}(0,I)$ |  standard normal |
-| $p_\theta(x \mid z)$| likelihood of $x$ given $z$             | parameterized by neural network weights $\theta$           |
-| $p_\theta(x, z)$    | joint distribution                      | factorizes as $p_\theta(x \mid z)p(z)$                     |
-| $p_\theta(x)$       | marginal likelihood                     | obtained by integrating out $z$                            |
-| $x \sim p(x)$       | sampled from distribution               | In statistics and probability theory, the tilde means "is distributed as" (e.g. X ~ B(n, p) for a binomial distribution)|
-| $\mathbb{E}_{p}[f(X)]$ | expectation of $f(X)$ under distribution $p$ | discrete: $\sum_x f(x)\,p(x)$; continuous: $\int f(x)\,p(x)\,dx$ |
-
-| Formula                                                                                                  | Explanation                                                                                                                                                                                                     |
-|:---------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| $p(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$                     | A Gaussian (normal) distribution with density where $\mu$ is the mean and $\sigma^2$ is the variance.                                                                   |
-| $p(x_0, x_1) \\= p(x_1, x_0) \\= p(x_1)\,p(x_0 \mid x_1) \\= p(x_0)\,p(x_1 \mid x_0)$                                        | The joint probability of the pair $(x_0, x_1)$ occurring at the same time.                                       |
-| $p(x_0 \mid x_1) = \frac{p(x_0, x_1)}{p(x_1)}$                                                           | The Conditional probability of $x_0$ given $x_1$.                                                                                                                                                                          |
-| $p(x_0)=\sum_{x_1}p(x_0,x_1)$   | The probability of $x_0$ regardless of $x_1$ in the discrete case (summing over $x_1$). |
-| $p(x_0)=\int p(x_0,x_1) dx_1$   | The probability of $x_0$ regardless of $x_1$ in the continuous case (integrating over $x_1$). |
-
-## [Denoising Diffusion Probabilistic Models](https://arxiv.org/pdf/2006.11239)
-
-The model only predicts the parameters of the Gaussian reverse transition (Mean $\mu_\theta(x_t,t)$ and Variance $\Sigma_\theta(x_t,t)$), not the entire distribution explicitly.
-
-| Symbol / Formula                                                                                                  | Explanation |
-|:---------------------------------------------------------------------------------------------------------|:-------------|
-| $x_0$ | observed data vector | can represent arbitrary vector (e.g. if $x_0$ is a $32\times 32\times 3$ image, it is that shape) |
-| $x_{1:T}$ | latent variables | hidden / unobserved variables with same dimensionality as $x_0$ |
-| $\varepsilon_t \sim \mathcal{N}(0, I)$ | random noise | 
-| $p(x_0) = \int p(x_0, x_1) \, dx_1$ | The probability of $x_0$ regardless of $x_1$ in the continuous case (integrating over $x_1$). |
-| $p_\theta(x_{0:T}) = p(x_T) \prod_{t=1}^{T} p_\theta(x_{t-1}\mid x_t)$ | Definition of the reverse process as a Markov chain with learned Gaussian transitions. |
-| $p_\theta(x_{t-1}\mid x_t) = \mathcal{N}(x_{t-1}; \mu_\theta(x_t,t), \Sigma_\theta(x_t,t))$ | Gaussian conditional transition in the reverse process with learned mean and covariance. |
-| $q(x_{1:T}\mid x_0) = \prod_{t=1}^{T} q(x_t \mid x_{t-1})$ | Forward (diffusion) process: fixed Markov chain gradually adding Gaussian noise. |
-| $\beta_t = \beta_{\min} + (\beta_{\max}-\beta_{\min})\frac{t-1}{T-1}$ | Evenly increases noise per step |
-| $\beta_t = \beta_{\min} + (\beta_{\max}-\beta_{\min})\left(\frac{t-1}{T-1}\right)^2$ | Adds very little noise early, more near the end. |
-| $\bar{\alpha}_t = \frac{\cos^2(\frac{\pi}{2}(t/T+0.008))}{\cos^2(0.008\pi/2)}\\$ $\beta_t = 1-\bar{\alpha}_t/\bar{\alpha}_{t-1}$ | Cosine variance schedule; here $\bar{\alpha}_t$ is defined directly as a cosine-squared function of $t$ (not as a cumulative product), and $\beta_t$ is derived via $\beta_t = 1-\bar{\alpha}_t/\bar{\alpha}_{t-1}$; empirically better because it keeps $\bar{\alpha}_t$ high in early steps, making denoising easier. |
-| $q(x_t \mid x_{t-1}) = \mathcal{N}(x_t; \sqrt{1-\beta_t}x_{t-1}, \beta_t I)$ | Single-step Gaussian noise addition with variance schedule $\beta_t$. |
-| $\alpha_t := 1-\beta_t$ | per-step signal retention factor | |
-| $\bar{\alpha}_t := \prod_{s=1}^t \alpha_s$ | cumulative product of per-step $\alpha_s$ | used for closed-form $q(x_t \mid x_0)$ |
-| $q(x_t\mid x_0) = \mathcal{N}(x_t; \sqrt{\bar{\alpha}_t}x_0, (1-\bar{\alpha}_t)I)$ | Closed-form distribution of $x_t$ given $x_0$ using cumulative noise schedule. |
-
-Both $q(x_{0:T})$ and $p_\theta(x_{0:T})$ are distributions over the same path $x_0,\dots,x_T$, but factorized in opposite directions:
-
-| Term | Factorization | Direction |
-|------|---------------|-----------|
-| $q(x_{0:T})$ | $q(x_0)\prod_{t=1}^{T} q(x_t \mid x_{t-1})$ | Forward (data → noise) |
-| $p_\theta(x_{0:T})$ | $p(x_T)\prod_{t=1}^{T} p_\theta(x_{t-1} \mid x_t)$ | Reverse (noise → data) |
-
-### Forward
-
-Markov kernel:
+**Forward (noising).**
 ```math
-x_t = \sqrt{1-\beta_t}\,x_{t-1} + \sqrt{\beta_t}\,\varepsilon_t,
-\quad
-\varepsilon_t \sim \mathcal{N}(0,I)
+q(\mathbf{x}_t\mid \mathbf{x}_{t-1}) 
+= \mathcal{N}\!\Bigl(\mathbf{x}_t; \sqrt{\alpha_t}\,\mathbf{x}_{t-1},\; \beta_t I\Bigr)
 ```
-
-1. Start from data $x_0$.
-2.	For each timestep $t$, iteratively apply noise:
-    - Decrease signal $x_t$ by $\sqrt{1-\beta_t}$.
-    - Increase noise $\varepsilon_t$ by $\sqrt{\beta_t}$.
-3.	After T steps, $x_T$ is nearly pure Gaussian noise $\mathcal{N}(0,I)$ based on $\beta_t$ scheduling.
-
-### Reverse 
-1. You start from noise $x_T \sim \mathcal{N}(0,I)$.
-2. At each step $t=T,\dots,1:$ Sample $x_{t-1}$ from a Gaussian with mean and variance predicted by the model:
-$x_{t-1} \sim \mathcal{N}(\mu_\theta(x_t,t), \Sigma_\theta(x_t,t))$.
-3. After T steps, you have $x_0$, which should look like real data.
-
-For any joint distribution $q(x_{0:T})$, we could use the Chain Rule to get the next step by computing all the historical steps:
+Marginal under the data $\mathbf{x}_0$:
 ```math
-\begin{aligned}
-q(x_{0:T}) &= q(x_0)\, q(x_1 \mid x_0)\, q(x_2 \mid x_1) \,\dots q(x_T \mid x_{T-1}) \\
-          &= q(x_0) \prod_{t=1}^{T} q(x_t \mid x_{t-1})
-\end{aligned}
+q(\mathbf{x}_t\mid \mathbf{x}_0) 
+= \mathcal{N}\!\Bigl(\mathbf{x}_t; \sqrt{\bar{\alpha}_t}\,\mathbf{x}_0,\; (1-\bar{\alpha}_t) I\Bigr)
 ```
 
-But allowing for the Markov assumption, where the step is only dependent on previous step, $q(x_t \mid x_{0:t-1}) = q(x_t \mid x_{t-1})$, this can be defined as:
-
-$q(x_t \mid x_{t-1}) := \mathcal{N}\bigl(x_t; \sqrt{1-\beta_t}\,x_{t-1}, \beta_t I\bigr)$
-
-### Training
-
-#### Loss function 
-
-
-
-
-
-
-
-
-
+**True reverse (posterior of the forward chain).** This is the distribution the model must approximate at training time:
 ```math
-\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]
-\;\le\;
-\mathbb{E}_{q}\!\!\Biggl[-\log \frac{p_{\theta}(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}\Biggr]
-=
-\mathbb{E}_{q}\!\!\Biggl[-\log p(\mathbf{x}_T)
--\sum_{t \ge 1} \log \frac{p_{\theta}(\mathbf{x}_{t-1}\mid \mathbf{x}_t)}{q(\mathbf{x}_t \mid \mathbf{x}_{t-1})}\Biggr]
-=: \mathcal{L}
+q(\mathbf{x}_{t-1}\mid \mathbf{x}_t,\mathbf{x}_0) 
+= \mathcal{N}\!\Bigl(\mathbf{x}_{t-1};\; \tilde{\boldsymbol{\mu}}_t(\mathbf{x}_t,\mathbf{x}_0),\; \tilde{\beta}_t I\Bigr)
 ```
-
-The Loss, $\mathcal{L}$, as stated is not providing much guarantees as it's stating the expected loss from the forward diffusion process, $\mathbb{E}_{q}$, is going to be worse or equal to the real data, $\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]$.
-
-
-
-However,
-
-If p(x) is the true probability density for X, and q(x) is another density, then applying Jensen's inequality for the random variable Y(X) = q(X)/p(X) and the convex function φ(y) = −log(y) gives
-
-Since −log(x) is a strictly convex function for x > 0, it follows that equality holds when p(x) equals q(x) almost everywhere.
-
-
-
-But, given Jensen’s Inequality such that
+with
 ```math
-\underbrace{f(\mathbb{E}[X])}{\text{true but intractable objective}}
-\;\le\;
-\underbrace{\mathbb{E}[f(X)]}{\text{tractable upper bound}}.
-```
-- $\mathbb{E}[f(X)] \ge f(\mathbb{E}[X])$ for all $X$.
-- If we minimize $\mathbb{E}[f(X)]$, we push it downwards toward its smallest achievable value.
-- Because it is always above $f(\mathbb{E}[X])$, minimizing the upper bound also reduces $f(\mathbb{E}[X])$.
-
- ```math
-\arg\min_{\theta}\,\mathbb{E}[f(X)]
-\;\approx\;
-\arg\min_{\theta}\, f(\mathbb{E}[X])
+\tilde{\boldsymbol{\mu}}_t(\mathbf{x}_t,\mathbf{x}_0) 
+= \frac{\sqrt{\bar{\alpha}_{t-1}}\,\beta_t}{1-\bar{\alpha}_t}\,\mathbf{x}_0
+\; +\; \frac{\sqrt{\alpha_t}\,(1-\bar{\alpha}_{t-1})}{1-\bar{\alpha}_t}\,\mathbf{x}_t,
+\qquad
+\tilde{\beta}_t 
+= \frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_t}\,\beta_t.
 ```
 
-
-
-
-
------
-
-
-
-This is because
-1. From the chain rule you get $p_{\theta}(\mathbf{x}_0) = \frac{p_{\theta}(\mathbf{x}_{0:T})}{p_{\theta}(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}$
-2. The model's goal is for $p_{\theta}(\mathbf{x}_0) \stackrel{\text{ideal}}{=} q(\mathbf{x_0})$
-
-Therefore, it'll probably be better to say
+**Learned reverse transition.** We parameterize a Markov chain
 ```math
-\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]
-\stackrel{\text{ideal}}{=}
-\mathbb{E}_{q}\!\!\Biggl[-\log \frac{p_{\theta}(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}\Biggr]
+p_\theta(\mathbf{x}_{t-1}\mid \mathbf{x}_t) 
+= \mathcal{N}\!\Bigl(\mathbf{x}_{t-1};\; \boldsymbol{\mu}_\theta(\mathbf{x}_t,t),\; \sigma_t^2 I\Bigr),
 ```
+with common choices $\sigma_t^2 = \tilde{\beta}_t$ (fixed) or learned.
 
-
-With that said, the probability density function for the real data, $x_0$, and rest of the path generated from diffusion $p_{\theta}(\mathbf{x}_{0:T})$, would be 
-
-$\mathbb{E}_{q}\!\!\Biggl[-\log \frac{p_{\theta}(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}\mid \mathbf{x}_0)}\Biggr]$
-
-
-
-$q(x_{0:T}) = q(x_0)\, q(x_{1:T}\mid x_0)$
-
-
-The Expected $\mathbb{E}\!\bigl[-\log p_{\theta}(\mathbf{x}_0)\bigr]$
-
-
-
-| Formula | Case | Examples |
-|--------|------|----------|
-| $\mathbb{E}_{q}[-\log p_{\theta}(x_0)] = \sum_{x_0} q(x_0)[-\log p_{\theta}(x_0)]$ | Discrete | Tokens or words in NLP ($x_0 \in \{1,\dots,V\}$), or discrete categories (e.g. class labels) |
-| $\mathbb{E}_{q}[-\log p_{\theta}(x_0)] = \int q(x_0)[-\log p_{\theta}(x_0)] dx_0$ | Continuous | • Pixel intensities (images normalized to [0,1] or [-1,1])<br>• Audio waveforms (real-valued amplitudes)<br>• Time series values (real numbers)<br>• Any continuous latent variable |
-
-
-
-
-### [Variational Calculus](https://en.wikipedia.org/wiki/Calculus_of_variations)
-
-Given a space of possible functions \mathcal{A}, we find the function y^\star inside that space that makes the number J[y] as small (or as large) as possible.
-
-Variational Calculus, where the unknown is a function y (not a number), and we seek y^\star that extremizes a functional J (a map from functions to numbers).
-
- finds the function $y(x)$ that minimizes or maximizes a [functional](https://en.wikipedia.org/wiki/Functional_(mathematics)).
-
-
-$$
-J[y] = \int_{x_0}^{x_1} F(x, y, y')\, dx,
-\qquad y' = \frac{dy}{dx}
-$$
-
-The solution is given by the Euler–Lagrange equation:
-
-$$
-\frac{\partial F}{\partial y} - \frac{d}{dx}\Bigl(\frac{\partial F}{\partial y'}\Bigr) = 0
-$$
-
-#### Examples
-* Straight line on flat plane: If \(F = \sqrt{1+y'^2}\) (arc length functional), solving Euler–Lagrange gives \(y''=0 \Rightarrow y=ax+b\), a straight line — the curve of shortest length.
-* Great circle on a sphere: If constrained to a sphere, Euler–Lagrange with the constraint yields **geodesics** (great circles). Multiple geodesics can connect two points, especially antipodal ones.
-
-#### [Variational Bayesian inference](https://en.wikipedia.org/wiki/Variational_Bayesian_methods)
-
-##### Problem
-Given
-- 
-- Unobserved variables ${\displaystyle \mathbf {U} =\{U_{1}\dots U_{n}\}}$ given some data ${\displaystyle \mathbf {X} }$ is approximated by a variational distribution, ${\displaystyle Q(\mathbf {U} ):}$
-- 
-
-
-
-#### Kullback–Leibler divergence
-Denoted as ${\displaystyle D_{\text{KL}}(P\parallel Q)}$ measures of how much a model probability distribution $Q$ is different from a true probability distribution $P$. It is defined as
-
+**$\varepsilon$-parameterization.** The network predicts the forward noise $\varepsilon_\theta(\mathbf{x}_t,t)$, giving
 ```math
-D_{\mathrm{KL}}(P\parallel Q) = \displaystyle \sum_{x \in \mathcal{X}} P(x) \log \frac{P(x)}{Q(x)} = - \displaystyle \sum_{x \in \mathcal{X}} P(x) \log \frac{Q(x)}{P(x)}
+\hat{\mathbf{x}}_0(\mathbf{x}_t,t;\theta) 
+= \frac{1}{\sqrt{\bar{\alpha}_t}}\Bigl(\mathbf{x}_t - \sqrt{1-\bar{\alpha}_t}\,\varepsilon_\theta(\mathbf{x}_t,t)\Bigr),
 ```
-
-It is the expectation, $\mathbb{E}$, of the logarithmic difference between the probabilities P and Q, where the expectation is taken using the probabilities P.
-
-[Gibbs' inequality](https://en.wikipedia.org/wiki/Gibbs%27_inequality)
-- ${\displaystyle D_{\text{KL}}(P\parallel Q)} > 0$
-- ${\displaystyle D_{\text{KL}}(P\parallel Q)} = 0$ when $P = Q$
-
-Relative entropy (KL divergence) $D_{\mathrm{KL}}(P \parallel Q)$ is convex in the pair of probability measures $(P, Q)$. Specifically, if $(P_1,Q_1)$ and $(P_2,Q_2)$ are two pairs of probability measures, then
 ```math
-D_{\mathrm{KL}}\!\bigl(\lambda P_1 + (1-\lambda)P_2 \,\|\, \lambda Q_1 + (1-\lambda)Q_2 \bigr)
-\;\le\;
-\lambda\,D_{\mathrm{KL}}(P_1 \,\|\, Q_1) + (1-\lambda)\,D_{\mathrm{KL}}(P_2 \,\|\, Q_2)
+\boldsymbol{\mu}_\theta(\mathbf{x}_t,t) 
+= \frac{1}{\sqrt{\alpha_t}}\Bigl(\mathbf{x}_t - \frac{\beta_t}{\sqrt{1-\bar{\alpha}_t}}\,\varepsilon_\theta(\mathbf{x}_t,t)\Bigr).
 ```
-
-#### Jensen’s Inequality 
-Evidence lower bound (ELBO) a.k.a variational lower bound or negative variational free energy.
-
-
-We cannot evaluate $f(\mathbb{E}[X])$ directly (because the expectation inside is an intractable integral over latent variables).
-But we know:
-
-
-Formally, if
-$f(\mathbb{E}[X]) \le \mathbb{E}[f(X)]$,
-then
+With these choices, the per-step KL simplifies (up to constants and scalar weights $w_t$) to the familiar **noise-prediction MSE**:
 ```math
-\arg\min_{\theta}\,\mathbb{E}[f(X)]
-\;\approx\;
-\arg\min_{\theta}\, f(\mathbb{E}[X])
+\mathrm{KL}\bigl(q(\mathbf{x}_{t-1}\mid \mathbf{x}_t,\mathbf{x}_0)\,\|\, p_\theta(\mathbf{x}_{t-1}\mid \mathbf{x}_t)\bigr)
+\propto \; \mathbb{E}_{\mathbf{x}_0,\varepsilon, t}\bigl[\, w_t\,\|\varepsilon - \varepsilon_\theta(\mathbf{x}_t,t)\|_2^2\,\bigr].
 ```
-,
-because both are minimized at the same parameter values when $q = p_\theta$ (the bound is tight there).
 
+**Forward vs. Reverse (at a glance).**
 
-
-TODO:
-Update x to boldface x to imply a vector.
+| Direction | Joint factorization | One-step transition | Posterior needed for training |
+|---|---|---|---|
+| Forward $q$ | $q(\mathbf{x}_{0:T})=q(\mathbf{x}_0)\prod_{t=1}^{T} q(\mathbf{x}_t\mid\mathbf{x}_{t-1})$ | $\mathcal{N}(\sqrt{\alpha_t}\,\mathbf{x}_{t-1}, \beta_t I)$ | $q(\mathbf{x}_{t-1}\mid\mathbf{x}_t,\mathbf{x}_0)=\mathcal{N}(\tilde{\boldsymbol{\mu}}_t, \tilde{\beta}_t I)$ |
+| Reverse $p_\theta$ | $p_\theta(\mathbf{x}_{0:T})=p(\mathbf{x}_T)\prod_{t=1}^{T} p_\theta(\mathbf{x}_{t-1}\mid\mathbf{x}_t)$ | $\mathcal{N}(\boldsymbol{\mu}_\theta(\mathbf{x}_t,t), \sigma_t^2 I)$ | matched to the forward posterior via per-step KL |
