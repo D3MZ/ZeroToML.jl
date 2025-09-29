@@ -30,8 +30,8 @@ struct MLP
 end
 
 # forward: returns (ε̂, cache)
-function mlp_forward(m::MLP, x::Vector{Float32})
-    h1 = relu(m.W1*x .+ m.b1)
+function mlp_forward(m::MLP, x::Vector{Float32}, t, T)
+    h1 = relu(m.W1*x .+ m.b1 .+ time_embed(t, T))
     y  = m.W2*h1 .+ m.b2
     return y, (x, h1)
 end
@@ -76,7 +76,7 @@ function train_step!(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
     ε  = randn_like(x0)
     xt = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*ε
 
-    ε̂, cache = mlp_forward(m, xt)
+    ε̂, cache = mlp_forward(m, xt, t, T)
     resid = ε̂ .- ε
     loss = mean(resid.^2)
     mlp_backward!(m, cache, resid, η)
@@ -91,7 +91,7 @@ function reverse_sample(m::MLP, betas, α, ᾱ, T, d; σ_type=:fixed)
     x = randn(Float32, d)
     for t in T:-1:1
         # predict ε
-        ε̂, _ = mlp_forward(m, x)
+        ε̂, _ = mlp_forward(m, x, t, T)
 
         # μ_θ
         μ = (x .- (betas[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
