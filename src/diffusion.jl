@@ -64,10 +64,7 @@ end
 # -------------------------
 function train_step!(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
     t = rand(1:T)
-    xt = q_sample(x0, t, ᾱ)
-    ε  = randn_like(xt)
-
-    # overwrite xt with analytic corruption to keep exact xt used in loss
+    ε  = randn_like(x0)
     xt = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*ε
 
     ε̂, (x, h1) = mlp_forward(m, xt)

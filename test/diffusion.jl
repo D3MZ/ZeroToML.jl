@@ -22,11 +22,13 @@ include("../src/diffusion.jl")
     end
 
     η = 1f-3
+    losses = zeros(Float32, 100)
     for it in 1:100 # Reduced from 10_000 for testing
         x0 = toy_image()
-        loss = train_step!(model, x0, betas, α, ᾱ, T; η=η)
-        if it%50==0; @info "iter=$(it) loss=$(loss)"; end
+        losses[it] = train_step!(model, x0, betas, α, ᾱ, T; η=η)
+        if it%50==0; @info "iter=$(it) loss=$(losses[it])"; end
     end
+    @test mean(losses[81:100]) < mean(losses[1:20])
 
     xgen = reverse_sample(model, betas, α, ᾱ, T, d)
     @info "sample mean=$(mean(xgen)) std=$(std(xgen))"
