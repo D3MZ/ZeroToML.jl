@@ -42,6 +42,29 @@ function mlp_forward(m::MLP, x::Vector{Float32})
     return y, (x, h1)
 end
 
+function mlp_backward!(m::MLP, cache, resid, η)
+    x, h1 = cache
+    N = length(resid)
+    dL_dy = (2f0/N).*resid
+
+    # y = W2*h1 + b2
+    dL_dW2 = dL_dy*h1'
+    dL_db2 = dL_dy
+
+    # h1 = relu(W1*x + b1)
+    dh1 = m.W2' * dL_dy
+    dz1 = dh1 .* (h1 .> 0f0)
+
+    dL_dW1 = dz1 * x'
+    dL_db1 = dz1
+
+    # SGD updates
+    sgd!(m.W2, dL_dW2, η)
+    sgd!(m.b2, dL_db2, η)
+    sgd!(m.W1, dL_dW1, η)
+    sgd!(m.b1, dL_db1, η)
+end
+
 # simple SGD update
 sgd!(param, grad, η) = (param .-= η.*grad)
 
@@ -62,32 +85,10 @@ function train_step!(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
     ε  = randn_like(x0)
     xt = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*ε
 
-    ε̂, (x, h1) = mlp_forward(m, xt)
+    ε̂, cache = mlp_forward(m, xt)
     resid = ε̂ .- ε
     loss = mean(resid.^2)
-
-    # Backprop (dL/dy = 2*(y-ε)/N)
-    N = length(resid)
-    dL_dy = (2f0/N).*resid
-
-    # y = W2*h1 + b2
-    dL_dW2 = dL_dy*h1'
-    dL_db2 = dL_dy
-
-    # h1 = relu(W1*x + b1)
-    dh1 = m.W2' * dL_dy
-    dz1 = dh1 .* (h1 .> 0f0)
-
-    dL_dW1 = dz1 * x'
-    dL_db1 = dz1
-    dL_dx  = m.W1' * dz1  # not used here
-
-    # SGD updates
-    sgd!(m.W2, dL_dW2, η)
-    sgd!(m.b2, dL_db2, η)
-    sgd!(m.W1, dL_dW1, η)
-    sgd!(m.b1, dL_db1, η)
-
+    mlp_backward!(m, cache, resid, η)
     return loss
 end
 
