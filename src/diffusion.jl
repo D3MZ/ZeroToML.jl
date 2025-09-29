@@ -1,74 +1,156 @@
-function linear_beta_schedule(T, β_start=0.0001, β_end=0.02)
-    return range(β_start, stop=β_end, length=T)
-end
+using Random, Statistics
 
-function precompute_constants(βs)
-    α = 1.0 .- βs
-    ᾱ = cumprod(α)
-    ᾱ_prev = vcat(1.0, ᾱ[1:end-1])
-    
-    sqrt_ᾱ = sqrt.(ᾱ)
-    sqrt_one_minus_ᾱ = sqrt.(1.0 .- ᾱ)
+# -------------------------
+# Utilities
+# -------------------------
+randn_like(x) = randn(eltype(x), size(x)...)  # one-liner
 
-    posterior_mean_coef1 = βs .* sqrt.(ᾱ_prev) ./ (1.0 .- ᾱ)
-    posterior_mean_coef2 = (1.0 .- ᾱ_prev) .* sqrt.(α) ./ (1.0 .- ᾱ)
-    
-    posterior_variance = βs .* (1.0 .- ᾱ_prev) ./ (1.0 .- ᾱ)
-    
-    return (
-        βs=βs,
-        α=α,
-        ᾱ=ᾱ,
-        ᾱ_prev=ᾱ_prev,
-        sqrt_ᾱ=sqrt_ᾱ,
-        sqrt_one_minus_ᾱ=sqrt_one_minus_ᾱ,
-        posterior_mean_coef1=posterior_mean_coef1,
-        posterior_mean_coef2=posterior_mean_coef2,
-        posterior_variance=posterior_variance,
-    )
-end
+# Time embedding (simple scalar scaling; replace with sinusoidal if you wish)
+time_embed(t, T) = Float32(t)/Float32(T)
 
-# q(xₜ|x₀)
-function q_sample(x₀, t, constants)
-    ϵ = randn(size(x₀))
-    xₜ = constants.sqrt_ᾱ[t] * x₀ + constants.sqrt_one_minus_ᾱ[t] * ϵ
-    return xₜ, ϵ
-end
+# -------------------------
+# Beta schedule (linear)
+# -------------------------
+make_betas(T; βmin=1e-4f0, βmax=0.02f0) = range(βmin, βmax; length=T) |> collect
 
-# μ̃ₜ(xₜ, x₀)
-function q_posterior_mean(xₜ, x₀, t, constants)
-    μ̃ = constants.posterior_mean_coef1[t] * x₀ + constants.posterior_mean_coef2[t] * xₜ
-    return μ̃
-end
-
-# β̃ₜ
-function q_posterior_variance(t, constants)
-    β̃ = constants.posterior_variance[t]
-    return β̃
-end
-
-# μ_θ(xₜ, t)
-function p_mean(model, xₜ, t, constants)
-    ϵ_θ = model(xₜ, t)
-    μ_θ = (1 / sqrt(constants.α[t])) * (xₜ - constants.βs[t] / constants.sqrt_one_minus_ᾱ[t] * ϵ_θ)
-    return μ_θ
-end
-
-# p_θ(x_{t-1}|xₜ)
-function p_sample(model, xₜ, t, constants)
-    μ = p_mean(model, xₜ, t, constants)
-    if t == 1
-        return μ
+function make_alphas(betas)
+    α = 1 .- betas
+    ᾱ = similar(α)
+    prod = one(eltype(α))
+    for t in 1:length(α)
+        prod *= α[t]
+        ᾱ[t] = prod
     end
-    
-    σ_t = sqrt(q_posterior_variance(t, constants))
-    z = randn(size(xₜ))
-    return μ + σ_t * z
+    return α, ᾱ
 end
 
-# L_simple(θ)
-function loss(model, x₀, t, constants)
-    xₜ, ϵ = q_sample(x₀, t, constants)
-    ϵ_θ = model(xₜ, t)
-    return sum((ϵ - ϵ_θ).^2)
+# -------------------------
+# Forward sampler q(x_t | x_0)
+# -------------------------
+q_sample(x0, t, ᾱ) = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*randn_like(x0)
+
+# -------------------------
+# Tiny MLP noise predictor ε_θ(x_t, t)
+# (manual forward + backward for MSE)
+# -------------------------
+struct MLP
+    W1::Array{Float32,2}; b1::Vector{Float32}
+    W2::Array{Float32,2}; b2::Vector{Float32}
 end
+
+relu(x) = max.(x, 0f0)
+
+# forward: returns (ε̂, cache)
+function mlp_forward(m::MLP, x::Vector{Float32})
+    h1 = relu(m.W1*x .+ m.b1)
+    y  = m.W2*h1 .+ m.b2
+    return y, (x, h1)
+end
+
+# simple SGD update
+sgd!(param, grad, η) = (param .-= η.*grad)
+
+# Initialize MLP for dimension d -> d (noise prediction)
+function init_mlp(d, h=1024)
+    W1 = 0.02f0*randn(Float32, h, d); b1 = zeros(Float32, h)
+    W2 = 0.02f0*randn(Float32, d, h); b2 = zeros(Float32, d)
+    return MLP(W1, b1, W2, b2)
+end
+
+# -------------------------
+# Training step: one batch = one image here (extend to minibatches easily)
+# Loss: ||ε - ε̂||^2
+# Manual backprop for this 2-layer MLP
+# -------------------------
+function train_step!(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
+    t = rand(1:T)
+    xt = q_sample(x0, t, ᾱ)
+    ε  = randn_like(xt)
+
+    # overwrite xt with analytic corruption to keep exact xt used in loss
+    xt = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*ε
+
+    ε̂, (x, h1) = mlp_forward(m, xt)
+    resid = ε̂ .- ε
+    loss = mean(resid.^2)
+
+    # Backprop (dL/dy = 2*(y-ε)/N)
+    N = length(resid)
+    dL_dy = (2f0/N).*resid
+
+    # y = W2*h1 + b2
+    dL_dW2 = dL_dy*h1'
+    dL_db2 = dL_dy
+
+    # h1 = relu(W1*x + b1)
+    dh1 = m.W2' * dL_dy
+    dz1 = dh1 .* (h1 .> 0f0)
+
+    dL_dW1 = dz1 * x'
+    dL_db1 = dz1
+    dL_dx  = m.W1' * dz1  # not used here
+
+    # SGD updates
+    sgd!(m.W2, dL_dW2, η); sgd!(m.b2, dL_db2, η)
+    sgd!(m.W1, dL_dW1, η); sgd!(m.b1, dL_db1, η)
+
+    return loss
+end
+
+# -------------------------
+# Reverse sampling (unconditional)
+# x_T ~ N(0, I); iterate to x_0
+# -------------------------
+function reverse_sample(m::MLP, betas, α, ᾱ, T, d; σ_type=:fixed)
+    x = randn(Float32, d)
+    for t in T:-1:1
+        # predict ε
+        ε̂, _ = mlp_forward(m, x)
+
+        # μ_θ
+        μ = (x .- (betas[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
+
+        if t>1
+            σt = σ_type==:fixed ? sqrt(betas[t]) : sqrt(((1-ᾱ[t-1])/(1-ᾱ[t]))*betas[t])
+            x = μ .+ σt.*randn_like(x)
+        else
+            x = μ
+        end
+    end
+    return x
+end
+
+# -------------------------
+# Toy driver
+# -------------------------
+function main()
+    Random.seed!(42)
+    C,H,W = 1, 16, 16
+    d = C*H*W
+    T = 100
+    betas = Float32.(make_betas(T))
+    α, ᾱ = make_alphas(betas)
+    model = init_mlp(d, 512)
+
+    # dummy dataset: e.g., small blobs
+    function toy_image()
+        img = zeros(Float32, H, W)
+        i = rand(4:12); j = rand(4:12)
+        img[i-1:i+1, j-1:j+1] .= 1f0
+        return reshape(img, d)  # flatten
+    end
+
+    η = 1e-3f0
+    for it in 1:10_000
+        x0 = toy_image()
+        loss = train_step!(model, x0, betas, α, ᾱ, T; η=η)
+        if it%500==0; @info "iter=$(it) loss=$(loss)"; end
+    end
+
+    xgen = reverse_sample(model, betas, α, ᾱ, T, d)
+    @info "sample mean=$(mean(xgen)) std=$(std(xgen))"
+    return reshape(xgen, H, W)
+end
+
+# run:
+# xhat = main()
