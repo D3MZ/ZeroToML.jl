@@ -1,9 +1,5 @@
 using Random, Statistics
 
-# -------------------------
-# Utilities
-# -------------------------
-randn_like(x) = randn(eltype(x), size(x)...)  # one-liner
 
 # Time embedding (simple scalar scaling; replace with sinusoidal if you wish)
 time_embed(t, T) = Float32(t)/Float32(T)
@@ -32,8 +28,6 @@ struct MLP
     W1::Array{Float32,2}; b1::Vector{Float32}
     W2::Array{Float32,2}; b2::Vector{Float32}
 end
-
-relu(x) = max.(x, 0f0)
 
 # forward: returns (ε̂, cache)
 function mlp_forward(m::MLP, x::Vector{Float32})
@@ -65,13 +59,10 @@ function mlp_backward!(m::MLP, cache, resid, η)
     sgd!(m.b1, dL_db1, η)
 end
 
-# simple SGD update
-sgd!(param, grad, η) = (param .-= η.*grad)
-
 # Initialize MLP for dimension d -> d (noise prediction)
 function init_mlp(d, h=1024)
-    W1 = 0.02f0*randn(Float32, h, d); b1 = zeros(Float32, h)
-    W2 = 0.02f0*randn(Float32, d, h); b2 = zeros(Float32, d)
+    W1 = glorot(h, d); b1 = zeros(Float32, h)
+    W2 = glorot(d, h); b2 = zeros(Float32, d)
     return MLP(W1, b1, W2, b2)
 end
 

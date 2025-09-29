@@ -2,7 +2,7 @@ using Test
 using Random
 using Statistics
 
-include("../src/diffusion.jl")
+using ZeroToML
 
 @testset "Diffusion Toy Driver" begin
     Random.seed!(42)

@@ -1,6 +1,3 @@
-# --- Weight Initialization ---
-glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
-
 # --- Tokenizer ---
 build_vocab(text) = sort(unique(collect(text)))
 
