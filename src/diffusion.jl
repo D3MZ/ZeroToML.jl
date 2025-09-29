@@ -11,7 +11,7 @@ time_embed(t, T) = Float32(t)/Float32(T)
 # -------------------------
 # Beta schedule (linear)
 # -------------------------
-make_betas(T; βmin=1e-4f0, βmax=0.02f0) = range(βmin, βmax; length=T) |> collect
+make_betas(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T) |> collect
 
 function make_alphas(betas)
     α = 1 .- betas

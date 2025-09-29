@@ -21,7 +21,7 @@ include("../src/diffusion.jl")
         return reshape(img, d)  # flatten
     end
 
-    η = 1e-3f0
+    η = 1f-3
     for it in 1:100 # Reduced from 10_000 for testing
         x0 = toy_image()
         loss = train_step!(model, x0, betas, α, ᾱ, T; η=η)
