@@ -15,7 +15,7 @@ make_betas(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T) |> colle
 
 function make_alphas(betas)
     α = 1 .- betas
-    ᾱ = collect(Iterators.accumulate(*, α))
+    ᾱ = cumprod(α)
     return α, ᾱ
 end
 
