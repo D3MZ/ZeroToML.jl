@@ -91,8 +91,10 @@ function train_step!(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
     dL_dx  = m.W1' * dz1  # not used here
 
     # SGD updates
-    sgd!(m.W2, dL_dW2, η); sgd!(m.b2, dL_db2, η)
-    sgd!(m.W1, dL_dW1, η); sgd!(m.b1, dL_db1, η)
+    sgd!(m.W2, dL_dW2, η)
+    sgd!(m.b2, dL_db2, η)
+    sgd!(m.W1, dL_dW1, η)
+    sgd!(m.b1, dL_db1, η)
 
     return loss
 end
