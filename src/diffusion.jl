@@ -15,12 +15,7 @@ make_betas(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T) |> colle
 
 function make_alphas(betas)
     α = 1 .- betas
-    ᾱ = similar(α)
-    prod = one(eltype(α))
-    for t in 1:length(α)
-        prod *= α[t]
-        ᾱ[t] = prod
-    end
+    ᾱ = collect(Iterators.accumulate(*, α))
     return α, ᾱ
 end
 
