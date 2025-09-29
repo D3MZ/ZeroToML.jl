@@ -1,8 +1,14 @@
 using Random, Statistics
 
 
-# Time embedding (simple scalar scaling; replace with sinusoidal if you wish)
-time_embed(t, T) = Float32(t)/Float32(T)
+# Time embedding (sinusoidal)
+function time_embed(t, d)
+    div_term = exp.((0:2:d-1) .* -(log(10000.0f0) / d))
+    pe = zeros(Float32, d)
+    pe[1:2:end] = sin.(t .* div_term)
+    pe[2:2:end] = cos.(t .* div_term)
+    return pe
+end
 
 # -------------------------
 # Beta schedule (linear)
@@ -31,7 +37,7 @@ end
 
 # forward: returns (ε̂, cache)
 function mlp_forward(m::MLP, x::Vector{Float32}, t, T)
-    h1 = relu(m.W1*x .+ m.b1 .+ time_embed(t, T))
+    h1 = relu(m.W1*x .+ m.b1 .+ time_embed(t, length(m.b1)))
     y  = m.W2*h1 .+ m.b2
     return y, (x, h1)
 end
