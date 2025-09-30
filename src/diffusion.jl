@@ -1,9 +1,6 @@
-using Random, Statistics
+using Random, Statistics, Test
 
-# -------------------------
-# Utilities
-# -------------------------
-randn_like(x) = randn(eltype(x), size(x)...)  # one-liner
+randn_like(x) = randn(eltype(x), size(x))
 
 # Time embedding (simple scalar scaling; replace with sinusoidal if you wish)
 time_embed(t, T) = Float32(t)/Float32(T)
@@ -36,8 +33,8 @@ end
 relu(x) = max.(x, 0f0)
 
 # forward: returns (ε̂, cache)
-function mlp_forward(m::MLP, x::Vector{Float32})
-    h1 = relu(m.W1*x .+ m.b1)
+function mlp_forward(m::MLP, x::Vector{Float32}, t, T)
+    h1 = relu(m.W1*x .+ m.b1 .+ time_embed(t, T))
     y  = m.W2*h1 .+ m.b2
     return y, (x, h1)
 end
@@ -85,7 +82,7 @@ function train_step!(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
     ε  = randn_like(x0)
     xt = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*ε
 
-    ε̂, cache = mlp_forward(m, xt)
+    ε̂, cache = mlp_forward(m, xt, t, T)
     resid = ε̂ .- ε
     loss = mean(resid.^2)
     mlp_backward!(m, cache, resid, η)
@@ -100,7 +97,7 @@ function reverse_sample(m::MLP, betas, α, ᾱ, T, d; σ_type=:fixed)
     x = randn(Float32, d)
     for t in T:-1:1
         # predict ε
-        ε̂, _ = mlp_forward(m, x)
+        ε̂, _ = mlp_forward(m, x, t, T)
 
         # μ_θ
         μ = (x .- (betas[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
@@ -115,3 +112,37 @@ function reverse_sample(m::MLP, betas, α, ᾱ, T, d; σ_type=:fixed)
     return x
 end
 
+@testset "Diffusion Toy Driver" begin
+    Random.seed!(42)
+    C,H,W = 1, 16, 16
+    d = C*H*W
+    T = 100
+    betas = Float32.(make_betas(T))
+    α, ᾱ = make_alphas(betas)
+    model = init_mlp(d, 512)
+
+    # dummy dataset: e.g., small blobs
+    function toy_image()
+        img = zeros(Float32, H, W)
+        i = rand(4:12); j = rand(4:12)
+        img[i-1:i+1, j-1:j+1] .= 1f0
+        return reshape(img, d)  # flatten
+    end
+
+    η = 1f-3
+    losses = zeros(Float32, 100)
+    for it in 1:100 # Reduced from 10_000 for testing
+        x0 = toy_image()
+        losses[it] = train_step!(model, x0, betas, α, ᾱ, T; η=η)
+        if it%50==0; @info "iter=$(it) loss=$(losses[it])"; end
+    end
+    @test mean(losses[81:100]) < mean(losses[1:20])
+
+    xgen = reverse_sample(model, betas, α, ᾱ, T, d)
+    @info "sample mean=$(mean(xgen)) std=$(std(xgen))"
+    xhat = reshape(xgen, H, W)
+
+    @test size(xhat) == (H, W)
+    @test eltype(xhat) == Float32
+    @test !all(iszero, xhat)
+end
