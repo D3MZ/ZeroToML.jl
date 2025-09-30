@@ -8,7 +8,7 @@ time_embed(t, T) = Float32(t)/Float32(T)
 # -------------------------
 # Beta schedule (linear)
 # -------------------------
-make_betas(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T) |> collect
+noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T) |> collect
 
 function make_alphas(betas)
     α = 1 .- betas
@@ -117,7 +117,7 @@ end
     C,H,W = 1, 16, 16
     d = C*H*W
     T = 100
-    betas = Float32.(make_betas(T))
+    betas = Float32.(noise_schedule(T))
     α, ᾱ = make_alphas(betas)
     model = init_mlp(d, 512)
 
