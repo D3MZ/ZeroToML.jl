@@ -53,14 +53,14 @@ end
 
 posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
 
-function reverse_sample(m, β, α, ᾱ, T, d; σ_type=:fixed)
+function reverse_sample(m, β, α, ᾱ, T, d)
     x = randn(Float32, d)
     for t in T:-1:1
         ε̂ = predict(m, x)
         μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
 
         if t>1
-            σt = σ_type==:fixed ? sqrt(β[t]) : sqrt(((1-ᾱ[t-1])/(1-ᾱ[t]))*β[t])
+            σt = sqrt(β[t])
             x = μ .+ σt.*randn(eltype(x), size(x))
         else
             x = μ
