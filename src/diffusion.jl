@@ -1,8 +1,5 @@
 using Random, Statistics, Test
 
-# Time embedding (simple scalar scaling; replace with sinusoidal if you wish)
-time_embed(t, T) = Float32(t)/Float32(T)
-
 # -------------------------
 # Tiny MLP noise predictor ε_θ(x_t, t)
 # (manual forward + backward for MSE)
@@ -24,8 +21,8 @@ relu(x::Number)        = max(x, zero(x))
 sgd(param, grad, η) = (param .- η.*grad)
 
 # forward: returns (ε̂, cache)
-function mlp_forward(m::MLP, x::Vector{Float32}, t, T)
-    h1 = relu(m.W1*x .+ m.b1 .+ time_embed(t, T))
+function mlp_forward(m::MLP, x::Vector{Float32})
+    h1 = relu(m.W1*x .+ m.b1)
     y  = m.W2*h1 .+ m.b2
     return y, (x, h1)
 end
@@ -74,10 +71,9 @@ random_step(T) = rand(1:T)
 function train_step(m::MLP, x0::Vector{Float32}, ᾱ, T; η=1e-3f0)
     t = random_step(T)
     ε  = noise(x0)
-    # Forward sampler q(x_t | x_0)
     xt = noised_sample(x0, ᾱ, t, ε)
 
-    ε̂, cache = mlp_forward(m, xt, t, T)
+    ε̂, cache = mlp_forward(m, xt)
     resid = ε̂ .- ε
     loss = mean(resid.^2)
     m_new = mlp_backward(m, cache, resid, η)
@@ -92,7 +88,7 @@ function reverse_sample(m::MLP, betas, α, ᾱ, T, d; σ_type=:fixed)
     x = randn(Float32, d)
     for t in T:-1:1
         # predict ε
-        ε̂, _ = mlp_forward(m, x, t, T)
+        ε̂, _ = mlp_forward(m, x)
 
         # μ_θ
         μ = (x .- (betas[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
