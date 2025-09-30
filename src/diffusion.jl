@@ -1,5 +1,9 @@
 using Random, Statistics, Test, Zygote
 
+"Relu Activation function"
+relu(x::AbstractArray) = max.(x, zero(eltype(x)))
+relu(x::Number)        = max(x, zero(x))
+
 # -------------------------
 # Tiny MLP noise predictor ε_θ(x_t, t)
 # -------------------------
@@ -9,9 +13,6 @@ function parameters(d, h=1024)
     W2 = 0.02f0*randn(Float32, d, h); b2 = zeros(Float32, d)
     return (W1=W1, b1=b1, W2=W2, b2=b2)
 end
-
-relu(x::AbstractArray) = max.(x, zero(eltype(x)))
-relu(x::Number)        = max(x, zero(x))
 
 # forward: returns ε̂
 function predict(m, x::Vector{Float32})
@@ -35,7 +36,7 @@ marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 "MSE Loss function"
 loss(θ, x, y) = mean((predict(θ, x) .- y).^2)
-
+"Stochastic Gradient Descent (SGD). m, ∇, η are parameters, gradients, and learning rate respectively"
 sgd(m, ∇, η) = map((p, g) -> p .- η .* g, m, ∇)
 
 function step(m, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
@@ -49,17 +50,17 @@ end
 # Reverse sampling (unconditional)
 # x_T ~ N(0, I); iterate to x_0
 # -------------------------
-function reverse_sample(m, betas, α, ᾱ, T, d; σ_type=:fixed)
+
+posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
+
+function reverse_sample(m, β, α, ᾱ, T, d; σ_type=:fixed)
     x = randn(Float32, d)
     for t in T:-1:1
-        # predict ε
         ε̂ = predict(m, x)
-
-        # μ_θ
-        μ = (x .- (betas[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
+        μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
 
         if t>1
-            σt = σ_type==:fixed ? sqrt(betas[t]) : sqrt(((1-ᾱ[t-1])/(1-ᾱ[t]))*betas[t])
+            σt = σ_type==:fixed ? sqrt(β[t]) : sqrt(((1-ᾱ[t-1])/(1-ᾱ[t]))*β[t])
             x = μ .+ σt.*randn(eltype(x), size(x))
         else
             x = μ
@@ -94,7 +95,7 @@ end
     untrained_loss = loss(model, xt_test, ε_test)
 
     η = 1f-1
-    for it in 1:1000
+    for it in 1:10_000
         x0 = toy_image()
         model = step(model, x0, ᾱ, T; η=η)
     end
