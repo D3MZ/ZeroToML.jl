@@ -6,19 +6,6 @@ randn_like(x) = randn(eltype(x), size(x))
 time_embed(t, T) = Float32(t)/Float32(T)
 
 # -------------------------
-# Beta schedule (linear)
-# -------------------------
-
-noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T)
-signal_schedule(β::AbstractRange) = 1 .- β
-remaining_signal(α::AbstractRange) = cumprod(α)
-
-# -------------------------
-# Forward sampler q(x_t | x_0)
-# -------------------------
-q_sample(x0, t, ᾱ) = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*randn_like(x0)
-
-# -------------------------
 # Tiny MLP noise predictor ε_θ(x_t, t)
 # (manual forward + backward for MSE)
 # -------------------------
@@ -68,6 +55,19 @@ function mlp_backward(m::MLP, cache, resid, η)
     b2_new = sgd(m.b2, dL_db2, η)
     return MLP(W1_new, b1_new, W2_new, b2_new)
 end
+
+# -------------------------
+# Beta schedule (linear)
+# -------------------------
+
+noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T)
+signal_schedule(β::AbstractRange) = 1 .- β
+remaining_signal(α::AbstractRange) = cumprod(α)
+
+# -------------------------
+# Forward sampler q(x_t | x_0)
+# -------------------------
+q_sample(x0, t, ᾱ) = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*randn_like(x0)
 
 # -------------------------
 # Training step: one batch = one image here (extend to minibatches easily)
