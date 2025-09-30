@@ -1,4 +1,4 @@
-using Random, Statistics, Test
+using Random, Statistics, Test, Zygote
 
 # -------------------------
 # Tiny MLP noise predictor ε_θ(x_t, t)
@@ -66,10 +66,7 @@ marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 
 
-random_step(T) = rand(1:T)
-
-function train_step(m::MLP, x0::Vector{Float32}, ᾱ, T; η=1e-3f0)
-    t = random_step(T)
+function train_step(m::MLP, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
 
