@@ -27,8 +27,16 @@ struct MLP
     W2::Array{Float32,2}; b2::Vector{Float32}
 end
 
+# Initialize MLP for dimension d -> d (noise prediction)
+function init_mlp(d, h=1024)
+    W1 = 0.02f0*randn(Float32, h, d); b1 = zeros(Float32, h)
+    W2 = 0.02f0*randn(Float32, d, h); b2 = zeros(Float32, d)
+    return MLP(W1, b1, W2, b2)
+end
+
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
 relu(x::Number)        = max(x, zero(x))
+sgd(param, grad, η) = (param .- η.*grad)
 
 # forward: returns (ε̂, cache)
 function mlp_forward(m::MLP, x::Vector{Float32}, t, T)
@@ -59,16 +67,6 @@ function mlp_backward(m::MLP, cache, resid, η)
     W2_new = sgd(m.W2, dL_dW2, η)
     b2_new = sgd(m.b2, dL_db2, η)
     return MLP(W1_new, b1_new, W2_new, b2_new)
-end
-
-# simple SGD update
-sgd(param, grad, η) = (param .- η.*grad)
-
-# Initialize MLP for dimension d -> d (noise prediction)
-function init_mlp(d, h=1024)
-    W1 = 0.02f0*randn(Float32, h, d); b1 = zeros(Float32, h)
-    W2 = 0.02f0*randn(Float32, d, h); b2 = zeros(Float32, d)
-    return MLP(W1, b1, W2, b2)
 end
 
 # -------------------------
