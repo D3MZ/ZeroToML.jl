@@ -20,35 +20,11 @@ relu(x::AbstractArray) = max.(x, zero(eltype(x)))
 relu(x::Number)        = max(x, zero(x))
 sgd(param, grad, η) = (param .- η.*grad)
 
-# forward: returns (ε̂, cache)
+# forward: returns ε̂
 function mlp_forward(m::MLP, x::Vector{Float32})
     h1 = relu(m.W1*x .+ m.b1)
     y  = m.W2*h1 .+ m.b2
-    return y, (x, h1)
-end
-
-function mlp_backward(m::MLP, cache, resid, η)
-    x, h1 = cache
-    N = length(resid)
-    dL_dy = (2f0/N).*resid
-
-    # y = W2*h1 + b2
-    dL_dW2 = dL_dy*h1'
-    dL_db2 = dL_dy
-
-    # h1 = relu(W1*x + b1)
-    dh1 = m.W2' * dL_dy
-    dz1 = dh1 .* (h1 .> 0f0)
-
-    dL_dW1 = dz1 * x'
-    dL_db1 = dz1
-
-    # SGD updates
-    W1_new = sgd(m.W1, dL_dW1, η)
-    b1_new = sgd(m.b1, dL_db1, η)
-    W2_new = sgd(m.W2, dL_dW2, η)
-    b2_new = sgd(m.b2, dL_db2, η)
-    return MLP(W1_new, b1_new, W2_new, b2_new)
+    return y
 end
 
 noise(x) = randn(eltype(x), size(x))
@@ -65,16 +41,22 @@ marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 "Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 
+loss(model, x, ε) = mean((mlp_forward(model, x) .- ε).^2)
 
 function train_step(m::MLP, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
 
-    ε̂, cache = mlp_forward(m, xt)
-    resid = ε̂ .- ε
-    loss = mean(resid.^2)
-    m_new = mlp_backward(m, cache, resid, η)
-    return m_new, loss
+    l, grads = Zygote.withgradient(m -> loss(m, xt, ε), m)
+    grads = grads[1]
+
+    # SGD update
+    W1_new = sgd(m.W1, grads.W1, η)
+    b1_new = sgd(m.b1, grads.b1, η)
+    W2_new = sgd(m.W2, grads.W2, η)
+    b2_new = sgd(m.b2, grads.b2, η)
+    m_new = MLP(W1_new, b1_new, W2_new, b2_new)
+    return m_new, l
 end
 
 # -------------------------
@@ -85,7 +67,7 @@ function reverse_sample(m::MLP, betas, α, ᾱ, T, d; σ_type=:fixed)
     x = randn(Float32, d)
     for t in T:-1:1
         # predict ε
-        ε̂, _ = mlp_forward(m, x)
+        ε̂ = mlp_forward(m, x)
 
         # μ_θ
         μ = (x .- (betas[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
