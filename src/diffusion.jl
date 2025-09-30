@@ -39,7 +39,7 @@ function mlp_forward(m::MLP, x::Vector{Float32}, t, T)
     return y, (x, h1)
 end
 
-function mlp_backward!(m::MLP, cache, resid, η)
+function mlp_backward(m::MLP, cache, resid, η)
     x, h1 = cache
     N = length(resid)
     dL_dy = (2f0/N).*resid
@@ -56,14 +56,15 @@ function mlp_backward!(m::MLP, cache, resid, η)
     dL_db1 = dz1
 
     # SGD updates
-    sgd!(m.W2, dL_dW2, η)
-    sgd!(m.b2, dL_db2, η)
-    sgd!(m.W1, dL_dW1, η)
-    sgd!(m.b1, dL_db1, η)
+    W1_new = sgd(m.W1, dL_dW1, η)
+    b1_new = sgd(m.b1, dL_db1, η)
+    W2_new = sgd(m.W2, dL_dW2, η)
+    b2_new = sgd(m.b2, dL_db2, η)
+    return MLP(W1_new, b1_new, W2_new, b2_new)
 end
 
 # simple SGD update
-sgd!(param, grad, η) = (param .-= η.*grad)
+sgd(param, grad, η) = (param .- η.*grad)
 
 # Initialize MLP for dimension d -> d (noise prediction)
 function init_mlp(d, h=1024)
@@ -77,7 +78,7 @@ end
 # Loss: ||ε - ε̂||^2
 # Manual backprop for this 2-layer MLP
 # -------------------------
-function train_step!(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
+function train_step(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
     t = rand(1:T)
     ε  = randn_like(x0)
     xt = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*ε
@@ -85,8 +86,8 @@ function train_step!(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
     ε̂, cache = mlp_forward(m, xt, t, T)
     resid = ε̂ .- ε
     loss = mean(resid.^2)
-    mlp_backward!(m, cache, resid, η)
-    return loss
+    m_new = mlp_backward(m, cache, resid, η)
+    return m_new, loss
 end
 
 # -------------------------
@@ -133,7 +134,7 @@ end
     losses = zeros(Float32, 100)
     for it in 1:100 # Reduced from 10_000 for testing
         x0 = toy_image()
-        losses[it] = train_step!(model, x0, betas, α, ᾱ, T; η=η)
+        model, losses[it] = train_step(model, x0, betas, α, ᾱ, T; η=η)
         if it%50==0; @info "iter=$(it) loss=$(losses[it])"; end
     end
     @test mean(losses[81:100]) < mean(losses[1:20])
