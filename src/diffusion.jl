@@ -52,6 +52,7 @@ end
 # -------------------------
 
 posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
+# latent(μ, β, t) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
 function reverse_sample(m, β, α, ᾱ, T, d)
     x = randn(Float32, d)
@@ -60,8 +61,7 @@ function reverse_sample(m, β, α, ᾱ, T, d)
         μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
 
         if t>1
-            σt = sqrt(β[t])
-            x = μ .+ σt.*randn(eltype(x), size(x))
+            x = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
         else
             x = μ
         end
