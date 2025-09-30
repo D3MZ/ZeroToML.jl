@@ -1,7 +1,5 @@
 using Random, Statistics, Test
 
-randn_like(x) = randn(eltype(x), size(x))
-
 # Time embedding (simple scalar scaling; replace with sinusoidal if you wish)
 time_embed(t, T) = Float32(t)/Float32(T)
 
@@ -67,7 +65,7 @@ remaining_signal(α::AbstractRange) = cumprod(α)
 # -------------------------
 # Forward sampler q(x_t | x_0)
 # -------------------------
-q_sample(x0, t, ᾱ) = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*randn_like(x0)
+q_sample(x0, t, ᾱ) = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*randn(eltype(x0), size(x0))
 
 # -------------------------
 # Training step: one batch = one image here (extend to minibatches easily)
@@ -76,7 +74,7 @@ q_sample(x0, t, ᾱ) = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*randn_like(x0)
 # -------------------------
 function train_step(m::MLP, x0::Vector{Float32}, ᾱ, T; η=1e-3f0)
     t = rand(1:T)
-    ε  = randn_like(x0)
+    ε  = randn(eltype(x0), size(x0))
     xt = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*ε
 
     ε̂, cache = mlp_forward(m, xt, t, T)
@@ -101,7 +99,7 @@ function reverse_sample(m::MLP, betas, α, ᾱ, T, d; σ_type=:fixed)
 
         if t>1
             σt = σ_type==:fixed ? sqrt(betas[t]) : sqrt(((1-ᾱ[t-1])/(1-ᾱ[t]))*betas[t])
-            x = μ .+ σt.*randn_like(x)
+            x = μ .+ σt.*randn(eltype(x), size(x))
         else
             x = μ
         end
