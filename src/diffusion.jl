@@ -42,10 +42,10 @@ function train_step(m, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
 
-    l, grads = Zygote.withgradient(θ -> loss(θ, xt, ε), m)
+    (grads,) = Zygote.gradient(θ -> loss(θ, xt, ε), m)
 
-    m_new = update(m, grads[1], η)
-    return m_new, l
+    m_new = update(m, grads, η)
+    return m_new
 end
 
 # -------------------------
@@ -89,14 +89,23 @@ end
         return reshape(img, d)  # flatten
     end
 
+    # Calculate loss before training on a sample
+    x0_test = toy_image()
+    ε_test = noise(x0_test)
+    t_test = rand(1:T)
+    xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
+    untrained_loss = loss(model, xt_test, ε_test)
+
     η = 1f-1
-    losses = zeros(Float32, 100)
     for it in 1:100
         x0 = toy_image()
-        model, losses[it] = train_step(model, x0, ᾱ, T; η=η)
-        if it%50==0; @info "iter=$(it) loss=$(losses[it])"; end
+        model = train_step(model, x0, ᾱ, T; η=η)
     end
-    @test mean(losses[81:100]) < mean(losses[1:20])
+
+    # Calculate loss after training on the same sample
+    trained_loss = loss(model, xt_test, ε_test)
+    @info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
+    @test trained_loss < untrained_loss
 
     xgen = reverse_sample(model, β, α, ᾱ, T, d)
     @info "sample mean=$(mean(xgen)) std=$(std(xgen))"
