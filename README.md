@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/D3MZ/ZeroToML.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/D3MZ/ZeroToML.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/D3MZ/ZeroToML.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/D3MZ/ZeroToML.jl)
 
-Yet another AI from scratch repo. 
+Yet another AI from scratch repo. Framework free.
 
 - The files are appropriately named.
     - [notes](/notes) on my notes.
@@ -26,5 +26,6 @@ Yet another AI from scratch repo.
 - [ ] Diffusion
 - [ ] RL
 - [x] Refactor to stateless
+- [ ] Abstract common functions? Might reduce readability :(
 - [ ] Test from-scratch versions against established libraries for correctness.
 - [ ] Create einstien notation-like that better exposes the math instead of hiding behind API abstractions.
