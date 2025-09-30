@@ -36,16 +36,11 @@ noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) 
 
 loss(θ, x, y) = mean((predict(θ, x) .- y).^2)
 
-update(m, grads, η) = map((p, g) -> p .- η .* g, m, grads)
-
 function train_step(m, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
-
-    (grads,) = Zygote.gradient(θ -> loss(θ, xt, ε), m)
-
-    m_new = update(m, grads, η)
-    return m_new
+    (grads,) = gradient(θ -> loss(θ, xt, ε), m)
+    map((p, g) -> p .- η .* g, m, grads)
 end
 
 # -------------------------
@@ -97,7 +92,7 @@ end
     untrained_loss = loss(model, xt_test, ε_test)
 
     η = 1f-1
-    for it in 1:100
+    for it in 1:1000
         x0 = toy_image()
         model = train_step(model, x0, ᾱ, T; η=η)
     end
