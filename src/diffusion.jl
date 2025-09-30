@@ -8,13 +8,10 @@ time_embed(t, T) = Float32(t)/Float32(T)
 # -------------------------
 # Beta schedule (linear)
 # -------------------------
-noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T) |> collect
 
-function make_alphas(betas)
-    α = 1 .- betas
-    ᾱ = cumprod(α)
-    return α, ᾱ
-end
+noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T)
+signal_schedule(β::AbstractRange) = 1 .- β
+remaining_signal(α::AbstractRange) = cumprod(α)
 
 # -------------------------
 # Forward sampler q(x_t | x_0)
@@ -30,7 +27,8 @@ struct MLP
     W2::Array{Float32,2}; b2::Vector{Float32}
 end
 
-relu(x) = max.(x, 0f0)
+relu(x::AbstractArray) = max.(x, zero(eltype(x)))
+relu(x::Number)        = max(x, zero(x))
 
 # forward: returns (ε̂, cache)
 function mlp_forward(m::MLP, x::Vector{Float32}, t, T)
@@ -78,7 +76,7 @@ end
 # Loss: ||ε - ε̂||^2
 # Manual backprop for this 2-layer MLP
 # -------------------------
-function train_step(m::MLP, x0::Vector{Float32}, betas, α, ᾱ, T; η=1e-3f0)
+function train_step(m::MLP, x0::Vector{Float32}, ᾱ, T; η=1e-3f0)
     t = rand(1:T)
     ε  = randn_like(x0)
     xt = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*ε
@@ -118,8 +116,9 @@ end
     C,H,W = 1, 16, 16
     d = C*H*W
     T = 100
-    betas = Float32.(noise_schedule(T))
-    α, ᾱ = make_alphas(betas)
+    β = noise_schedule(T)
+    α = signal_schedule(β)
+    ᾱ = remaining_signal(α)
     model = init_mlp(d, 512)
 
     # dummy dataset: e.g., small blobs
@@ -130,16 +129,16 @@ end
         return reshape(img, d)  # flatten
     end
 
-    η = 1f-3
+    η = 1f-1
     losses = zeros(Float32, 100)
-    for it in 1:100 # Reduced from 10_000 for testing
+    for it in 1:100
         x0 = toy_image()
-        model, losses[it] = train_step(model, x0, betas, α, ᾱ, T; η=η)
+        model, losses[it] = train_step(model, x0, ᾱ, T; η=η)
         if it%50==0; @info "iter=$(it) loss=$(losses[it])"; end
     end
     @test mean(losses[81:100]) < mean(losses[1:20])
 
-    xgen = reverse_sample(model, betas, α, ᾱ, T, d)
+    xgen = reverse_sample(model, β, α, ᾱ, T, d)
     @info "sample mean=$(mean(xgen)) std=$(std(xgen))"
     xhat = reshape(xgen, H, W)
 
