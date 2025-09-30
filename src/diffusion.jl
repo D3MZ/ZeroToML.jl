@@ -2,26 +2,19 @@ using Random, Statistics, Test, Zygote
 
 # -------------------------
 # Tiny MLP noise predictor ε_θ(x_t, t)
-# (manual forward + backward for MSE)
 # -------------------------
-struct MLP
-    W1::Array{Float32,2}; b1::Vector{Float32}
-    W2::Array{Float32,2}; b2::Vector{Float32}
-end
-
-# Initialize MLP for dimension d -> d (noise prediction)
-function init_mlp(d, h=1024)
+# Initialize MLP parameters for dimension d -> d (noise prediction)
+function parameters(d, h=1024)
     W1 = 0.02f0*randn(Float32, h, d); b1 = zeros(Float32, h)
     W2 = 0.02f0*randn(Float32, d, h); b2 = zeros(Float32, d)
-    return MLP(W1, b1, W2, b2)
+    return (W1=W1, b1=b1, W2=W2, b2=b2)
 end
 
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
 relu(x::Number)        = max(x, zero(x))
-sgd(param, grad, η) = (param .- η.*grad)
 
 # forward: returns ε̂
-function predict(m::MLP, x::Vector{Float32})
+function predict(m, x::Vector{Float32})
     h1 = relu(m.W1*x .+ m.b1)
     y  = m.W2*h1 .+ m.b2
     return y
@@ -43,19 +36,15 @@ noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) 
 
 loss(θ, x, y) = mean((predict(θ, x) .- y).^2)
 
-function train_step(m::MLP, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
+update(m, grads, η) = map((p, g) -> p .- η .* g, m, grads)
+
+function train_step(m, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
 
     l, grads = Zygote.withgradient(θ -> loss(θ, xt, ε), m)
-    grads = grads[1]
 
-    # SGD update
-    W1_new = sgd(m.W1, grads.W1, η)
-    b1_new = sgd(m.b1, grads.b1, η)
-    W2_new = sgd(m.W2, grads.W2, η)
-    b2_new = sgd(m.b2, grads.b2, η)
-    m_new = MLP(W1_new, b1_new, W2_new, b2_new)
+    m_new = update(m, grads[1], η)
     return m_new, l
 end
 
@@ -63,7 +52,7 @@ end
 # Reverse sampling (unconditional)
 # x_T ~ N(0, I); iterate to x_0
 # -------------------------
-function reverse_sample(m::MLP, betas, α, ᾱ, T, d; σ_type=:fixed)
+function reverse_sample(m, betas, α, ᾱ, T, d; σ_type=:fixed)
     x = randn(Float32, d)
     for t in T:-1:1
         # predict ε
@@ -90,7 +79,7 @@ end
     β = noise_schedule(T)
     α = signal_schedule(β)
     ᾱ = remaining_signal(α)
-    model = init_mlp(d, 512)
+    model = parameters(d, 512)
 
     # dummy dataset: e.g., small blobs
     function toy_image()
