@@ -36,11 +36,13 @@ noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) 
 "MSE Loss function"
 loss(θ, x, y) = mean((predict(θ, x) .- y).^2)
 
+sgd(m, ∇, η) = map((p, g) -> p .- η .* g, m, ∇)
+
 function step(m, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
     (∇,) = gradient(θ -> loss(θ, xt, ε), m)
-    map((p, g) -> p .- η .* g, m, ∇)
+    sgd(m, ∇, η)
 end
 
 # -------------------------
