@@ -54,28 +54,28 @@ function mlp_backward(m::MLP, cache, resid, η)
     return MLP(W1_new, b1_new, W2_new, b2_new)
 end
 
-# -------------------------
-# Beta schedule (linear)
-# -------------------------
-
+noise(x) = randn(eltype(x), size(x))
+"The entire noise variance schedule via β_t = β_min + (β_max - β_min) * (t-1)/(T-1)"
 noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T)
+"Entire signal variance schedule: α_t = 1 - β_t"
 signal_schedule(β::AbstractRange) = 1 .- β
+"the total remaining signal variance"
 remaining_signal(α::AbstractRange) = cumprod(α)
+"Conditional marginal mean E[xₜ | x₀] for the forward diffusion process q(xₜ | x₀)"
+marginal_mean(x, ᾱ, t) = sqrt(ᾱ[t]) .* x
+"Conditional marginal noise for the forward diffusion marginal q(xₜ | x₀). This is the random Gaussian noise part added to the deterministic mean √ᾱₜ · x₀."
+marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
+"Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
+noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 
-# -------------------------
-# Forward sampler q(x_t | x_0)
-# -------------------------
-q_sample(x0, t, ᾱ) = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*randn(eltype(x0), size(x0))
 
-# -------------------------
-# Training step: one batch = one image here (extend to minibatches easily)
-# Loss: ||ε - ε̂||^2
-# Manual backprop for this 2-layer MLP
-# -------------------------
+random_step(T) = rand(1:T)
+
 function train_step(m::MLP, x0::Vector{Float32}, ᾱ, T; η=1e-3f0)
-    t = rand(1:T)
-    ε  = randn(eltype(x0), size(x0))
-    xt = sqrt(ᾱ[t]).*x0 .+ sqrt(1-ᾱ[t]).*ε
+    t = random_step(T)
+    ε  = noise(x0)
+    # Forward sampler q(x_t | x_0)
+    xt = noised_sample(x0, ᾱ, t, ε)
 
     ε̂, cache = mlp_forward(m, xt, t, T)
     resid = ε̂ .- ε
