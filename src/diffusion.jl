@@ -21,7 +21,7 @@ relu(x::Number)        = max(x, zero(x))
 sgd(param, grad, η) = (param .- η.*grad)
 
 # forward: returns ε̂
-function mlp_forward(m::MLP, x::Vector{Float32})
+function predict(m::MLP, x::Vector{Float32})
     h1 = relu(m.W1*x .+ m.b1)
     y  = m.W2*h1 .+ m.b2
     return y
@@ -41,13 +41,13 @@ marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 "Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 
-loss(model, x, ε) = mean((mlp_forward(model, x) .- ε).^2)
+loss(θ, x, y) = mean((predict(θ, x) .- y).^2)
 
 function train_step(m::MLP, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
 
-    l, grads = Zygote.withgradient(m -> loss(m, xt, ε), m)
+    l, grads = Zygote.withgradient(θ -> loss(θ, xt, ε), m)
     grads = grads[1]
 
     # SGD update
@@ -67,7 +67,7 @@ function reverse_sample(m::MLP, betas, α, ᾱ, T, d; σ_type=:fixed)
     x = randn(Float32, d)
     for t in T:-1:1
         # predict ε
-        ε̂ = mlp_forward(m, x)
+        ε̂ = predict(m, x)
 
         # μ_θ
         μ = (x .- (betas[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
