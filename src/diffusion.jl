@@ -4,22 +4,20 @@ using Random, Statistics, Test, Zygote
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
 relu(x::Number)        = max(x, zero(x))
 
-
-"Glorot/Xavier uniform initialization: Wᵢⱼ ~ U[-√(6/(m+n)), √(6/(m+n))]. https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf"
+"Glorot/Xavier uniform initialization: Wᵢⱼ ~ U[-√(6/(m+n)), √(6/(m+n))] via https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf"
 glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 
 "Initialize MLP parameters for dimension d -> d (noise prediction)"
 function parameters(d, h=1024)
-    W1 = randn(Float32, h, d); b1 = zeros(Float32, h)
-    W2 = randn(Float32, d, h); b2 = zeros(Float32, d)
+    W1 = glorot(h, d); b1 = zeros(Float32, h)
+    W2 = glorot(d, h); b2 = zeros(Float32, d)
     return (W1=W1, b1=b1, W2=W2, b2=b2)
 end
 
-# forward: returns ε̂
+"forward: returns ε̂; hard assumption"
 function predict(m, x::Vector{Float32})
     h1 = relu(m.W1*x .+ m.b1)
     y  = m.W2*h1 .+ m.b2
-    return y
 end
 
 noise(x) = randn(eltype(x), size(x))
@@ -79,14 +77,13 @@ function train(model, ᾱ, T, η, dataset)
 end
 
 "Generates a ones filled square against a -ones background"
-function square(H::Int, W::Int)
-    d = H * W
-    img = -ones(Float32, H, W)
+function square(h, w)
+    d = h * w
+    img = -ones(Float32, h, w)
     i = rand(4:12); j = rand(4:12)
     img[i-1:i+1, j-1:j+1] .= 1f0
     return reshape(img, d)
 end
-
 
 Random.seed!(42)
 C,H,W = 1, 16, 16
@@ -97,7 +94,7 @@ T = 1000
 ᾱ = remaining_signal(α)
 model = parameters(d, 512)
 
-dataset = [square(H, W) for _ in 1:1000]
+dataset = [square(H, W) for _ in 1:10_000]
 
 # Calculate loss before training on a sample
 x0_test = square(H, W)
