@@ -72,14 +72,17 @@ end
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
 train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> step(m, x0, ᾱ, T; η=η), dataset; init=model)                    
 
-"Generates a ones filled square against a -ones background"
-function square(h, w)
+"Generates a square of 255s against a 0s background"
+function generate(h, w)
     d = h * w
-    img = -ones(Float32, h, w)
+    img = zeros(Int, h, w)
     i = rand(4:12); j = rand(4:12)
-    img[i-1:i+1, j-1:j+1] .= 1f0
+    img[i-1:i+1, j-1:j+1] .= 255
     return reshape(img, d)
 end
+
+"Scales an image from [0, 255] to [-1, 1]"
+scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 
 Random.seed!(42)
 C,H,W = 1, 16, 16
@@ -90,10 +93,10 @@ T = 1000
 ᾱ = remaining_signal(α)
 model = parameters(d, 512)
 
-dataset = [square(H, W) for _ in 1:10_000]
+dataset = [scale(generate(H, W)) for _ in 1:10_000]
 
 # Calculate loss before training on a sample
-x0_test = square(H, W)
+x0_test = scale(generate(H, W))
 ε_test = noise(x0_test)
 t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
@@ -120,13 +123,13 @@ using Plots
 
 # Make one toy image
 H, W = 16, 16
-img = square(H, W)            # 256-element Vector{Float32}
+img = scale(generate(H, W))   # 256-element Vector{Float32}
 
 # Reshape to 2-D and plot
 heatmap(reshape(img, H, W),
         color=:grays,
         aspect_ratio=:equal,
-        title="Random square()")
+        title="Random generated square")
 
 # Generate one sample from the trained model
 xgen = reverse_sample(model, β, α, ᾱ, T, d)
