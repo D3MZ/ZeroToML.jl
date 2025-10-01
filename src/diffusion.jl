@@ -69,12 +69,7 @@ function reverse_sample(m, β, α, ᾱ, T, d)
     posterior_mean(x, ε̂, β, α, ᾱ, 1)
 end
 
-function train(model, ᾱ, T, η, dataset)
-    for i in eachindex(dataset)
-        model = step(model, dataset[i], ᾱ, T; η=η)
-    end
-    return model
-end
+train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> step(m, x0, ᾱ, T; η=η), dataset; init=model)
 
 "Generates a ones filled square against a -ones background"
 function square(h, w)
