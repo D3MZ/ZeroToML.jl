@@ -67,8 +67,9 @@ function reverse_sample(m, β, α, ᾱ, T, d)
     return x
 end
 
-function train(model, ᾱ, T, η, dataset)
-    for x0 in dataset
+function train(model, ᾱ, T, η, iterations)
+    for _ in 1:iterations
+        x0 = rand(dataset)
         model = step(model, x0, ᾱ, T; η=η)
     end
     return model
