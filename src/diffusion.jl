@@ -4,12 +4,11 @@ using Random, Statistics, Test, Zygote
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
 relu(x::Number)        = max(x, zero(x))
 
-glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
 
-# -------------------------
-# Tiny MLP noise predictor ε_θ(x_t, t)
-# -------------------------
-# Initialize MLP parameters for dimension d -> d (noise prediction)
+"Glorot/Xavier uniform initialization: Wᵢⱼ ~ U[-√(6/(m+n)), √(6/(m+n))]. https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf"
+glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
+
+"Initialize MLP parameters for dimension d -> d (noise prediction)"
 function parameters(d, h=1024)
     W1 = glorot(h, d); b1 = zeros(Float32, h)
     W2 = glorot(d, h); b2 = zeros(Float32, d)
@@ -57,22 +56,24 @@ latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
 """
 Generates x₀ by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,0, starting from x_T ~ N(0,I). 
-This slightly deviates from the original paper: instead of branching at t = 1 to set x to the mean, it runs until t = 0, preventing any βₜ noise from being added on the final step.
+This slightly deviates from the original paper to remove branching logic.
 """
 function reverse_sample(m, β, α, ᾱ, T, d)
     x = randn(Float32, d)
-    for t in T:-1:1
+    μ = similar(x)
+    for t in T:-1:2
         ε̂ = predict(m, x)
         μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
         x = latent(μ, β, t, x)
     end
-    return x
+
+    ε̂ = predict(m, x)
+    posterior_mean(x, ε̂, β, α, ᾱ, 1)
 end
 
-function train(model, ᾱ, T, η, iterations)
-    for _ in 1:iterations
-        x0 = rand(dataset)
-        model = step(model, x0, ᾱ, T; η=η)
+function train(model, ᾱ, T, η, dataset)
+    for i in eachindex(dataset)
+        model = step(model, dataset[i], ᾱ, T; η=η)
     end
     return model
 end
@@ -106,7 +107,7 @@ xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
 untrained_loss = loss(model, xt_test, ε_test)
 
 η = 1f-1
-model = train(model, ᾱ, T, η, 10_000)
+model = train(model, ᾱ, T, η, dataset)
 
 # Calculate loss after training on the same sample
 trained_loss = loss(model, xt_test, ε_test)
