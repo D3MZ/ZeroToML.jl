@@ -4,13 +4,15 @@ using Random, Statistics, Test, Zygote
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
 relu(x::Number)        = max(x, zero(x))
 
+glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
+
 # -------------------------
 # Tiny MLP noise predictor ε_θ(x_t, t)
 # -------------------------
 # Initialize MLP parameters for dimension d -> d (noise prediction)
 function parameters(d, h=1024)
-    W1 = 0.02f0*randn(Float32, h, d); b1 = zeros(Float32, h)
-    W2 = 0.02f0*randn(Float32, d, h); b2 = zeros(Float32, d)
+    W1 = glorot(h, d); b1 = zeros(Float32, h)
+    W2 = glorot(d, h); b2 = zeros(Float32, d)
     return (W1=W1, b1=b1, W2=W2, b2=b2)
 end
 
