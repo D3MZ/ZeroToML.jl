@@ -10,8 +10,8 @@ glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 
 "Initialize MLP parameters for dimension d -> d (noise prediction)"
 function parameters(d, h=1024)
-    W1 = glorot(h, d); b1 = zeros(Float32, h)
-    W2 = glorot(d, h); b2 = zeros(Float32, d)
+    W1 = randn(Float32, h, d); b1 = zeros(Float32, h)
+    W2 = randn(Float32, d, h); b2 = zeros(Float32, d)
     return (W1=W1, b1=b1, W2=W2, b2=b2)
 end
 
