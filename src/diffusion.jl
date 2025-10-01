@@ -59,7 +59,7 @@ This slightly deviates from the original paper: instead of branching at t = 1 to
 """
 function reverse_sample(m, β, α, ᾱ, T, d)
     x = randn(Float32, d)
-    for t in T:-1:0
+    for t in T:-1:1
         ε̂ = predict(m, x)
         μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
         x = latent(μ, β, t, x)
