@@ -26,7 +26,7 @@ noise(x) = randn(eltype(x), size(x))
 noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T)
 "Entire signal variance schedule: α_t = 1 - β_t"
 signal_schedule(β::AbstractRange) = 1 .- β
-"the total remaining signal variance"
+"the total remaining signal variance is the cumprod of the signal_schedule"
 remaining_signal(α::AbstractRange) = cumprod(α)
 "Conditional marginal mean E[xₜ | x₀] for the forward diffusion process q(xₜ | x₀)"
 marginal_mean(x, ᾱ, t) = sqrt(ᾱ[t]) .* x
@@ -39,77 +39,107 @@ loss(θ, x, y) = mean((predict(θ, x) .- y).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are parameters, gradients, and learning rate respectively"
 sgd(m, ∇, η) = map((p, g) -> p .- η .* g, m, ∇)
 
-function step(m, x0::Vector{Float32}, ᾱ, T; t=rand(1:T), η=1e-3f0)
+"Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by ∇ loss(ε̂, ε)"
+function step(m, x0, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
     (∇,) = gradient(θ -> loss(θ, xt, ε), m)
     sgd(m, ∇, η)
 end
 
-# -------------------------
-# Reverse sampling (unconditional)
-# x_T ~ N(0, I); iterate to x_0
-# -------------------------
-
+"Computes μₜ = (xₜ − (βₜ / √(1−ᾱₜ))·ε̂) / √αₜ for the reverse diffusion mean"
 posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
-# latent(μ, β, t) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
+"Draws a sample xₜ₋₁ ~ μ + √βₜ · N(0, I) from the reverse diffusion step"
+latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
+
+"""
+Generates x₀ by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,0, starting from x_T ~ N(0,I). 
+This slightly deviates from the original paper: instead of branching at t = 1 to set x to the mean, it runs until t = 0, preventing any βₜ noise from being added on the final step.
+"""
 function reverse_sample(m, β, α, ᾱ, T, d)
     x = randn(Float32, d)
-    for t in T:-1:1
+    for t in T:-1:0
         ε̂ = predict(m, x)
         μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
-
-        if t>1
-            x = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
-        else
-            x = μ
-        end
+        x = latent(μ, β, t, x)
     end
     return x
 end
 
-@testset "Diffusion Toy Driver" begin
-    Random.seed!(42)
-    C,H,W = 1, 16, 16
-    d = C*H*W
-    T = 100
-    β = noise_schedule(T)
-    α = signal_schedule(β)
-    ᾱ = remaining_signal(α)
-    model = parameters(d, 512)
-
-    # dummy dataset: e.g., small blobs
-    function toy_image()
-        img = zeros(Float32, H, W)
-        i = rand(4:12); j = rand(4:12)
-        img[i-1:i+1, j-1:j+1] .= 1f0
-        return reshape(img, d)  # flatten
-    end
-
-    # Calculate loss before training on a sample
-    x0_test = toy_image()
-    ε_test = noise(x0_test)
-    t_test = rand(1:T)
-    xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
-    untrained_loss = loss(model, xt_test, ε_test)
-
-    η = 1f-1
-    for it in 1:10_000
-        x0 = toy_image()
+function train(model, ᾱ, T, η, dataset)
+    for x0 in dataset
         model = step(model, x0, ᾱ, T; η=η)
     end
-
-    # Calculate loss after training on the same sample
-    trained_loss = loss(model, xt_test, ε_test)
-    @info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
-    @test trained_loss < untrained_loss
-
-    xgen = reverse_sample(model, β, α, ᾱ, T, d)
-    @info "sample mean=$(mean(xgen)) std=$(std(xgen))"
-    xhat = reshape(xgen, H, W)
-
-    @test size(xhat) == (H, W)
-    @test eltype(xhat) == Float32
-    @test !all(iszero, xhat)
+    return model
 end
+
+"Generates a ones filled square against a -ones background"
+function square(H::Int, W::Int)
+    d = H * W
+    img = -ones(Float32, H, W)
+    i = rand(4:12); j = rand(4:12)
+    img[i-1:i+1, j-1:j+1] .= 1f0
+    return reshape(img, d)
+end
+
+
+Random.seed!(42)
+C,H,W = 1, 16, 16
+d = C*H*W
+T = 1000
+β = noise_schedule(T)
+α = signal_schedule(β)
+ᾱ = remaining_signal(α)
+model = parameters(d, 512)
+
+dataset = [square(H, W) for _ in 1:1000]
+
+# Calculate loss before training on a sample
+x0_test = square(H, W)
+ε_test = noise(x0_test)
+t_test = rand(1:T)
+xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
+untrained_loss = loss(model, xt_test, ε_test)
+
+η = 1f-1
+model = train(model, ᾱ, T, η, 10_000)
+
+# Calculate loss after training on the same sample
+trained_loss = loss(model, xt_test, ε_test)
+@info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
+@test trained_loss < untrained_loss
+
+xgen = reverse_sample(model, β, α, ᾱ, T, d)
+@info "sample mean=$(mean(xgen)) std=$(std(xgen))"
+xhat = reshape(xgen, H, W)
+
+@test size(xhat) == (H, W)
+@test eltype(xhat) == Float32
+@test !all(iszero, xhat)
+
+
+using Plots
+
+# Make one toy image
+H, W = 16, 16
+img = square(H, W)            # 256-element Vector{Float32}
+
+# Reshape to 2-D and plot
+heatmap(reshape(img, H, W),
+        color=:grays,
+        aspect_ratio=:equal,
+        title="Random square()")
+
+# Generate one sample from the trained model
+xgen = reverse_sample(model, β, α, ᾱ, T, d)
+
+# Reshape to 16×16 and show as grayscale
+heatmap(reshape(xgen, H, W),
+        color=:grays,
+        aspect_ratio=:equal,
+        title="Sample from trained diffusion model")
+
+# x = randn(Float32, d)        
+# ε̂ = predict(model, x)
+# μ = posterior_mean(x, ε̂, β, α, ᾱ, t)        
