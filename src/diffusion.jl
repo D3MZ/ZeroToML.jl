@@ -53,8 +53,7 @@ posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])).*ε̂) 
 latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
 """
-Generates x₀ by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,0, starting from x_T ~ N(0,I). 
-This slightly deviates from the original paper to remove branching logic.
+Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,1, starting from x_T ~ N(0,I). 
 """
 function reverse_sample(m, β, α, ᾱ, T, d)
     x = randn(Float32, d)
@@ -64,12 +63,14 @@ function reverse_sample(m, β, α, ᾱ, T, d)
         μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
         x = latent(μ, β, t, x)
     end
-
+    
+    t = 1
     ε̂ = predict(m, x)
-    posterior_mean(x, ε̂, β, α, ᾱ, 1)
+    posterior_mean(x, ε̂, β, α, ᾱ, t)
 end
 
-train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> step(m, x0, ᾱ, T; η=η), dataset; init=model)
+"Trains the diffusion model over the dataset by repeatedly applying one training step"
+train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> step(m, x0, ᾱ, T; η=η), dataset; init=model)                    
 
 "Generates a ones filled square against a -ones background"
 function square(h, w)
