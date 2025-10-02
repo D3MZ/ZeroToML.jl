@@ -9,9 +9,10 @@ include("../src/diffusion.jl")
     C,H,W = 1, 16, 16
     d = C*H*W
     T = 100
-    betas = Float32.(make_betas(T))
-    α, ᾱ = make_alphas(betas)
-    model = init_mlp(d, 512)
+    betas = noise_schedule(T)
+    α = signal_schedule(betas)
+    ᾱ = remaining_signal(α)
+    model = parameters(d, 512)
 
     # dummy dataset: e.g., small blobs
     function toy_image()
@@ -25,7 +26,11 @@ include("../src/diffusion.jl")
     losses = zeros(Float32, 100)
     for it in 1:100 # Reduced from 10_000 for testing
         x0 = toy_image()
-        losses[it] = train_step!(model, x0, betas, α, ᾱ, T; η=η)
+        t = rand(1:T)
+        ε = noise(x0)
+        xt = noised_sample(x0, ᾱ, t, ε)
+        losses[it] = loss(model, xt, t, ε)
+        model = step(model, x0, ᾱ, T; η=η)
         if it%50==0; @info "iter=$(it) loss=$(losses[it])"; end
     end
     @test mean(losses[81:100]) < mean(losses[1:20])
