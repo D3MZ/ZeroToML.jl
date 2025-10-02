@@ -38,7 +38,7 @@ loss(θ, x, y) = mean((predict(θ, x) .- y).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are parameters, gradients, and learning rate respectively"
 sgd(m, ∇, η) = map((p, g) -> p .- η .* g, m, ∇)
 
-"Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by ∇ loss(ε̂, ε)"
+"Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
 function step(m, x0, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
@@ -52,9 +52,7 @@ posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])).*ε̂) 
 "Draws a sample xₜ₋₁ ~ μ + √βₜ · N(0, I) from the reverse diffusion step"
 latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
-"""
-Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,1, starting from x_T ~ N(0,I). 
-"""
+"Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,1, starting from x_T ~ N(0,I). "
 function reverse_sample(m, β, α, ᾱ, T, d)
     x = randn(Float32, d)
     μ = similar(x)
@@ -70,10 +68,10 @@ function reverse_sample(m, β, α, ᾱ, T, d)
 end
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
-train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> step(m, x0, ᾱ, T; η=η), dataset; init=model)                    
+train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> step(m, x0, ᾱ, T; η=η), dataset; init=model)
 
 "Generates a square of 255s against a 0s background"
-function generate(h, w)
+function square(h, w)
     d = h * w
     img = zeros(Int, h, w)
     i = rand(4:12); j = rand(4:12)
@@ -93,10 +91,10 @@ T = 1000
 ᾱ = remaining_signal(α)
 model = parameters(d, 512)
 
-dataset = [scale(generate(H, W)) for _ in 1:10_000]
+dataset = [scale(square(H, W)) for _ in 1:10_000]
 
 # Calculate loss before training on a sample
-x0_test = scale(generate(H, W))
+x0_test = scale(square(H, W))
 ε_test = noise(x0_test)
 t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
@@ -123,7 +121,7 @@ using Plots
 
 # Make one toy image
 H, W = 16, 16
-img = scale(generate(H, W))   # 256-element Vector{Float32}
+img = scale(square(H, W))   # 256-element Vector{Float32}
 
 # Reshape to 2-D and plot
 heatmap(reshape(img, H, W),
