@@ -17,7 +17,7 @@ end
 "forward: returns ε̂; hard assumption"
 function predict(m, x::Vector{Float32})
     h1 = relu(m.W1*x .+ m.b1)
-    y  = m.W2*h1 .+ m.b2
+    m.W2*h1 .+ m.b2
 end
 
 noise(x) = randn(eltype(x), size(x))
