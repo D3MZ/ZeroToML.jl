@@ -1,4 +1,4 @@
-using Random, Statistics, Zygote
+using Random, Statistics, Zygote, NNlib
 
 "Relu Activation function"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
@@ -6,21 +6,39 @@ relu(x::Number)        = max(x, zero(x))
 
 "Glorot/Xavier uniform initialization: Wᵢⱼ ~ U[-√(6/(m+n)), √(6/(m+n))] via https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf"
 glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
+glorot_conv(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
 
 "Initialize MLP mlp_parameters for dimension d -> d (noise prediction)"
 function mlp_parameters(d, hidden_dims=[1024])
-    dims = [d, hidden_dims..., d]
+    c_out = 16
+    kernel_size = 3
+    H = W = isqrt(d)
+
+    conv_layer = (
+        W = glorot_conv(kernel_size, kernel_size, 1, c_out),
+        b = zeros(Float32, 1, 1, c_out, 1)
+    )
+
+    dims = [H * W * c_out, hidden_dims..., d]
     layers = []
     for i in 1:length(dims)-1
         push!(layers, (W=glorot(dims[i+1], dims[i]), b=zeros(Float32, dims[i+1])))
     end
-    return (layers=layers,)
+    return (conv_layer=conv_layer, layers=layers)
 end
 
 "forward process; ε̂ = ϵθ(xt,t)"
 function predict(m, x, t, ᾱ)
-    h = relu(m.layers[1].W * x .+ ᾱ[t] .+ m.layers[1].b)
+    H = W = isqrt(length(x))
+    x_img = reshape(x, H, W, 1, 1)
+    padding = (size(m.conv_layer.W, 1) - 1) ÷ 2
+    h = conv(x_img, m.conv_layer.W; pad=padding) .+ m.conv_layer.b
+    h = relu(h)
+    h = reshape(h, :, 1)
+
+    # MLP
+    h = relu(m.layers[1].W * h .+ ᾱ[t] .+ m.layers[1].b)
     for layer in m.layers[2:end-1]
         h = relu(layer.W * h .+ layer.b)
     end
@@ -47,7 +65,10 @@ function sgd(m, ∇, η)
     layers = map(m.layers, ∇.layers) do layer, grad
         map((p, g) -> p .- η .* g, layer, grad)
     end
-    (layers = layers,)
+    conv_layer = map(m.conv_layer, ∇.conv_layer) do p, g
+        p .- η .* g
+    end
+    (conv_layer=conv_layer, layers=layers)
 end
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
