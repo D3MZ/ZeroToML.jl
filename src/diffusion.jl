@@ -21,19 +21,25 @@ function timestep_embedding(t, d)
 end
 
 "Initialize MLP mlp_parameters for dimension d -> d (noise prediction)"
-function mlp_parameters(d, h=1024)
-    W1 = glorot(h, d); b1 = zeros(Float32, h)
-    W2 = glorot(d, h); b2 = zeros(Float32, d)
-    W_temb = glorot(h, d)
-    return (W1=W1, b1=b1, W2=W2, b2=b2, W_temb=W_temb)
+function mlp_parameters(d, hidden_dims=[1024])
+    dims = [d, hidden_dims..., d]
+    layers = []
+    for i in 1:length(dims)-1
+        push!(layers, (W=glorot(dims[i+1], dims[i]), b=zeros(Float32, dims[i+1])))
+    end
+    W_temb = glorot(first(hidden_dims), d)
+    return (layers=layers, W_temb=W_temb)
 end
 
 "forward process; ε̂ = ϵθ(xt,t)"
 function predict(m, x, t)
     temb_d = size(m.W_temb, 2)
     temb = timestep_embedding(t, temb_d)
-    h1 = relu(m.W1*x .+ m.W_temb*temb .+ m.b1)
-    m.W2*h1 .+ m.b2
+    h = relu(m.layers[1].W * x .+ m.W_temb * temb .+ m.layers[1].b)
+    for layer in m.layers[2:end-1]
+        h = relu(layer.W * h .+ layer.b)
+    end
+    m.layers[end].W * h .+ m.layers[end].b
 end
 
 noise(x) = randn(eltype(x), size(x))
@@ -111,7 +117,7 @@ scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 # β = noise_schedule(T)
 # α = signal_schedule(β)
 # ᾱ = remaining_signal(α)
-# model = mlp_parameters(d, 512*10)
+# model = mlp_parameters(d, [512*10])
 
 # # Calculate loss before training on a sample
 # x0_test = scale(square(H, W))
