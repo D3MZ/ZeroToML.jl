@@ -17,6 +17,8 @@ export
     step,
     train,
     # diffusion
+    diffusion_step,
+    diffusion_train,
     mlp_parameters,
     predict,
     noise,

@@ -23,7 +23,7 @@ using Statistics
     untrained_loss = loss(model, xt_test, t_test, ε_test)
 
     η = 1f-1
-    model = train(model, ᾱ, T, η, dataset)
+    model = diffusion_train(model, ᾱ, T, η, dataset)
 
     # Calculate loss after training on the same sample
     trained_loss = loss(model, xt_test, t_test, ε_test)

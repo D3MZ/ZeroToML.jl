@@ -55,7 +55,7 @@ loss(θ, x, t, y) = mean((y .- predict(θ, x, t)).^2)
 sgd(m, ∇, η) = map((p, g) -> p .- η .* g, m, ∇)
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
-function step(m, x0, ᾱ, T; t=rand(1:T), η=1e-3f0)
+function diffusion_step(m, x0, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
     (∇,) = gradient(θ -> loss(θ, xt, t, ε), m)
@@ -84,9 +84,9 @@ function reverse_sample(m, β, α, ᾱ, T, d)
 end
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
-train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> step(m, x0, ᾱ, T; η=η), dataset; init=model)
-"Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
-train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
+diffusion_train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> diffusion_step(m, x0, ᾱ, T; η=η), dataset; init=model)
+"Trains for E epochs by folding `diffusion_train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->diffusion_train(m, ᾱ, T, η, dataset), 1:E; init=model)"
+diffusion_train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> diffusion_train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
 
 "Generates a square of 255s against a 0s background"
 function square(h, w)
