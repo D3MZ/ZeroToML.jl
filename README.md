@@ -6,15 +6,10 @@
 Yet another AI from scratch repo. Framework free.
 
 - The files are appropriately named.
-    - [notes](/notes) on my notes.
+    - [notes](/notes) on my notes. They're still very rough.
     - [test](/test) for it in action on limited resources.
     - [examples](/examples) long training on real datasets.
 - May contain AI slop.
-
-### Work in Progress
-- [Optimizers](notes/optimizers.md)
-- [Transformer](notes/transformers.md)
-- [Diffusion](notes/diffusion.md)
 
 ### Roadmap
 - [ ] Transformers
@@ -24,6 +19,8 @@ Yet another AI from scratch repo. Framework free.
   - [ ] Impact on Different tokenizers (i.e. BPE tokenizer vs Character level)
   - [ ] Impact on number of heads
 - [ ] Diffusion
+  - [ ] DDPM
+  - [ ] DDIM
 - [ ] RL
 - [x] Refactor to stateless
 - [ ] Abstract common functions? Might reduce readability :(
