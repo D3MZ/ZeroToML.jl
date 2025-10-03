@@ -1,4 +1,4 @@
-using Random, Statistics, Zygote
+using Random, Statistics, Zygote, Test
 
 "Relu Activation function"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
@@ -104,15 +104,13 @@ scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 # Random.seed!(42)
 # H,W = 16, 16
 # d = H*W
-# dataset = [scale(square(H, W)) for _ in 1:10_000]
+# dataset = [scale(square(H, W)) for _ in 1:1]
 
 # T = 1000
 # β = noise_schedule(T)
 # α = signal_schedule(β)
 # ᾱ = remaining_signal(α)
 # model = mlp_parameters(d, 512)
-
-
 
 # # Calculate loss before training on a sample
 # x0_test = scale(square(H, W))
@@ -122,9 +120,11 @@ scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 # untrained_loss = loss(model, xt_test, t_test, ε_test)
 
 # η = 1f-1
-# model = train(model, ᾱ, T, η, dataset)
-# # epochs = 100
-# # model = train(model, ᾱ, T, η, dataset, epochs)
+# # model = diffusion_train(model, ᾱ, T, η, dataset)
+# epochs = 10_000
+# # using BenchmarkTools
+# # @benchmark diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
 
 # # Calculate loss after training on the same sample
 # trained_loss = loss(model, xt_test, t_test, ε_test)
@@ -143,20 +143,18 @@ scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 # using Plots
 
 # # Make one toy image
-# H, W = 16, 16
-# img = scale(square(H, W))   # 256-element Vector{Float32}
+# # H, W = 16, 16
+# # img = scale(square(H, W))   # 256-element Vector{Float32}
+
 
 # # Reshape to 2-D and plot
-# heatmap(reshape(img, H, W),
+# heatmap(reshape(first(dataset), H, W),
 #         color=:grays,
 #         aspect_ratio=:equal,
 #         title="Random generated square")
 
-# # # Generate one sample from the trained model
-# xgen = reverse_sample(model, β, α, ᾱ, T, d)
-
 # # # Reshape to 16×16 and show as grayscale
-# heatmap(reshape(xgen, H, W),
+# heatmap(reshape(reverse_sample(model, β, α, ᾱ, T, d), H, W),
 #         color=:grays,
 #         aspect_ratio=:equal,
 #         title="Sample from trained diffusion model")
