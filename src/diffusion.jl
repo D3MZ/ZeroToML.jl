@@ -117,8 +117,8 @@ end
 "Scales an image from [0, 255] to [-1, 1]"
 scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 
-using Test
 # Below is just a scratch pad -- will delete after
+using Test
 Random.seed!(42)
 H,W = 16, 16
 d = H*W
