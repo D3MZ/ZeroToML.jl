@@ -134,7 +134,7 @@ t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
 untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
 
-η = 1f-3
+η = 1f-2
 @time model = diffusion_train(model, ᾱ, T, η, dataset)
 # epochs = 1
 # @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
