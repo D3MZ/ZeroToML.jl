@@ -115,7 +115,7 @@ using Test
 Random.seed!(42)
 H,W = 16, 16
 d = H*W
-dataset = [scale(square(H, W)) for _ in 1:100]
+dataset = [scale(square(H, W)) for _ in 1:100_000]
 
 T = 1_000
 β = noise_schedule(T)
