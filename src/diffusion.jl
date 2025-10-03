@@ -1,4 +1,4 @@
-using Random, Statistics, Zygote, Test
+using Random, Statistics, Zygote
 
 "Relu Activation function"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
@@ -28,7 +28,7 @@ function mlp_parameters(d, h=1024)
     return (W1=W1, b1=b1, W2=W2, b2=b2, W_temb=W_temb)
 end
 
-"ε̂ = ϵθ(xt,t)"
+"forward process; ε̂ = ϵθ(xt,t)"
 function predict(m, x, t)
     temb_d = size(m.W_temb, 2)
     temb = timestep_embedding(t, temb_d)
@@ -100,17 +100,18 @@ end
 "Scales an image from [0, 255] to [-1, 1]"
 scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 
-# Below is just a scratch pad -- will delete after
+# using Test
+# # Below is just a scratch pad -- will delete after
 # Random.seed!(42)
 # H,W = 16, 16
 # d = H*W
-# dataset = [scale(square(H, W)) for _ in 1:1]
+# dataset = [scale(square(H, W)) for _ in 1:10_000]
 
-# T = 1000
+# T = 1_000
 # β = noise_schedule(T)
 # α = signal_schedule(β)
 # ᾱ = remaining_signal(α)
-# model = mlp_parameters(d, 512)
+# model = mlp_parameters(d, 512*10)
 
 # # Calculate loss before training on a sample
 # x0_test = scale(square(H, W))
@@ -120,46 +121,28 @@ scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 # untrained_loss = loss(model, xt_test, t_test, ε_test)
 
 # η = 1f-1
-# # model = diffusion_train(model, ᾱ, T, η, dataset)
-# epochs = 10_000
+# @time model = diffusion_train(model, ᾱ, T, η, dataset)
+# # epochs = 1
+# # @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
 # # using BenchmarkTools
 # # @benchmark diffusion_train(model, ᾱ, T, η, dataset, epochs)
-# model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# # @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
 
-# # Calculate loss after training on the same sample
+# # # Calculate loss after training on the same sample
 # trained_loss = loss(model, xt_test, t_test, ε_test)
 # @info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
 # @test trained_loss < untrained_loss
 
-# xgen = reverse_sample(model, β, α, ᾱ, T, d)
-# @info "sample mean=$(mean(xgen)) std=$(std(xgen))"
-# xhat = reshape(xgen, H, W)
-
-# @test size(xhat) == (H, W)
-# @test eltype(xhat) == Float32
-# @test !all(iszero, xhat)
-
-
 # using Plots
 
-# # Make one toy image
-# # H, W = 16, 16
-# # img = scale(square(H, W))   # 256-element Vector{Float32}
-
-
-# # Reshape to 2-D and plot
+# # # Reshape to 2-D and plot
 # heatmap(reshape(first(dataset), H, W),
 #         color=:grays,
 #         aspect_ratio=:equal,
 #         title="Random generated square")
 
-# # # Reshape to 16×16 and show as grayscale
+# # # # Reshape to 16×16 and show as grayscale
 # heatmap(reshape(reverse_sample(model, β, α, ᾱ, T, d), H, W),
 #         color=:grays,
 #         aspect_ratio=:equal,
 #         title="Sample from trained diffusion model")
-
-# # x = randn(Float32, d)
-# # t = rand(1:T)
-# # ε̂ = predict(model, x, t)
-# # μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
