@@ -128,7 +128,7 @@ T = 1_000
 β = noise_schedule(T)
 α = signal_schedule(β)
 ᾱ = remaining_signal(α)
-model = mlp_parameters(d, [512])
+model = mlp_parameters(d, [512, 512])
 
 # Calculate loss before training on a sample
 x0_test = scale(square(H, W))
