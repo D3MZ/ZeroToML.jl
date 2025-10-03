@@ -9,40 +9,40 @@ glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 glorot_conv(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
 
-"Initialize MLP mlp_parameters for dimension d -> d (noise prediction)"
-function mlp_parameters(d, hidden_dims=[1024])
-    c_out = 16
+"Initialize fully convolutional network parameters for image-to-image noise prediction"
+function conv_parameters(d)
     kernel_size = 3
-    H = W = isqrt(d)
-
-    conv_layer = (
-        W = glorot_conv(kernel_size, kernel_size, 1, c_out),
-        b = zeros(Float32, 1, 1, c_out, 1)
-    )
-
-    dims = [H * W * c_out, hidden_dims..., d]
+    channels = [1, 16, 32, 16, 1]
     layers = []
-    for i in 1:length(dims)-1
-        push!(layers, (W=glorot(dims[i+1], dims[i]), b=zeros(Float32, dims[i+1])))
+    for i in 1:length(channels)-1
+        push!(layers, (
+            W=glorot_conv(kernel_size, kernel_size, channels[i], channels[i+1]),
+            b=zeros(Float32, 1, 1, channels[i+1], 1)
+        ))
     end
-    return (conv_layer=conv_layer, layers=layers)
+    return (layers=layers,)
 end
 
 "forward process; ε̂ = ϵθ(xt,t)"
 function predict(m, x, t, ᾱ)
     H = W = isqrt(length(x))
-    x_img = reshape(x, H, W, 1, 1)
-    padding = (size(m.conv_layer.W, 1) - 1) ÷ 2
-    h = conv(x_img, m.conv_layer.W; pad=padding) .+ m.conv_layer.b .+ ᾱ[t]
-    h = relu(h)
-    h = reshape(h, :, 1)
+    h = reshape(x, H, W, 1, 1)
+    padding = (size(first(m.layers).W, 1) - 1) ÷ 2
 
-    # MLP
-    h = relu(m.layers[1].W * h .+ m.layers[1].b)
+    # First layer with ᾱ injection
+    h = conv(h, m.layers[1].W; pad=padding) .+ m.layers[1].b .+ ᾱ[t]
+    h = relu(h)
+
+    # Hidden layers
     for layer in m.layers[2:end-1]
-        h = relu(layer.W * h .+ layer.b)
+        h = conv(h, layer.W; pad=padding) .+ layer.b
+        h = relu(h)
     end
-    m.layers[end].W * h .+ m.layers[end].b
+    
+    # Final layer
+    h = conv(h, m.layers[end].W; pad=padding) .+ m.layers[end].b
+    
+    return reshape(h, :)
 end
 
 noise(x) = randn(eltype(x), size(x))
@@ -65,10 +65,7 @@ function sgd(m, ∇, η)
     layers = map(m.layers, ∇.layers) do layer, grad
         map((p, g) -> p .- η .* g, layer, grad)
     end
-    conv_layer = map(m.conv_layer, ∇.conv_layer) do p, g
-        p .- η .* g
-    end
-    (conv_layer=conv_layer, layers=layers)
+    (layers=layers,)
 end
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
@@ -128,7 +125,7 @@ T = 1_000
 β = noise_schedule(T)
 α = signal_schedule(β)
 ᾱ = remaining_signal(α)
-model = mlp_parameters(d, [512, 512])
+model = conv_parameters(d)
 
 # Calculate loss before training on a sample
 x0_test = scale(square(H, W))
