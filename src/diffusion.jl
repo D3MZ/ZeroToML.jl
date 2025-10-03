@@ -13,6 +13,8 @@ glorot_conv(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0
 function conv_parameters(d)
     kernel_size = 3
     channels = [1, 16, 32, 16, 1]
+    c_out = channels[2]
+    W_alpha_bar = reshape(glorot(c_out, 1), 1, 1, c_out, 1)
     layers = []
     for i in 1:length(channels)-1
         push!(layers, (
@@ -20,7 +22,7 @@ function conv_parameters(d)
             b=zeros(Float32, 1, 1, channels[i+1], 1)
         ))
     end
-    return (layers=layers,)
+    return (layers=layers, W_alpha_bar=W_alpha_bar)
 end
 
 "forward process; ε̂ = ϵθ(xt,t)"
@@ -30,7 +32,7 @@ function predict(m, x, t, ᾱ)
     padding = (size(first(m.layers).W, 1) - 1) ÷ 2
 
     # First layer with ᾱ injection
-    h = conv(h, m.layers[1].W; pad=padding) .+ m.layers[1].b .+ ᾱ[t]
+    h = conv(h, m.layers[1].W; pad=padding) .+ m.layers[1].b .+ m.W_alpha_bar .* ᾱ[t]
     h = relu(h)
 
     # Hidden layers
@@ -65,7 +67,8 @@ function sgd(m, ∇, η)
     layers = map(m.layers, ∇.layers) do layer, grad
         map((p, g) -> p .- η .* g, layer, grad)
     end
-    (layers=layers,)
+    W_alpha_bar = m.W_alpha_bar .- η .* ∇.W_alpha_bar
+    (layers=layers, W_alpha_bar=W_alpha_bar)
 end
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
