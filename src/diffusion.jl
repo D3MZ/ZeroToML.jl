@@ -7,18 +7,6 @@ relu(x::Number)        = max(x, zero(x))
 "Glorot/Xavier uniform initialization: Wᵢⱼ ~ U[-√(6/(m+n)), √(6/(m+n))] via https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf"
 glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 
-"Sinusoidal timestep embedding for a single timestep `t` and dimension `d`"
-function timestep_embedding(t, d)
-    half_d = d ÷ 2
-    emb = log(10000.0f0) / (half_d - 1)
-    emb = exp.(range(0, stop=half_d-1) .* -emb)
-    emb = t .* emb
-    emb = vcat(sin.(emb), cos.(emb))
-    if d % 2 == 1
-        emb = vcat(emb, 0.0f0)
-    end
-    return emb
-end
 
 "Initialize MLP mlp_parameters for dimension d -> d (noise prediction)"
 function mlp_parameters(d, hidden_dims=[1024])
@@ -31,10 +19,8 @@ function mlp_parameters(d, hidden_dims=[1024])
 end
 
 "forward process; ε̂ = ϵθ(xt,t)"
-function predict(m, x, t)
-    temb_d = size(m.layers[1].b, 1)
-    temb = timestep_embedding(t, temb_d)
-    h = relu(m.layers[1].W * x .+ temb .+ m.layers[1].b)
+function predict(m, x, t, ᾱ)
+    h = relu(m.layers[1].W * x .+ ᾱ[t] .+ m.layers[1].b)
     for layer in m.layers[2:end-1]
         h = relu(layer.W * h .+ layer.b)
     end
@@ -55,7 +41,7 @@ marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 "Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 "Mean Squared Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
-loss(θ, x, t, y) = mean((y .- predict(θ, x, t)).^2)
+loss(θ, x, t, y, ᾱ) = mean((y .- predict(θ, x, t, ᾱ)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
 function sgd(m, ∇, η)
     layers = map(m.layers, ∇.layers) do layer, grad
@@ -68,7 +54,7 @@ end
 function diffusion_step(m, x0, ᾱ, T; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
-    (∇,) = gradient(θ -> loss(θ, xt, t, ε), m)
+    (∇,) = gradient(θ -> loss(θ, xt, t, ε, ᾱ), m)
     sgd(m, ∇, η)
 end
 
@@ -83,13 +69,13 @@ function reverse_sample(m, β, α, ᾱ, T, d)
     x = randn(Float32, d)
     μ = similar(x)
     for t in T:-1:2
-        ε̂ = predict(m, x, t)
+        ε̂ = predict(m, x, t, ᾱ)
         μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
         x = latent(μ, β, t, x)
     end
     
     t = 1
-    ε̂ = predict(m, x, t)
+    ε̂ = predict(m, x, t, ᾱ)
     posterior_mean(x, ε̂, β, α, ᾱ, t)
 end
 
@@ -128,7 +114,7 @@ x0_test = scale(square(H, W))
 ε_test = noise(x0_test)
 t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
-untrained_loss = loss(model, xt_test, t_test, ε_test)
+untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
 
 η = 1f-1
 @time model = diffusion_train(model, ᾱ, T, η, dataset)
@@ -139,7 +125,7 @@ untrained_loss = loss(model, xt_test, t_test, ε_test)
 # @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
 
 # # Calculate loss after training on the same sample
-trained_loss = loss(model, xt_test, t_test, ε_test)
+trained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
 @info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
 @test trained_loss < untrained_loss
 
