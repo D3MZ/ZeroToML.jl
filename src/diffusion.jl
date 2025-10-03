@@ -15,12 +15,13 @@ function mlp_parameters(d, hidden_dims=[1024])
     for i in 1:length(dims)-1
         push!(layers, (W=glorot(dims[i+1], dims[i]), b=zeros(Float32, dims[i+1])))
     end
-    return (layers=layers,)
+    W_alpha_bar = vec(glorot(first(hidden_dims), 1))
+    return (layers=layers, W_alpha_bar=W_alpha_bar)
 end
 
 "forward process; ε̂ = ϵθ(xt,t)"
 function predict(m, x, t, ᾱ)
-    h = relu(m.layers[1].W * x .+ ᾱ[t] .+ m.layers[1].b)
+    h = relu(m.layers[1].W * x .+ m.W_alpha_bar .* ᾱ[t] .+ m.layers[1].b)
     for layer in m.layers[2:end-1]
         h = relu(layer.W * h .+ layer.b)
     end
@@ -47,7 +48,8 @@ function sgd(m, ∇, η)
     layers = map(m.layers, ∇.layers) do layer, grad
         map((p, g) -> p .- η .* g, layer, grad)
     end
-    (layers = layers,)
+    W_alpha_bar = m.W_alpha_bar .- η .* ∇.W_alpha_bar
+    (layers = layers, W_alpha_bar = W_alpha_bar)
 end
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
