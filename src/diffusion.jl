@@ -33,12 +33,12 @@ function predict(m, x, t, ᾱ)
     H = W = isqrt(length(x))
     x_img = reshape(x, H, W, 1, 1)
     padding = (size(m.conv_layer.W, 1) - 1) ÷ 2
-    h = conv(x_img, m.conv_layer.W; pad=padding) .+ m.conv_layer.b
+    h = conv(x_img, m.conv_layer.W; pad=padding) .+ m.conv_layer.b .+ ᾱ[t]
     h = relu(h)
     h = reshape(h, :, 1)
 
     # MLP
-    h = relu(m.layers[1].W * h .+ ᾱ[t] .+ m.layers[1].b)
+    h = relu(m.layers[1].W * h .+ m.layers[1].b)
     for layer in m.layers[2:end-1]
         h = relu(layer.W * h .+ layer.b)
     end
