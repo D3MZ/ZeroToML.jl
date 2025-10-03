@@ -35,7 +35,8 @@ end
 function predict(m, x, t)
     temb_d = size(m.W_temb, 2)
     temb = timestep_embedding(t, temb_d)
-    h = relu(m.layers[1].W * x .+ m.W_temb * temb .+ m.layers[1].b)
+    # h = relu(m.layers[1].W * x .+ m.W_temb * temb .+ m.layers[1].b)
+    h = relu(m.layers[1].W * x .+ temb .+ m.layers[1].b)
     for layer in m.layers[2:end-1]
         h = relu(layer.W * h .+ layer.b)
     end
@@ -111,49 +112,57 @@ end
 "Scales an image from [0, 255] to [-1, 1]"
 scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 
-# using Test
-# # Below is just a scratch pad -- will delete after
-# Random.seed!(42)
-# H,W = 16, 16
-# d = H*W
-# dataset = [scale(square(H, W)) for _ in 1:10_000]
+using Test
+# Below is just a scratch pad -- will delete after
+Random.seed!(42)
+H,W = 16, 16
+d = H*W
+dataset = [scale(square(H, W)) for _ in 1:100]
 
-# T = 1_000
-# β = noise_schedule(T)
-# α = signal_schedule(β)
-# ᾱ = remaining_signal(α)
-# model = mlp_parameters(d, [512*10])
+T = 1_000
+β = noise_schedule(T)
+α = signal_schedule(β)
+ᾱ = remaining_signal(α)
+model = mlp_parameters(d, [512])
 
-# # Calculate loss before training on a sample
-# x0_test = scale(square(H, W))
-# ε_test = noise(x0_test)
-# t_test = rand(1:T)
-# xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
-# untrained_loss = loss(model, xt_test, t_test, ε_test)
+# Calculate loss before training on a sample
+x0_test = scale(square(H, W))
+ε_test = noise(x0_test)
+t_test = rand(1:T)
+xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
+untrained_loss = loss(model, xt_test, t_test, ε_test)
 
-# η = 1f-1
-# @time model = diffusion_train(model, ᾱ, T, η, dataset)
-# # epochs = 1
-# # @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
-# # using BenchmarkTools
-# # @benchmark diffusion_train(model, ᾱ, T, η, dataset, epochs)
-# # @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
+η = 1f-1
+@time model = diffusion_train(model, ᾱ, T, η, dataset)
+# epochs = 1
+# @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# using BenchmarkTools
+# @benchmark diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
 
-# # # Calculate loss after training on the same sample
-# trained_loss = loss(model, xt_test, t_test, ε_test)
-# @info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
-# @test trained_loss < untrained_loss
+# # Calculate loss after training on the same sample
+trained_loss = loss(model, xt_test, t_test, ε_test)
+@info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
+@test trained_loss < untrained_loss
 
-# using Plots
+using Plots
 
-# # # Reshape to 2-D and plot
-# heatmap(reshape(first(dataset), H, W),
-#         color=:grays,
-#         aspect_ratio=:equal,
-#         title="Random generated square")
+# # Reshape to 2-D and plot
+heatmap(reshape(first(dataset), H, W),
+        color=:grays,
+        aspect_ratio=:equal,
+        title="Random generated square")
 
-# # # # Reshape to 16×16 and show as grayscale
-# heatmap(reshape(reverse_sample(model, β, α, ᾱ, T, d), H, W),
-#         color=:grays,
-#         aspect_ratio=:equal,
-#         title="Sample from trained diffusion model")
+# Generate a 5×2 grid (10 samples) from the trained model
+samples = [reshape(reverse_sample(model, β, α, ᾱ, T, d), H, W) for _ in 1:10]
+plots = [heatmap(samples[i],
+                 color=:grays,
+                 aspect_ratio=1,
+                 axis=false,
+                 framestyle=:none,
+                 xticks=false,
+                 yticks=false,
+                 colorbar=false) for i in 1:length(samples)]
+plot(plots...;
+     layout=(5,2),
+     size=(300,500))
