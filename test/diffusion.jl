@@ -14,7 +14,7 @@ include("../src/diffusion.jl")
     β = noise_schedule(T)
     α = signal_schedule(β)
     ᾱ = remaining_signal(α)
-    model = parameters(d, 256)
+    model = mlp_parameters(d, 256)
 
     # Calculate loss before training on a sample
     x0_test = scale(square(H, W))

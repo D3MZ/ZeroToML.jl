@@ -20,8 +20,8 @@ function timestep_embedding(t, d)
     return emb
 end
 
-"Initialize MLP parameters for dimension d -> d (noise prediction)"
-function parameters(d, h=1024)
+"Initialize MLP mlp_parameters for dimension d -> d (noise prediction)"
+function mlp_parameters(d, h=1024)
     W1 = glorot(h, d); b1 = zeros(Float32, h)
     W2 = glorot(d, h); b2 = zeros(Float32, d)
     W_temb = glorot(h, d)
@@ -51,7 +51,7 @@ marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 "Mean Squared Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
 loss(θ, x, t, y) = mean((y .- predict(θ, x, t)).^2)
-"Stochastic Gradient Descent (SGD). m, ∇, η are parameters, gradients, and learning rate respectively"
+"Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
 sgd(m, ∇, η) = map((p, g) -> p .- η .* g, m, ∇)
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
@@ -110,7 +110,7 @@ scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 # β = noise_schedule(T)
 # α = signal_schedule(β)
 # ᾱ = remaining_signal(α)
-# model = parameters(d, 512)
+# model = mlp_parameters(d, 512)
 
 
 
