@@ -14,18 +14,10 @@ include("../src/diffusion.jl")
     ᾱ = remaining_signal(α)
     model = parameters(d, 512)
 
-    # dummy dataset: e.g., small blobs
-    function toy_image()
-        img = zeros(Float32, H, W)
-        i = rand(4:12); j = rand(4:12)
-        img[i-1:i+1, j-1:j+1] .= 1f0
-        return reshape(img, d)  # flatten
-    end
-
     η = 1f-3
     losses = zeros(Float32, 100)
     for it in 1:100
-        x0 = toy_image()
+        x0 = scale(square(H, W))
         t = rand(1:T)
         ε = noise(x0)
         xt = noised_sample(x0, ᾱ, t, ε)
