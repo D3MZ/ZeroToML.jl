@@ -28,8 +28,8 @@ function parameters(d, h=1024)
     return (W1=W1, b1=b1, W2=W2, b2=b2, W_temb=W_temb)
 end
 
-"forward: returns ε̂; hard assumption"
-function predict(m, x::Vector{Float32}, t::Int)
+"ε̂ = ϵθ(xt,t)"
+function predict(m, x, t)
     temb_d = size(m.W_temb, 2)
     temb = timestep_embedding(t, temb_d)
     h1 = relu(m.W1*x .+ m.W_temb*temb .+ m.b1)
@@ -49,8 +49,8 @@ marginal_mean(x, ᾱ, t) = sqrt(ᾱ[t]) .* x
 marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 "Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
-"MSE Loss function"
-loss(θ, x, t, y) = mean((predict(θ, x, t) .- y).^2)
+"Mean Squared Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
+loss(θ, x, t, y) = mean((y .- predict(θ, x, t)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are parameters, gradients, and learning rate respectively"
 sgd(m, ∇, η) = map((p, g) -> p .- η .* g, m, ∇)
 
@@ -63,7 +63,7 @@ function step(m, x0, ᾱ, T; t=rand(1:T), η=1e-3f0)
 end
 
 "Computes μₜ = (xₜ − (βₜ / √(1−ᾱₜ))·ε̂) / √αₜ for the reverse diffusion mean"
-posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])).*ε̂) ./ sqrt(α[t])
+posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])) .* ε̂) ./ sqrt(α[t])
 
 "Draws a sample xₜ₋₁ ~ μ + √βₜ · N(0, I) from the reverse diffusion step"
 latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
@@ -85,6 +85,8 @@ end
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
 train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> step(m, x0, ᾱ, T; η=η), dataset; init=model)
+"Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
+train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
 
 "Generates a square of 255s against a 0s background"
 function square(h, w)
@@ -118,6 +120,8 @@ untrained_loss = loss(model, xt_test, t_test, ε_test)
 
 η = 1f-1
 model = train(model, ᾱ, T, η, dataset)
+# epochs = 100
+# model = train(model, ᾱ, T, η, dataset, epochs)
 
 # Calculate loss after training on the same sample
 trained_loss = loss(model, xt_test, t_test, ε_test)
