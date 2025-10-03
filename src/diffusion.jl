@@ -58,7 +58,12 @@ noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) 
 "Mean Squared Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
 loss(θ, x, t, y) = mean((y .- predict(θ, x, t)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
-sgd(m, ∇, η) = map((p, g) -> p .- η .* g, m, ∇)
+function sgd(m, ∇, η)
+    layers = map(m.layers, ∇.layers) do layer, grad
+        map((p, g) -> p .- η .* g, layer, grad)
+    end
+    (layers = layers, W_temb = m.W_temb .- η .* ∇.W_temb)
+end
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
 function diffusion_step(m, x0, ᾱ, T; t=rand(1:T), η=1e-3f0)
