@@ -1,5 +1,5 @@
 # --- Weight Initialization ---
-glorot(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
+glorot_init(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
 
 # --- Tokenizer ---
 build_vocab(text) = sort(unique(collect(text)))
@@ -33,21 +33,21 @@ end
 function parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
     vocab_size = length(vocab)
     (
-        E = glorot(dₑ, vocab_size),
+        E = glorot_init(dₑ, vocab_size),
         P = positional_encoding(max_seq_len, dₑ),
-        W_Q = glorot(dₑ, dₑ),
-        W_K = glorot(dₑ, dₑ),
-        W_V = glorot(dₑ, dₑ),
-        W_O = glorot(dₑ, dₑ),
+        W_Q = glorot_init(dₑ, dₑ),
+        W_K = glorot_init(dₑ, dₑ),
+        W_V = glorot_init(dₑ, dₑ),
+        W_O = glorot_init(dₑ, dₑ),
         ln1_γ = ones(Float32, dₑ, 1),
         ln1_β = zeros(Float32, dₑ, 1),
         ln2_γ = ones(Float32, dₑ, 1),
         ln2_β = zeros(Float32, dₑ, 1),
-        W₁ = glorot(d_ff, dₑ),
+        W₁ = glorot_init(d_ff, dₑ),
         b₁ = zeros(Float32, d_ff, 1),
-        W₂ = glorot(dₑ, d_ff),
+        W₂ = glorot_init(dₑ, d_ff),
         b₂ = zeros(Float32, dₑ, 1),
-        W_out = glorot(vocab_size, dₑ),
+        W_out = glorot_init(vocab_size, dₑ),
         b_out = zeros(Float32, vocab_size, 1),
     )
 end

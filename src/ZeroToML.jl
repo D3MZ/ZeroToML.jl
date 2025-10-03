@@ -3,6 +3,7 @@ module ZeroToML
 using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
 include("decoder.jl")
+include("diffusion.jl")
 export
     build_vocab,
     decode,
@@ -14,6 +15,18 @@ export
     parameters,
     positional_encoding,
     step,
-    train
+    train,
+    # diffusion
+    mlp_parameters,
+    predict,
+    noise,
+    noise_schedule,
+    signal_schedule,
+    remaining_signal,
+    noised_sample,
+    reverse_sample,
+    square,
+    scale,
+    timestep_embedding
 
 end

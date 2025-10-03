@@ -1,4 +1,4 @@
-using Random, Statistics, Test, Zygote
+using Random, Statistics, Zygote
 
 "Relu Activation function"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
