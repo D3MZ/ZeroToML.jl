@@ -60,7 +60,7 @@ marginal_mean(x, ᾱ, t) = sqrt(ᾱ[t]) .* x
 marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 "Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
-"Mean Squared Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
+"Mean boxd Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
 loss(θ, x, t, y, ᾱ) = mean((y .- predict(θ, x, t, ᾱ)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
 function sgd(m, ∇, η)
@@ -106,27 +106,34 @@ diffusion_train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> diffusion_step(m
 "Trains for E epochs by folding `diffusion_train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->diffusion_train(m, ᾱ, T, η, dataset), 1:E; init=model)"
 diffusion_train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> diffusion_train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
 
-"Generates a square of 255s against a 0s background at a specified location"
-function square(h, w, i, j)
-    img = zeros(Int, h, w)
-    img[i-1:i+1, j-1:j+1] .= 255
-    return img
-end
-
-"Generates all possible unique squares on a black background"
-squares(h, w) = [square(h, w, i, j) for i in 2:h-1 for j in 2:w-1]
-
-"Scales an image from [0, 255] to [-1, 1]"
-scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
+"Creates an h×w zero matrix for a blank image"  
+img(h, w) = zeros(Int, h, w)
+"Paints a 3×3 block of 255s centered at (i, j) into an image (mutates)"  
+addbox!(img, i, j) = (img[i-1:i+1, j-1:j+1] .= 255; img)
+"Generates an h×w image with a i×j white box at (i, j)"  
+box(h, w, i, j) = addbox!(img(h, w), i, j)
+"Generates all possible unique boxes on a black background"
+boxes(h, w) = [box(h, w, i, j) for i in 2:h-1 for j in 2:w-1]
+"Scales an image (array) from [0,255] to [-1,1] via y = (2/255)*x - 1"
+scale(img::Matrix) = (2 .* float.(img) ./ 255) .- 1
+"Scales a vector of images by mapping `scale` over elements"
+scale(imgs::AbstractVector{Matrix}) = map(scale, imgs)
 
 # Below is just a scratch pad -- will delete after
-using Test, Plots
+using Test, Plots, BenchmarkTools
 Random.seed!(42)
 H,W = 16, 16
 d = H*W
-all_squares = squares(H, W)
-plot(rand(all_squares))
-# dataset = [scale(rand(all_squares)) for _ in 1:100_000]
+all_boxes = boxes(H, W)
+rand(all_boxes)
+scale(rand(all_boxes))
+scale(all_boxes)
+# @benchmark scale(rand(all_boxes))
+# @benchmark scale(all_boxes)
+
+
+heatmap(scale(rand(all_boxes)))
+# dataset = [scale(rand(all_boxes)) for _ in 1:100_000]
 
 # T = 1_000
 # β = noise_schedule(T)
@@ -135,7 +142,7 @@ plot(rand(all_squares))
 # model = conv_parameters(d)
 
 # # Calculate loss before training on a sample
-# x0_test = scale(rand(all_squares))
+# x0_test = scale(rand(all_boxes))
 # ε_test = noise(x0_test)
 # t_test = rand(1:T)
 # xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
@@ -158,7 +165,7 @@ plot(rand(all_squares))
 # heatmap(first(dataset),
 #         color=:grays,
 #         aspect_ratio=:equal,
-#         title="Random generated square")
+#         title="Random generated box")
 
 # # Generate a 5×2 grid (10 samples) from the trained model
 # samples = [reverse_sample(model, β, α, ᾱ, T, d) for _ in 1:10]
