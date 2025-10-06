@@ -120,7 +120,7 @@ squares(h, w) = [square(h, w, i, j) for i in 2:h-1 for j in 2:w-1]
 scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 
 # Below is just a scratch pad -- will delete after
-using Test
+using Test, Plots
 Random.seed!(42)
 H,W = 16, 16
 d = H*W
@@ -153,8 +153,6 @@ plot(rand(all_squares))
 # trained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
 # @info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
 # @test trained_loss < untrained_loss
-
-# using Plots
 
 # # # Reshape to 2-D and plot
 # heatmap(first(dataset),
