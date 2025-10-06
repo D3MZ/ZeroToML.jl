@@ -25,13 +25,13 @@ function conv_parameters(d)
 end
 
 "forward process; ε̂ = ϵθ(xt,t)"
-function predict(m, x, t, ᾱ)
+function predict(m, x, t, time_embedding)
     H, W = size(x)
     h = reshape(x, H, W, 1, 1)
     padding = (size(first(m.layers).W, 1) - 1) ÷ 2
 
-    # First layer with log snr ᾱ injection
-    h = conv(h, m.layers[1].W; pad=padding) .+ m.layers[1].b .+ m.W_alpha_bar .* snr(ᾱ)[t]
+    # First layer with time embedding injection
+    h = conv(h, m.layers[1].W; pad=padding) .+ m.layers[1].b .+ m.W_alpha_bar .* time_embedding[t]
     
     if length(m.layers) > 1
         h = relu(h)
@@ -65,7 +65,7 @@ marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 "Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 "Mean boxd Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
-loss(θ, x, t, y, ᾱ) = mean((y .- predict(θ, x, t, ᾱ)).^2)
+loss(θ, x, t, y, time_embedding) = mean((y .- predict(θ, x, t, time_embedding)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
 function sgd(m, ∇, η)
     layers = map(m.layers, ∇.layers) do layer, grad
@@ -76,10 +76,10 @@ function sgd(m, ∇, η)
 end
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
-function diffusion_step(m, x0, ᾱ, T; t=rand(1:T), η=1e-3f0)
+function diffusion_step(m, x0, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
-    (∇,) = gradient(θ -> loss(θ, xt, t, ε, ᾱ), m)
+    (∇,) = gradient(θ -> loss(θ, xt, t, ε, time_embedding), m)
     sgd(m, ∇, η)
 end
 
@@ -90,30 +90,30 @@ posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])) .* ε̂
 latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
 "Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,1, starting from x_T ~ N(0,I). "
-function reverse_sample(m, β, α, ᾱ, T, d)
+function reverse_sample(m, β, α, ᾱ, T, d, time_embedding)
     H = W = isqrt(d)
     x = randn(Float32, H, W)
     μ = similar(x)
     for t in T:-1:2
-        ε̂ = predict(m, x, t, ᾱ)
+        ε̂ = predict(m, x, t, time_embedding)
         μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
         x = latent(μ, β, t, x)
     end
     
     t = 1
-    ε̂ = predict(m, x, t, ᾱ)
+    ε̂ = predict(m, x, t, time_embedding)
     posterior_mean(x, ε̂, β, α, ᾱ, t)
 end
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
-diffusion_train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> diffusion_step(m, x0, ᾱ, T; η=η), dataset; init=model)
+diffusion_train(model, ᾱ, T, η, dataset, time_embedding) = foldl((m, x0) -> diffusion_step(m, x0, ᾱ, T, time_embedding; η=η), dataset; init=model)
 # "Trains for E epochs by folding `diffusion_train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->diffusion_train(m, ᾱ, T, η, dataset), 1:E; init=model)"
 # diffusion_train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> diffusion_train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
-function diffusion_train(model, ᾱ, T, η, dataset, epochs)
+function diffusion_train(model, ᾱ, T, η, dataset, epochs, time_embedding)
     losses = Float32[]
     for _ in 1:epochs
-        model = diffusion_train(model, ᾱ, T, η, dataset)
-        push!(losses, loss(model, xt_test, t_test, ε_test, ᾱ))
+        model = diffusion_train(model, ᾱ, T, η, dataset, time_embedding)
+        push!(losses, loss(model, xt_test, t_test, ε_test, time_embedding))
     end
     display(plot(losses))
     return model
@@ -144,6 +144,8 @@ T = 1_000
 β = noise_schedule(T)
 α = signal_schedule(β)
 ᾱ = remaining_signal(α)
+s = snr(ᾱ)
+time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
 model = conv_parameters(d)
 
 # Why log.(ᾱ ./ (1 .- ᾱ) and not ᾱ 
@@ -156,10 +158,10 @@ x0_test = rand(dataset)
 ε_test = noise(x0_test)
 t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
-untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
+untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
 epochs = 10
-model = diffusion_train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs)
+model = diffusion_train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
 # model = diffusion_train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs)
 # model = diffusion_train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs)
 
@@ -178,7 +180,7 @@ heatmap(rand(dataset),
         title="Random generated box")
 
 # Generate a 5×2 grid (10 samples) from the trained model
-samples = [reverse_sample(model, β, α, ᾱ, T, d) for _ in 1:10]
+samples = [reverse_sample(model, β, α, ᾱ, T, d, time_embedding) for _ in 1:10]
 plots = [heatmap(samples[i],
                  color=:grays,
                  aspect_ratio=1,
