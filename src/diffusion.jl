@@ -160,10 +160,10 @@ t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
 untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
-epochs = 10
+epochs = 100
 model = diffusion_train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
-# model = diffusion_train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs)
-# model = diffusion_train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs)
+model = diffusion_train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs)
+model = diffusion_train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs)
 
 # @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
 # using BenchmarkTools
@@ -174,10 +174,10 @@ model = diffusion_train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_emb
 # @test trained_loss < untrained_loss
 
 # # Reshape to 2-D and plot
-heatmap(rand(dataset),
-        color=:grays,
-        aspect_ratio=:equal,
-        title="Random generated box")
+# heatmap(rand(dataset),
+#         color=:grays,
+#         aspect_ratio=:equal,
+#         title="Random generated box")
 
 # Generate a 5×2 grid (10 samples) from the trained model
 samples = [reverse_sample(model, β, α, ᾱ, T, d, time_embedding) for _ in 1:10]
@@ -188,7 +188,7 @@ plots = [heatmap(samples[i],
                  framestyle=:none,
                  xticks=false,
                  yticks=false,
-                 colorbar=false) for i in 1:length(samples)]
+                 colorbar=false) for i in 1:lastindex(samples)]
 plot(plots...;
      layout=(5,2),
      size=(300,500))
