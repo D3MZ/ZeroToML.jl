@@ -118,11 +118,12 @@ end
 scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 
 # Below is just a scratch pad -- will delete after
-# using Test
-# Random.seed!(42)
-# H,W = 16, 16
-# d = H*W
-# dataset = [scale(square(H, W)) for _ in 1:10_000_000]
+using Test
+Random.seed!(42)
+H,W = 16, 16
+d = H*W
+square(H, W)
+# dataset = [scale(square(H, W)) for _ in 1:100_000]
 
 # T = 1_000
 # β = noise_schedule(T)
