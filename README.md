@@ -19,8 +19,11 @@ Yet another AI from scratch repo. Framework free.
   - [ ] Impact on Different tokenizers (i.e. BPE tokenizer vs Character level)
   - [ ] Impact on number of heads
 - [ ] Diffusion
-  - [ ] DDPM
-  - [ ] DDIM
+  - [ ] [DDPM — Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239)
+  - [ ] [DDIM — Denoising Diffusion Implicit Models](https://arxiv.org/abs/2010.02502)
+  - [ ] [SDE — Score-Based Generative Modeling through SDEs](https://arxiv.org/abs/2011.13456)
+  - [ ] [Flow Matching](https://arxiv.org/abs/2210.02747)
+  - [ ] [Rectified Flow — Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow](https://arxiv.org/abs/2209.03003)
 - [ ] RL
 - [x] Refactor to stateless
 - [ ] Abstract common functions? Might reduce readability :(

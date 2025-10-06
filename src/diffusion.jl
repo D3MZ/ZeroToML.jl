@@ -1,4 +1,4 @@
-using Random, Statistics, Zygote, NNlib
+using Random, Statistics, Zygote, NNlib, Tullio, LoopVectorization
 
 "Relu Activation function"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
@@ -161,7 +161,7 @@ xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
 untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
 epochs = 100
-model = diffusion_train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
+@time model = diffusion_train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
 model = diffusion_train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
 model = diffusion_train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
 

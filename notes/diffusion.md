@@ -1,4 +1,8 @@
 # Diffusion
+
+
+
+
 ### [Denoising Diffusion Probabilistic Models](https://arxiv.org/pdf/2006.11239) 
 
 Since $p_\theta(x_{0})$ is intractable, diffusion models efficiently address this by using:
