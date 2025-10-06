@@ -27,7 +27,7 @@ end
 
 "forward process; ε̂ = ϵθ(xt,t)"
 function predict(m, x, t, ᾱ)
-    H = W = isqrt(length(x))
+    H, W = size(x)
     h = reshape(x, H, W, 1, 1)
     padding = (size(first(m.layers).W, 1) - 1) ÷ 2
 
@@ -44,7 +44,7 @@ function predict(m, x, t, ᾱ)
     # Final layer
     h = conv(h, m.layers[end].W; pad=padding) .+ m.layers[end].b
     
-    return reshape(h, :)
+    return reshape(h, H, W)
 end
 
 noise(x) = randn(eltype(x), size(x))
@@ -87,7 +87,8 @@ latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
 "Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,1, starting from x_T ~ N(0,I). "
 function reverse_sample(m, β, α, ᾱ, T, d)
-    x = randn(Float32, d)
+    H = W = isqrt(d)
+    x = randn(Float32, H, W)
     μ = similar(x)
     for t in T:-1:2
         ε̂ = predict(m, x, t, ᾱ)
@@ -105,14 +106,15 @@ diffusion_train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> diffusion_step(m
 "Trains for E epochs by folding `diffusion_train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->diffusion_train(m, ᾱ, T, η, dataset), 1:E; init=model)"
 diffusion_train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> diffusion_train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
 
-"Generates a square of 255s against a 0s background"
-function square(h, w)
-    d = h * w
+"Generates a square of 255s against a 0s background at a specified location"
+function square(h, w, i, j)
     img = zeros(Int, h, w)
-    i = rand(2:h-1); j = rand(2:w-1)
     img[i-1:i+1, j-1:j+1] .= 255
-    return reshape(img, d)
+    return img
 end
+
+"Generates all possible unique squares on a black background"
+squares(h, w) = [square(h, w, i, j) for i in 2:h-1 for j in 2:w-1]
 
 "Scales an image from [0, 255] to [-1, 1]"
 scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
@@ -122,8 +124,9 @@ using Test
 Random.seed!(42)
 H,W = 16, 16
 d = H*W
-plot(square(H, W))
-# dataset = [scale(square(H, W)) for _ in 1:100_000]
+all_squares = squares(H, W)
+plot(rand(all_squares))
+# dataset = [scale(rand(all_squares)) for _ in 1:100_000]
 
 # T = 1_000
 # β = noise_schedule(T)
