@@ -8,11 +8,10 @@ relu(x::Number)        = max(x, zero(x))
 glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 glorot_conv(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
-
 "Initialize fully convolutional network parameters for image-to-image noise prediction"
 function conv_parameters(d)
     kernel_size = 3
-    channels = [1, 16, 32, 16, 1]
+    channels = [1, 16, 1]
     c_out = channels[2]
     W_alpha_bar = reshape(glorot(c_out, 1), 1, 1, c_out, 1)
     layers = []
@@ -103,8 +102,17 @@ end
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
 diffusion_train(model, ᾱ, T, η, dataset) = foldl((m, x0) -> diffusion_step(m, x0, ᾱ, T; η=η), dataset; init=model)
-"Trains for E epochs by folding `diffusion_train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->diffusion_train(m, ᾱ, T, η, dataset), 1:E; init=model)"
-diffusion_train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> diffusion_train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
+# "Trains for E epochs by folding `diffusion_train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->diffusion_train(m, ᾱ, T, η, dataset), 1:E; init=model)"
+# diffusion_train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> diffusion_train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
+function diffusion_train(model, ᾱ, T, η, dataset, epochs)
+    losses = Float32[]
+    for _ in 1:epochs
+        model = diffusion_train(model, ᾱ, T, η, dataset)
+        push!(losses, loss(model, xt_test, t_test, ε_test, ᾱ))
+    end
+    display(plot(losses))
+    return model
+end
 
 "Creates an h×w zero matrix for a blank image"  
 img(h, w) = zeros(Int, h, w)
@@ -115,68 +123,59 @@ box(h, w, i, j) = addbox!(img(h, w), i, j)
 "Generates all possible unique boxes on a black background"
 boxes(h, w) = [box(h, w, i, j) for i in 2:h-1 for j in 2:w-1]
 "Scales an image (array) from [0,255] to [-1,1] via y = (2/255)*x - 1"
-scale(img::Matrix) = (2 .* float.(img) ./ 255) .- 1
+scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
-scale(imgs::AbstractVector{Matrix}) = map(scale, imgs)
+scale(imgs::AbstractVector) = map(scale, imgs)
 
 # Below is just a scratch pad -- will delete after
 using Test, Plots, BenchmarkTools
 Random.seed!(42)
 H,W = 16, 16
 d = H*W
-all_boxes = boxes(H, W)
-rand(all_boxes)
-scale(rand(all_boxes))
-scale(all_boxes)
-# @benchmark scale(rand(all_boxes))
-# @benchmark scale(all_boxes)
+dataset = scale(boxes(H, W))
+
+T = 1_000
+β = noise_schedule(T)
+α = signal_schedule(β)
+ᾱ = remaining_signal(α)
+model = conv_parameters(d)
+
+# Calculate loss before training on a sample
+x0_test = rand(dataset)
+ε_test = noise(x0_test)
+t_test = rand(1:T)
+xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
+untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
+
+η = 1f-1
+epochs = 10
+diffusion_train(model, ᾱ, T, η, dataset, epochs)
 
 
-heatmap(scale(rand(all_boxes)))
-# dataset = [scale(rand(all_boxes)) for _ in 1:100_000]
+# @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# using BenchmarkTools
+# @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
 
-# T = 1_000
-# β = noise_schedule(T)
-# α = signal_schedule(β)
-# ᾱ = remaining_signal(α)
-# model = conv_parameters(d)
+# # Calculate loss after training on the same sample
 
-# # Calculate loss before training on a sample
-# x0_test = scale(rand(all_boxes))
-# ε_test = noise(x0_test)
-# t_test = rand(1:T)
-# xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
-# untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
-
-# η = 1f-3
-# @time model = diffusion_train(model, ᾱ, T, η, dataset)
-# # epochs = 1
-# # @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
-# # using BenchmarkTools
-# # @benchmark diffusion_train(model, ᾱ, T, η, dataset, epochs)
-# # @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
-
-# # # Calculate loss after training on the same sample
-# trained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
-# @info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
 # @test trained_loss < untrained_loss
 
-# # # Reshape to 2-D and plot
-# heatmap(first(dataset),
-#         color=:grays,
-#         aspect_ratio=:equal,
-#         title="Random generated box")
+# # Reshape to 2-D and plot
+heatmap(first(dataset),
+        color=:grays,
+        aspect_ratio=:equal,
+        title="Random generated box")
 
-# # Generate a 5×2 grid (10 samples) from the trained model
-# samples = [reverse_sample(model, β, α, ᾱ, T, d) for _ in 1:10]
-# plots = [heatmap(samples[i],
-#                  color=:grays,
-#                  aspect_ratio=1,
-#                  axis=false,
-#                  framestyle=:none,
-#                  xticks=false,
-#                  yticks=false,
-#                  colorbar=false) for i in 1:length(samples)]
-# plot(plots...;
-#      layout=(5,2),
-#      size=(300,500))
+# Generate a 5×2 grid (10 samples) from the trained model
+samples = [reverse_sample(model, β, α, ᾱ, T, d) for _ in 1:10]
+plots = [heatmap(samples[i],
+                 color=:grays,
+                 aspect_ratio=1,
+                 axis=false,
+                 framestyle=:none,
+                 xticks=false,
+                 yticks=false,
+                 colorbar=false) for i in 1:length(samples)]
+plot(plots...;
+     layout=(5,2),
+     size=(300,500))
