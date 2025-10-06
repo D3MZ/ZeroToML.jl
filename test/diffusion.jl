@@ -13,7 +13,7 @@ using Statistics
     β = noise_schedule(T)
     α = signal_schedule(β)
     ᾱ = remaining_signal(α)
-    model = conv_parameters(d)
+    model = ZeroToML.conv_parameters(d)
 
     # Calculate loss before training on a sample
     x0_test = scale(square(H, W))
