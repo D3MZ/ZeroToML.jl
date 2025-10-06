@@ -3,7 +3,7 @@ using Test
 using Random
 using Statistics
 
-@testset "Diffusion Toy Driver" begin
+@testset "DDPM" begin
     Random.seed!(42)
     H,W = 16, 16
     d = H*W
