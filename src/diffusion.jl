@@ -109,7 +109,7 @@ diffusion_train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> diffusion
 function square(h, w)
     d = h * w
     img = zeros(Int, h, w)
-    i = rand(4:12); j = rand(4:12)
+    i = rand(2:h-1); j = rand(2:w-1)
     img[i-1:i+1, j-1:j+1] .= 255
     return reshape(img, d)
 end
