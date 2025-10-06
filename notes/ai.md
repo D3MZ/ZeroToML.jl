@@ -1,4 +1,6 @@
-Parallel solver that communicates globally whenever one finds a solution to stop others from computing.
+Don't take below seriously -- just scratch pad notes.
+
+Parallel solver that communicates globally whenever solutions are found.
 
 - Analytical / Exact Methods
   - Direct algebraic solution: Solve equations symbolically using algebra/calculus. (e.g., Solve $ax + b = 0 \Rightarrow x = -\frac{b}{a}$).

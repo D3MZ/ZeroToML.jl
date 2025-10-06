@@ -118,56 +118,56 @@ end
 scale(img) = (2.0f0 .* Float32.(img) ./ 255.0f0) .- 1.0f0
 
 # Below is just a scratch pad -- will delete after
-using Test
-Random.seed!(42)
-H,W = 16, 16
-d = H*W
-dataset = [scale(square(H, W)) for _ in 1:100]
+# using Test
+# Random.seed!(42)
+# H,W = 16, 16
+# d = H*W
+# dataset = [scale(square(H, W)) for _ in 1:10_000_000]
 
-T = 1_000
-β = noise_schedule(T)
-α = signal_schedule(β)
-ᾱ = remaining_signal(α)
-model = conv_parameters(d)
+# T = 1_000
+# β = noise_schedule(T)
+# α = signal_schedule(β)
+# ᾱ = remaining_signal(α)
+# model = conv_parameters(d)
 
-# Calculate loss before training on a sample
-x0_test = scale(square(H, W))
-ε_test = noise(x0_test)
-t_test = rand(1:T)
-xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
-untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
+# # Calculate loss before training on a sample
+# x0_test = scale(square(H, W))
+# ε_test = noise(x0_test)
+# t_test = rand(1:T)
+# xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
+# untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
 
-η = 1f-2
-@time model = diffusion_train(model, ᾱ, T, η, dataset)
-# epochs = 1
-# @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
-# using BenchmarkTools
-# @benchmark diffusion_train(model, ᾱ, T, η, dataset, epochs)
-# @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# η = 1f-3
+# @time model = diffusion_train(model, ᾱ, T, η, dataset)
+# # epochs = 1
+# # @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# # using BenchmarkTools
+# # @benchmark diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# # @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
 
-# # Calculate loss after training on the same sample
-trained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
-@info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
-@test trained_loss < untrained_loss
+# # # Calculate loss after training on the same sample
+# trained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
+# @info "untrained_loss=$(untrained_loss) trained_loss=$(trained_loss)"
+# @test trained_loss < untrained_loss
 
-using Plots
+# using Plots
 
-# # Reshape to 2-D and plot
-heatmap(reshape(first(dataset), H, W),
-        color=:grays,
-        aspect_ratio=:equal,
-        title="Random generated square")
+# # # Reshape to 2-D and plot
+# heatmap(reshape(first(dataset), H, W),
+#         color=:grays,
+#         aspect_ratio=:equal,
+#         title="Random generated square")
 
-# Generate a 5×2 grid (10 samples) from the trained model
-samples = [reshape(reverse_sample(model, β, α, ᾱ, T, d), H, W) for _ in 1:10]
-plots = [heatmap(samples[i],
-                 color=:grays,
-                 aspect_ratio=1,
-                 axis=false,
-                 framestyle=:none,
-                 xticks=false,
-                 yticks=false,
-                 colorbar=false) for i in 1:length(samples)]
-plot(plots...;
-     layout=(5,2),
-     size=(300,500))
+# # Generate a 5×2 grid (10 samples) from the trained model
+# samples = [reshape(reverse_sample(model, β, α, ᾱ, T, d), H, W) for _ in 1:10]
+# plots = [heatmap(samples[i],
+#                  color=:grays,
+#                  aspect_ratio=1,
+#                  axis=false,
+#                  framestyle=:none,
+#                  xticks=false,
+#                  yticks=false,
+#                  colorbar=false) for i in 1:length(samples)]
+# plot(plots...;
+#      layout=(5,2),
+#      size=(300,500))
