@@ -11,7 +11,7 @@ glorot_conv(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0
 "Initialize fully convolutional network parameters for image-to-image noise prediction"
 function conv_parameters(d)
     kernel_size = 3
-    channels = [1, 16, 1]
+    channels = [1, 1]
     c_out = channels[2]
     W_alpha_bar = reshape(glorot(c_out, 1), 1, 1, c_out, 1)
     layers = []
@@ -32,16 +32,19 @@ function predict(m, x, t, ᾱ)
 
     # First layer with ᾱ injection
     h = conv(h, m.layers[1].W; pad=padding) .+ m.layers[1].b .+ m.W_alpha_bar .* ᾱ[t]
-    h = relu(h)
-
-    # Hidden layers
-    for layer in m.layers[2:end-1]
-        h = conv(h, layer.W; pad=padding) .+ layer.b
-        h = relu(h)
-    end
     
-    # Final layer
-    h = conv(h, m.layers[end].W; pad=padding) .+ m.layers[end].b
+    if length(m.layers) > 1
+        h = relu(h)
+
+        # Hidden layers
+        for layer in m.layers[2:end-1]
+            h = conv(h, layer.W; pad=padding) .+ layer.b
+            h = relu(h)
+        end
+        
+        # Final layer
+        h = conv(h, m.layers[end].W; pad=padding) .+ m.layers[end].b
+    end
     
     return reshape(h, H, W)
 end
