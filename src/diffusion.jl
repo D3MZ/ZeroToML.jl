@@ -135,7 +135,7 @@ plot(rand(all_squares))
 # model = conv_parameters(d)
 
 # # Calculate loss before training on a sample
-# x0_test = scale(square(H, W))
+# x0_test = scale(rand(all_squares))
 # ε_test = noise(x0_test)
 # t_test = rand(1:T)
 # xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
@@ -157,13 +157,13 @@ plot(rand(all_squares))
 # using Plots
 
 # # # Reshape to 2-D and plot
-# heatmap(reshape(first(dataset), H, W),
+# heatmap(first(dataset),
 #         color=:grays,
 #         aspect_ratio=:equal,
 #         title="Random generated square")
 
 # # Generate a 5×2 grid (10 samples) from the trained model
-# samples = [reshape(reverse_sample(model, β, α, ᾱ, T, d), H, W) for _ in 1:10]
+# samples = [reverse_sample(model, β, α, ᾱ, T, d) for _ in 1:10]
 # plots = [heatmap(samples[i],
 #                  color=:grays,
 #                  aspect_ratio=1,
