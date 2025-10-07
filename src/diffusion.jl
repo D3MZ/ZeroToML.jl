@@ -9,42 +9,41 @@ glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 glorot_conv(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
 "Initialize fully convolutional network parameters for image-to-image noise prediction"
-function conv_parameters(d)
+function parameters()
     kernel_size = 3
-    channels = [1, 16, 32, 16, 1]
-    c_out = channels[2]
-    W_alpha_bar = reshape(glorot(c_out, 1), 1, 1, c_out, 1)
-    layers = []
-    for i in 1:length(channels)-1
-        push!(layers, (
-            W=glorot_conv(kernel_size, kernel_size, channels[i], channels[i+1]),
-            b=zeros(Float32, 1, 1, channels[i+1], 1)
-        ))
-    end
-    return (layers=layers, W_alpha_bar=W_alpha_bar)
+    (
+        W₁ = glorot_conv(kernel_size, kernel_size, 1, 16),
+        b₁ = zeros(Float32, 1, 1, 16, 1),
+        W₂ = glorot_conv(kernel_size, kernel_size, 16, 32),
+        b₂ = zeros(Float32, 1, 1, 32, 1),
+        W₃ = glorot_conv(kernel_size, kernel_size, 32, 16),
+        b₃ = zeros(Float32, 1, 1, 16, 1),
+        W₄ = glorot_conv(kernel_size, kernel_size, 16, 1),
+        b₄ = zeros(Float32, 1, 1, 1, 1),
+        W_alpha_bar = reshape(glorot(16, 1), 1, 1, 16, 1)
+    )
 end
 
 "forward process; ε̂ = ϵθ(xt,t)"
 function predict(m, x, t, time_embedding)
     H, W = size(x)
     h = reshape(x, H, W, 1, 1)
-    padding = (size(first(m.layers).W, 1) - 1) ÷ 2
+    padding = (size(m.W₁, 1) - 1) ÷ 2
 
-    # First layer with time embedding injection
-    h = conv(h, m.layers[1].W; pad=padding) .+ m.layers[1].b .+ m.W_alpha_bar .* time_embedding[t]
+    # Layer 1 with time embedding injection
+    h = conv(h, m.W₁; pad=padding) .+ m.b₁ .+ m.W_alpha_bar .* time_embedding[t]
+    h = relu(h)
+
+    # Layer 2
+    h = conv(h, m.W₂; pad=padding) .+ m.b₂
+    h = relu(h)
+
+    # Layer 3
+    h = conv(h, m.W₃; pad=padding) .+ m.b₃
+    h = relu(h)
     
-    if length(m.layers) > 1
-        h = relu(h)
-
-        # Hidden layers
-        for layer in m.layers[2:end-1]
-            h = conv(h, layer.W; pad=padding) .+ layer.b
-            h = relu(h)
-        end
-        
-        # Final layer
-        h = conv(h, m.layers[end].W; pad=padding) .+ m.layers[end].b
-    end
+    # Layer 4 (Final layer)
+    h = conv(h, m.W₄; pad=padding) .+ m.b₄
     
     return reshape(h, H, W)
 end
@@ -68,11 +67,17 @@ noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) 
 loss(θ, x, t, y, time_embedding) = mean((y .- predict(θ, x, t, time_embedding)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
 function sgd(m, ∇, η)
-    layers = map(m.layers, ∇.layers) do layer, grad
-        map((p, g) -> p .- η .* g, layer, grad)
-    end
-    W_alpha_bar = m.W_alpha_bar .- η .* ∇.W_alpha_bar
-    (layers=layers, W_alpha_bar=W_alpha_bar)
+    (
+        W₁ = m.W₁ .- η .* ∇.W₁,
+        b₁ = m.b₁ .- η .* ∇.b₁,
+        W₂ = m.W₂ .- η .* ∇.W₂,
+        b₂ = m.b₂ .- η .* ∇.b₂,
+        W₃ = m.W₃ .- η .* ∇.W₃,
+        b₃ = m.b₃ .- η .* ∇.b₃,
+        W₄ = m.W₄ .- η .* ∇.W₄,
+        b₄ = m.b₄ .- η .* ∇.b₄,
+        W_alpha_bar = m.W_alpha_bar .- η .* ∇.W_alpha_bar
+    )
 end
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
@@ -146,7 +151,7 @@ T = 1_000
 ᾱ = remaining_signal(α)
 s = snr(ᾱ)
 time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
-model = conv_parameters(d)
+model = parameters()
 
 # Why log.(ᾱ ./ (1 .- ᾱ) and not ᾱ 
 # plot(ᾱ, label = "ᾱ[t]") # Signal is compressed near 0 after 500 steps
