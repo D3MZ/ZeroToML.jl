@@ -132,95 +132,95 @@ scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
 scale(imgs::AbstractVector) = map(scale, imgs)
 
-# Below is just a scratch pad -- will delete after
-using Test, Plots, BenchmarkTools
+# # Below is just a scratch pad -- will delete after
+# using Test, Plots, BenchmarkTools
 
-Random.seed!(42)
-H,W = 16, 16
-d = H*W
-dataset = shuffle(scale(boxes(H, W)))
+# Random.seed!(42)
+# H,W = 16, 16
+# d = H*W
+# dataset = shuffle(scale(boxes(H, W)))
 
-T = 1_000
-β = noise_schedule(T)
-α = signal_schedule(β)
-ᾱ = remaining_signal(α)
-s = snr(ᾱ)
-time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
-model = conv_parameters(d)
+# T = 1_000
+# β = noise_schedule(T)
+# α = signal_schedule(β)
+# ᾱ = remaining_signal(α)
+# s = snr(ᾱ)
+# time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
+# model = conv_parameters(d)
 
-# Why log.(ᾱ ./ (1 .- ᾱ) and not ᾱ 
-# plot(ᾱ, label = "ᾱ[t]") # Signal is compressed near 0 after 500 steps
-# plot(ᾱ ./ (1 .- ᾱ), label = "SNR(t) = ᾱ[t] / (1 - ᾱ[t])") # Large dynamic range, but signal explodes on each end
-# plot(log.(ᾱ ./ (1 .- ᾱ)), label = "log SNR(t) = log(ᾱ[t] / (1 - ᾱ[t]))") # Signal is compressed when SNR is low, and gives a large dynamic range afterwards
+# # Why log.(ᾱ ./ (1 .- ᾱ) and not ᾱ 
+# # plot(ᾱ, label = "ᾱ[t]") # Signal is compressed near 0 after 500 steps
+# # plot(ᾱ ./ (1 .- ᾱ), label = "SNR(t) = ᾱ[t] / (1 - ᾱ[t])") # Large dynamic range, but signal explodes on each end
+# # plot(log.(ᾱ ./ (1 .- ᾱ)), label = "log SNR(t) = log(ᾱ[t] / (1 - ᾱ[t]))") # Signal is compressed when SNR is low, and gives a large dynamic range afterwards
 
-# Calculate loss before training on a sample
-x0_test = rand(dataset)
-ε_test = noise(x0_test)
-t_test = rand(1:T)
-xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
-untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
+# # Calculate loss before training on a sample
+# x0_test = rand(dataset)
+# ε_test = noise(x0_test)
+# t_test = rand(1:T)
+# xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
+# untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
-epochs = 100
-@time model = diffusion_train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
-model = diffusion_train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
-model = diffusion_train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
+# epochs = 100
+# @time model = diffusion_train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
+# model = diffusion_train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
+# model = diffusion_train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
 
-# @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
-# using BenchmarkTools
-# @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# # @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
+# # using BenchmarkTools
+# # @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
 
-# # Calculate loss after training on the same sample
+# # # Calculate loss after training on the same sample
 
-# @test trained_loss < untrained_loss
+# # @test trained_loss < untrained_loss
 
-# # Reshape to 2-D and plot
-# heatmap(rand(dataset),
-#         color=:grays,
-#         aspect_ratio=:equal,
-#         title="Random generated box")
+# # # Reshape to 2-D and plot
+# # heatmap(rand(dataset),
+# #         color=:grays,
+# #         aspect_ratio=:equal,
+# #         title="Random generated box")
 
-# Generate a 5×2 grid (10 samples) from the trained model
-samples = [reverse_sample(model, β, α, ᾱ, T, d, time_embedding) for _ in 1:10]
-plots = [heatmap(samples[i],
-                 color=:grays,
-                 aspect_ratio=1,
-                 axis=false,
-                 framestyle=:none,
-                 xticks=false,
-                 yticks=false,
-                 colorbar=false) for i in 1:lastindex(samples)]
-plot(plots...;
-     layout=(5,2),
-     size=(300,500))
+# # Generate a 5×2 grid (10 samples) from the trained model
+# samples = [reverse_sample(model, β, α, ᾱ, T, d, time_embedding) for _ in 1:10]
+# plots = [heatmap(samples[i],
+#                  color=:grays,
+#                  aspect_ratio=1,
+#                  axis=false,
+#                  framestyle=:none,
+#                  xticks=false,
+#                  yticks=false,
+#                  colorbar=false) for i in 1:lastindex(samples)]
+# plot(plots...;
+#      layout=(5,2),
+#      size=(300,500))
      
-# H = W = isqrt(d)
-# x = randn(Float32, H, W)
-# μ = similar(x)
-# m = model
-# μs = []
+# # H = W = isqrt(d)
+# # x = randn(Float32, H, W)
+# # μ = similar(x)
+# # m = model
+# # μs = []
 
-# for t in T:-1:1
-#     ε̂ = predict(m, x, t, ᾱ)
-#     μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
-#     push!(μs,μ)
-#     x = latent(μ, β, t, x)
-# end
+# # for t in T:-1:1
+# #     ε̂ = predict(m, x, t, ᾱ)
+# #     μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
+# #     push!(μs,μ)
+# #     x = latent(μ, β, t, x)
+# # end
 
-# N = length(μs)
-# frames = 120
-# idxs = round.(Int, N .- (N-1) .* exp.(-5.0 .* range(0,1,length=frames)))
-# idxs = unique(idxs)
-# idxs[end] = N
-# anim = @animate for i in idxs
-#     t = T - i + 1
-#     heatmap(μs[i];
-#             title = "t = $t",
-#             color=:grays,
-#             axis=false,
-#             framestyle=:none,
-#             xticks=false,
-#             yticks=false,
-#             aspect_ratio = :equal)
-# end
+# # N = length(μs)
+# # frames = 120
+# # idxs = round.(Int, N .- (N-1) .* exp.(-5.0 .* range(0,1,length=frames)))
+# # idxs = unique(idxs)
+# # idxs[end] = N
+# # anim = @animate for i in idxs
+# #     t = T - i + 1
+# #     heatmap(μs[i];
+# #             title = "t = $t",
+# #             color=:grays,
+# #             axis=false,
+# #             framestyle=:none,
+# #             xticks=false,
+# #             yticks=false,
+# #             aspect_ratio = :equal)
+# # end
 
-# mp4(anim, "denoising.mp4", fps = 30)
+# # mp4(anim, "denoising.mp4", fps = 30)
