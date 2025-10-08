@@ -141,7 +141,7 @@ scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
 scale(imgs::AbstractVector) = map(scale, imgs)
 
-gpu_device(force=true)
+CUDA.device!(0)
 
 # Below is just a scratch pad -- will delete after
 # using Test, Plots, BenchmarkTools
