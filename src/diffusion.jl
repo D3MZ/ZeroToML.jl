@@ -136,6 +136,24 @@ function boxes(h, w, blocksize)
     r = (blocksize - 1) ÷ 2
     [box(h, w, i, j, blocksize) for i in 1+r:h-r for j in 1+r:w-r]
 end
+
+"Paints a blocksize×blocksize block of 255s centered at (i, j) into an image (mutates) using Tullio"
+function addbox!_tullio(img, i, j, blocksize)
+    r = (blocksize - 1) ÷ 2
+    row_range = i-r:i+r
+    col_range = j-r:j+r
+    @tullio img[x, y] = 255 (x in row_range, y in col_range)
+    img
+end
+
+"Generates all possible unique boxes on a black background using Tullio"
+function boxes_tullio(h, w, blocksize)
+    r = (blocksize - 1) ÷ 2
+    ni = h - 2r
+    nj = w - 2r
+    all_boxes = @tullio B[x, y, i, j] := (abs(x - (i+r)) <= r && abs(y - (j+r)) <= r) ? 255 : 0 (x in 1:h, y in 1:w, i in 1:ni, j in 1:nj)
+    [all_boxes[:, :, i, j] for i in 1:ni for j in 1:nj]
+end
 "Scales an image (array) from [0,255] to [-1,1] via y = (2/255)*x - 1"
 scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
@@ -150,3 +168,11 @@ d = H*W
 whiteboxsize = 9
 dataset = shuffle(scale(boxes(H, W, whiteboxsize)))
 heatmap(rand(dataset))
+
+println("Benchmarking addbox! vs addbox!_tullio")
+@btime addbox!(img($H, $W), 16, 16, $whiteboxsize);
+@btime addbox!_tullio(img($H, $W), 16, 16, $whiteboxsize);
+
+println("Benchmarking boxes vs boxes_tullio")
+@btime boxes($H, $W, $whiteboxsize);
+@btime boxes_tullio($H, $W, $whiteboxsize);
