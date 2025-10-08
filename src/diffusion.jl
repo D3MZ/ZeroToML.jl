@@ -123,12 +123,19 @@ end
 
 "Creates an h×w zero matrix for a blank image"  
 img(h, w) = zeros(Int, h, w)
-"Paints a 3×3 block of 255s centered at (i, j) into an image (mutates)"  
-addbox!(img, i, j) = (img[i-1:i+1, j-1:j+1] .= 255; img)
-"Generates an h×w image with a i×j white box at (i, j)"  
-box(h, w, i, j) = addbox!(img(h, w), i, j)
+"Paints a blocksize×blocksize block of 255s centered at (i, j) into an image (mutates)"
+function addbox!(img, i, j, blocksize)
+    r = (blocksize - 1) ÷ 2
+    img[i-r:i+r, j-r:j+r] .= 255
+    img
+end
+"Generates an h×w image with a blocksize×blocksize white box at (i, j)"
+box(h, w, i, j, blocksize) = addbox!(img(h, w), i, j, blocksize)
 "Generates all possible unique boxes on a black background"
-boxes(h, w) = [box(h, w, i, j) for i in 2:h-1 for j in 2:w-1]
+function boxes(h, w, blocksize)
+    r = (blocksize - 1) ÷ 2
+    [box(h, w, i, j, blocksize) for i in 1+r:h-r for j in 1+r:w-r]
+end
 "Scales an image (array) from [0,255] to [-1,1] via y = (2/255)*x - 1"
 scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
@@ -140,7 +147,7 @@ using Test, Plots, BenchmarkTools
 Random.seed!(42)
 H,W = 16, 16
 d = H*W
-dataset = shuffle(scale(boxes(H, W)))
+dataset = shuffle(scale(boxes(H, W, 9)))
 
 T = 1_000
 β = noise_schedule(T)
