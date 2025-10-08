@@ -9,6 +9,9 @@ glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 "Glorot/Xavier for convolution"
 glorot(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
+"Convolution via Tullio for a 3x3 kernel with padding of 1."
+conv_tullio(x, kernel) = @tullio y[i, j, c_out, n] := kernel[ka, kb, c_in, c_out] * x[pad(i + ka - 2, 1), pad(j + kb - 2, 1), c_in, n]
+
 "Initialize fully convolutional network parameters for image-to-image noise forwardion"
 function parameters()
     (
@@ -147,10 +150,11 @@ using Test, Plots, BenchmarkTools
 H,W = 32, 32
 d = H*W
 whiteboxsize = 9
-x = scale(boxes(H, W, whiteboxsize))
+x_vec = scale(boxes(H, W, whiteboxsize))
+x = reshape(first(x_vec), H, W, 1, 1)
 kernel = glorot(3, 3, 1, 16)
-padding = (size(w, 1) - 1) ÷ 2
-@test conv(x,kernel;pad=padding) ≈ conv(x,kernel;pad=padding)
+padding = (size(kernel, 1) - 1) ÷ 2
+@test conv(x, kernel; pad=padding) ≈ conv_tullio(x, kernel)
 
 # Random.seed!(42)
 # H,W = 32, 32
