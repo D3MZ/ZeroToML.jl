@@ -141,10 +141,16 @@ scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
 scale(imgs::AbstractVector) = map(scale, imgs)
 
-CUDA.device!(0)
-
 # Below is just a scratch pad -- will delete after
-# using Test, Plots, BenchmarkTools
+using Test, Plots, BenchmarkTools
+
+H,W = 32, 32
+d = H*W
+whiteboxsize = 9
+x = scale(boxes(H, W, whiteboxsize))
+kernel = glorot(3, 3, 1, 16)
+padding = (size(w, 1) - 1) ÷ 2
+@test conv(x,kernel;pad=padding) ≈ conv(x,kernel;pad=padding)
 
 # Random.seed!(42)
 # H,W = 32, 32
