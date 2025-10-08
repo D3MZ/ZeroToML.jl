@@ -1,4 +1,4 @@
-using Random, Statistics, Zygote, NNlib, Tullio, LoopVectorization, CUDA, Flux
+using Random, Statistics, Zygote, NNlib, Tullio, LoopVectorization, Flux, CUDA
 
 "Relu Activation function"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
@@ -141,55 +141,52 @@ scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
 scale(imgs::AbstractVector) = map(scale, imgs)
 
+gpu_device(force=true)
+
 # Below is just a scratch pad -- will delete after
-using Test, Plots, BenchmarkTools
+# using Test, Plots, BenchmarkTools
 
-Random.seed!(42)
-H,W = 32, 32
-d = H*W
-whiteboxsize = 9
-dataset = gpu.(shuffle(scale(boxes(H, W, whiteboxsize))))
+# Random.seed!(42)
+# H,W = 32, 32
+# d = H*W
+# whiteboxsize = 9
+# dataset = gpu.(shuffle(scale(boxes(H, W, whiteboxsize))))
 
-T = 1_000
-β = noise_schedule(T) |> gpu
-α = signal_schedule(β)
-ᾱ = remaining_signal(α)
-s = snr(ᾱ)
-time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
-model = parameters() |> gpu
+# T = 1_000
+# β = noise_schedule(T) |> gpu
+# α = signal_schedule(β)
+# ᾱ = remaining_signal(α)
+# s = snr(ᾱ)
+# time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
+# model = parameters() |> gpu
 
-# Why log.(ᾱ ./ (1 .- ᾱ) and not ᾱ 
+# # Why log.(ᾱ ./ (1 .- ᾱ) and not ᾱ 
 # plot(ᾱ, label = "ᾱ[t]") # Signal is compressed near 0 after 500 steps
 # plot(ᾱ ./ (1 .- ᾱ), label = "SNR(t) = ᾱ[t] / (1 - ᾱ[t])") # Large dynamic range, but signal explodes on each end
 # plot(log.(ᾱ ./ (1 .- ᾱ)), label = "log SNR(t) = log(ᾱ[t] / (1 - ᾱ[t]))") # Signal is compressed when SNR is low, and gives a large dynamic range afterwards
 
-# Calculate loss before training on a sample
-x0_test = rand(dataset)
-ε_test = noise(x0_test)
-t_test = rand(1:T)
-xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
-untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
+# epochs = 10
 
-epochs = 10
+# train!(model, ᾱ, T, η, dataset, time_embedding)
 
-@time model = train!(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
+# @time model = train!(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
 # model = train!(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
 # model = train!(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
 
 
-@time samples = reverse_samples(model, β, α, ᾱ, T, d, time_embedding, 100)
-plots = [heatmap(samples[i],
-                 color=:grays,
-                 aspect_ratio=1,
-                 axis=false,
-                 framestyle=:none,
-                 xticks=false,
-                 yticks=false,
-                 colorbar=false) for i in 1:lastindex(samples)]
-p = plot(plots...;
-         layout = (10,10),
-         size   = (500,500))
-savefig(p, "samples-epochs$epochs-$(H)x$(W)-whiteboxsize=$whiteboxsize.png")
+# @time samples = reverse_samples(model, β, α, ᾱ, T, d, time_embedding, 100)
+# plots = [heatmap(samples[i],
+#                  color=:grays,
+#                  aspect_ratio=1,
+#                  axis=false,
+#                  framestyle=:none,
+#                  xticks=false,
+#                  yticks=false,
+#                  colorbar=false) for i in 1:lastindex(samples)]
+# p = plot(plots...;
+#          layout = (10,10),
+#          size   = (500,500))
+# savefig(p, "samples-epochs$epochs-$(H)x$(W)-whiteboxsize=$whiteboxsize.png")
 
 # H = W = isqrt(d)
 # x = randn(Float32, H, W)
