@@ -66,14 +66,15 @@ noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) 
 "Mean boxd Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
 loss(θ, x, t, y, time_embedding) = mean((y .- forward(θ, x, t, time_embedding)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
-sgd(m, ∇, η) = map((w, dw)->w .- η .* dw, m, ∇)
+sgd!(m, ∇, η) = foreach((w, dw) -> w .-= η .* dw, m, ∇)
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
-function diffusion_step(m, x0, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
+function diffusion_step!(m, x0, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
     (∇,) = gradient(θ -> loss(θ, xt, t, ε, time_embedding), m)
-    sgd(m, ∇, η)
+    sgd!(m, ∇, η)
+    return m
 end
 
 "Computes μₜ = (xₜ − (βₜ / √(1−ᾱₜ))·ε̂) / √αₜ for the reverse diffusion mean"
@@ -107,13 +108,13 @@ function reverse_samples(m, β, α, ᾱ, T, d, time_embedding, N)
 end 
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
-train(model, ᾱ, T, η, dataset, time_embedding) = foldl((m, x0) -> diffusion_step(m, x0, ᾱ, T, time_embedding; η=η), dataset; init=model)
+train!(model, ᾱ, T, η, dataset, time_embedding) = foldl((m, x0) -> diffusion_step!(m, x0, ᾱ, T, time_embedding; η=η), dataset; init=model)
 # "Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
 # train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
-function train(model, ᾱ, T, η, dataset, epochs, time_embedding)
+function train!(model, ᾱ, T, η, dataset, epochs, time_embedding)
     losses = Float32[]
     for _ in 1:epochs
-        model = train(model, ᾱ, T, η, dataset, time_embedding)
+        train!(model, ᾱ, T, η, dataset, time_embedding)
         push!(losses, loss(model, xt_test, t_test, ε_test, time_embedding))
     end
     display(plot(losses))
@@ -161,7 +162,7 @@ t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
 untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
-@benchmark train(model, ᾱ, T, 1f-1, shuffle(dataset), 10, time_embedding)
+@benchmark train!(model, ᾱ, T, 1f-1, shuffle(dataset), 10, time_embedding)
 
 # epochs = 10
 
