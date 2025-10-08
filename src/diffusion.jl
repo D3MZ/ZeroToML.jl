@@ -162,58 +162,56 @@ t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
 untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
-@benchmark train!(model, ᾱ, T, 1f-1, shuffle(dataset), 10, time_embedding)
+epochs = 100
 
-# epochs = 10
-
-# @time model = train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
-# model = train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
-# model = train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
+@time model = train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
+model = train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
+model = train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
 
 
-# @time samples = reverse_samples(model, β, α, ᾱ, T, d, time_embedding, 100)
-# plots = [heatmap(samples[i],
-#                  color=:grays,
-#                  aspect_ratio=1,
-#                  axis=false,
-#                  framestyle=:none,
-#                  xticks=false,
-#                  yticks=false,
-#                  colorbar=false) for i in 1:lastindex(samples)]
-# p = plot(plots...;
-#          layout = (10,10),
-#          size   = (500,500))
+@time samples = reverse_samples(model, β, α, ᾱ, T, d, time_embedding, 100)
+plots = [heatmap(samples[i],
+                 color=:grays,
+                 aspect_ratio=1,
+                 axis=false,
+                 framestyle=:none,
+                 xticks=false,
+                 yticks=false,
+                 colorbar=false) for i in 1:lastindex(samples)]
+p = plot(plots...;
+         layout = (10,10),
+         size   = (500,500))
 
-# savefig(p, "samples-epochs$epochs-$(H)x$(W).png")
+savefig(p, "samples-epochs$epochs-$(H)x$(W).png")
      
-# # H = W = isqrt(d)
-# # x = randn(Float32, H, W)
-# # μ = similar(x)
-# # m = model
-# # μs = []
+# H = W = isqrt(d)
+# x = randn(Float32, H, W)
+# μ = similar(x)
+# m = model
+# μs = []
 
-# # for t in T:-1:1
-# #     ε̂ = forward(m, x, t, ᾱ)
-# #     μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
-# #     push!(μs,μ)
-# #     x = latent(μ, β, t, x)
-# # end
+# for t in T:-1:1
+#     ε̂ = forward(m, x, t, ᾱ)
+#     μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
+#     push!(μs,μ)
+#     x = latent(μ, β, t, x)
+# end
 
-# # N = length(μs)
-# # frames = 120
-# # idxs = round.(Int, N .- (N-1) .* exp.(-5.0 .* range(0,1,length=frames)))
-# # idxs = unique(idxs)
-# # idxs[end] = N
-# # anim = @animate for i in idxs
-# #     t = T - i + 1
-# #     heatmap(μs[i];
-# #             title = "t = $t",
-# #             color=:grays,
-# #             axis=false,
-# #             framestyle=:none,
-# #             xticks=false,
-# #             yticks=false,
-# #             aspect_ratio = :equal)
-# # end
+# N = length(μs)
+# frames = 120
+# idxs = round.(Int, N .- (N-1) .* exp.(-5.0 .* range(0,1,length=frames)))
+# idxs = unique(idxs)
+# idxs[end] = N
+# anim = @animate for i in idxs
+#     t = T - i + 1
+#     heatmap(μs[i];
+#             title = "t = $t",
+#             color=:grays,
+#             axis=false,
+#             framestyle=:none,
+#             xticks=false,
+#             yticks=false,
+#             aspect_ratio = :equal)
+# end
 
-# # mp4(anim, "denoising.mp4", fps = 30)
+# mp4(anim, "denoising.mp4", fps = 30)
