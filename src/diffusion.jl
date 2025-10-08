@@ -161,9 +161,11 @@ t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
 untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
-epochs = 10
+@benchmark train(model, ᾱ, T, 1f-1, shuffle(dataset), 10, time_embedding)
 
-@time model = train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
+# epochs = 10
+
+# @time model = train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
 # model = train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
 # model = train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
 
