@@ -6,32 +6,32 @@ relu(x::Number)        = max(x, zero(x))
 
 "Glorot/Xavier uniform initialization: Wᵢⱼ ~ U[-√(6/(m+n)), √(6/(m+n))] via https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf"
 glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
-glorot_conv(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
+"Glorot/Xavier for convolution"
+glorot(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
-"Initialize fully convolutional network parameters for image-to-image noise prediction"
+"Initialize fully convolutional network parameters for image-to-image noise forwardion"
 function parameters()
-    kernel_size = 3
     (
-        W₁ = glorot_conv(kernel_size, kernel_size, 1, 16),
+        W₁ = glorot(3, 3, 1, 16),
         b₁ = zeros(Float32, 1, 1, 16, 1),
-        W₂ = glorot_conv(kernel_size, kernel_size, 16, 32),
+        W₂ = glorot(3, 3, 16, 32),
         b₂ = zeros(Float32, 1, 1, 32, 1),
-        W₃ = glorot_conv(kernel_size, kernel_size, 32, 16),
+        W₃ = glorot(3, 3, 32, 16),
         b₃ = zeros(Float32, 1, 1, 16, 1),
-        W₄ = glorot_conv(kernel_size, kernel_size, 16, 1),
+        W₄ = glorot(3, 3, 16, 1),
         b₄ = zeros(Float32, 1, 1, 1, 1),
-        W_alpha_bar = reshape(glorot(16, 1), 1, 1, 16, 1)
+        W_time_embedding = reshape(glorot(16, 1), 1, 1, 16, 1)
     )
 end
 
-"forward process; ε̂ = ϵθ(xt,t)"
-function predict(m, x, t, time_embedding)
+"model's forward process: ε̂ = ϵθ(xt,t)"
+function forward(m, x, t, time_embedding)
     H, W = size(x)
     h = reshape(x, H, W, 1, 1)
     padding = (size(m.W₁, 1) - 1) ÷ 2
 
     # Layer 1 with time embedding injection
-    h = conv(h, m.W₁; pad=padding) .+ m.b₁ .+ m.W_alpha_bar .* time_embedding[t]
+    h = conv(h, m.W₁; pad=padding) .+ m.b₁ .+ m.W_time_embedding .* time_embedding[t]
     h = relu(h)
 
     # Layer 2
@@ -64,21 +64,9 @@ marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 "Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
 noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 "Mean boxd Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
-loss(θ, x, t, y, time_embedding) = mean((y .- predict(θ, x, t, time_embedding)).^2)
+loss(θ, x, t, y, time_embedding) = mean((y .- forward(θ, x, t, time_embedding)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
-function sgd(m, ∇, η)
-    (
-        W₁ = m.W₁ .- η .* ∇.W₁,
-        b₁ = m.b₁ .- η .* ∇.b₁,
-        W₂ = m.W₂ .- η .* ∇.W₂,
-        b₂ = m.b₂ .- η .* ∇.b₂,
-        W₃ = m.W₃ .- η .* ∇.W₃,
-        b₃ = m.b₃ .- η .* ∇.b₃,
-        W₄ = m.W₄ .- η .* ∇.W₄,
-        b₄ = m.b₄ .- η .* ∇.b₄,
-        W_alpha_bar = m.W_alpha_bar .- η .* ∇.W_alpha_bar
-    )
-end
+sgd(m, ∇, η) = map((w, dw)->w .- η .* dw, m, ∇)
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
 function diffusion_step(m, x0, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
@@ -94,30 +82,38 @@ posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])) .* ε̂
 "Draws a sample xₜ₋₁ ~ μ + √βₜ · N(0, I) from the reverse diffusion step"
 latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
-"Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,1, starting from x_T ~ N(0,I). "
+"Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,0, starting from x_T ~ N(0,I). "
 function reverse_sample(m, β, α, ᾱ, T, d, time_embedding)
     H = W = isqrt(d)
     x = randn(Float32, H, W)
     μ = similar(x)
     for t in T:-1:2
-        ε̂ = predict(m, x, t, time_embedding)
+        ε̂ = forward(m, x, t, time_embedding)
         μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
         x = latent(μ, β, t, x)
     end
     
     t = 1
-    ε̂ = predict(m, x, t, time_embedding)
+    ε̂ = forward(m, x, t, time_embedding)
     posterior_mean(x, ε̂, β, α, ᾱ, t)
 end
 
+function reverse_samples(m, β, α, ᾱ, T, d, time_embedding, N)                                                                                                                             
+    samples = Vector{Matrix{Float32}}(undef, N)                                                                     
+     Threads.@threads for i in eachindex(samples)                                                                   
+        samples[i] = reverse_sample(m, β, α, ᾱ, T, d, time_embedding)                                              
+     end                                                                                                            
+    return samples                                                                                                  
+end 
+
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
-diffusion_train(model, ᾱ, T, η, dataset, time_embedding) = foldl((m, x0) -> diffusion_step(m, x0, ᾱ, T, time_embedding; η=η), dataset; init=model)
-# "Trains for E epochs by folding `diffusion_train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->diffusion_train(m, ᾱ, T, η, dataset), 1:E; init=model)"
-# diffusion_train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> diffusion_train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
-function diffusion_train(model, ᾱ, T, η, dataset, epochs, time_embedding)
+train(model, ᾱ, T, η, dataset, time_embedding) = foldl((m, x0) -> diffusion_step(m, x0, ᾱ, T, time_embedding; η=η), dataset; init=model)
+# "Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
+# train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
+function train(model, ᾱ, T, η, dataset, epochs, time_embedding)
     losses = Float32[]
     for _ in 1:epochs
-        model = diffusion_train(model, ᾱ, T, η, dataset, time_embedding)
+        model = train(model, ᾱ, T, η, dataset, time_embedding)
         push!(losses, loss(model, xt_test, t_test, ε_test, time_embedding))
     end
     display(plot(losses))
@@ -137,7 +133,7 @@ scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
 scale(imgs::AbstractVector) = map(scale, imgs)
 
-# # Below is just a scratch pad -- will delete after
+# Below is just a scratch pad -- will delete after
 using Test, Plots, BenchmarkTools
 
 Random.seed!(42)
@@ -166,37 +162,26 @@ xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
 untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
 epochs = 10
-@time model = diffusion_train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
-# model = diffusion_train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
-# model = diffusion_train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
 
-# @code_warntype diffusion_train(model, ᾱ, T, η, dataset, epochs)
-# using BenchmarkTools
-# @time model = diffusion_train(model, ᾱ, T, η, dataset, epochs)
+@time model = train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
+# model = train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
+# model = train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
 
-# # Calculate loss after training on the same sample
 
-# @test trained_loss < untrained_loss
+# @time samples = reverse_samples(model, β, α, ᾱ, T, d, time_embedding, 100)
+# plots = [heatmap(samples[i],
+#                  color=:grays,
+#                  aspect_ratio=1,
+#                  axis=false,
+#                  framestyle=:none,
+#                  xticks=false,
+#                  yticks=false,
+#                  colorbar=false) for i in 1:lastindex(samples)]
+# p = plot(plots...;
+#          layout = (10,10),
+#          size   = (500,500))
 
-# # Reshape to 2-D and plot
-# heatmap(rand(dataset),
-#         color=:grays,
-#         aspect_ratio=:equal,
-#         title="Random generated box")
-
-# Generate a 5×2 grid (10 samples) from the trained model
-samples = [reverse_sample(model, β, α, ᾱ, T, d, time_embedding) for _ in 1:10]
-plots = [heatmap(samples[i],
-                 color=:grays,
-                 aspect_ratio=1,
-                 axis=false,
-                 framestyle=:none,
-                 xticks=false,
-                 yticks=false,
-                 colorbar=false) for i in 1:lastindex(samples)]
-plot(plots...;
-     layout=(5,2),
-     size=(300,500))
+# savefig(p, "samples-epochs$epochs-$(H)x$(W).png")
      
 # # H = W = isqrt(d)
 # # x = randn(Float32, H, W)
@@ -205,7 +190,7 @@ plot(plots...;
 # # μs = []
 
 # # for t in T:-1:1
-# #     ε̂ = predict(m, x, t, ᾱ)
+# #     ε̂ = forward(m, x, t, ᾱ)
 # #     μ = posterior_mean(x, ε̂, β, α, ᾱ, t)
 # #     push!(μs,μ)
 # #     x = latent(μ, β, t, x)
