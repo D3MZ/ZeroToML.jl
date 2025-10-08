@@ -72,7 +72,7 @@ sgd!(m, ∇, η) = foreach((w, dw) -> w .-= η .* dw, m, ∇)
 function diffusion_step!(m, x0, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
     ε  = noise(x0)
     xt = noised_sample(x0, ᾱ, t, ε)
-    (∇,) = gradient(θ -> loss(θ, xt, t, ε, time_embedding), m)
+    (∇,) = Zygote.gradient(θ -> loss(θ, xt, t, ε, time_embedding), m)
     sgd!(m, ∇, η)
     return m
 end
