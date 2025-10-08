@@ -145,9 +145,10 @@ scale(imgs::AbstractVector) = map(scale, imgs)
 using Test, Plots, BenchmarkTools
 
 Random.seed!(42)
-H,W = 16, 16
+H,W = 32, 32
 d = H*W
-dataset = shuffle(scale(boxes(H, W, 9)))
+whiteboxsize = 9
+dataset = shuffle(scale(boxes(H, W, whiteboxsize)))
 
 T = 1_000
 β = noise_schedule(T)
@@ -169,11 +170,11 @@ t_test = rand(1:T)
 xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
 untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
-epochs = 100
+epochs = 10
 
 @time model = train!(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
-model = train!(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
-model = train!(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
+# model = train!(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
+# model = train!(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
 
 
 @time samples = reverse_samples(model, β, α, ᾱ, T, d, time_embedding, 100)
@@ -188,9 +189,8 @@ plots = [heatmap(samples[i],
 p = plot(plots...;
          layout = (10,10),
          size   = (500,500))
+savefig(p, "samples-epochs$epochs-$(H)x$(W)-whiteboxsize=$whiteboxsize.png")
 
-savefig(p, "samples-epochs$epochs-$(H)x$(W).png")
-     
 # H = W = isqrt(d)
 # x = randn(Float32, H, W)
 # μ = similar(x)
