@@ -171,9 +171,9 @@ untrained_loss = loss(model, xt_test, t_test, ε_test, time_embedding)
 
 epochs = 100
 
-@time model = train(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
-model = train(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
-model = train(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
+@time model = train!(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
+model = train!(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
+model = train!(model, ᾱ, T, 1f-3, shuffle(dataset), epochs, time_embedding)
 
 
 @time samples = reverse_samples(model, β, α, ᾱ, T, d, time_embedding, 100)
