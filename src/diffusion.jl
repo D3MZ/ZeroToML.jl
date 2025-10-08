@@ -1,5 +1,10 @@
 using Random, Statistics, Zygote, NNlib, Tullio, LoopVectorization, CUDA
-import CUDA: cpu, gpu
+if CUDA.functional()
+    import CUDA: gpu, cpu
+else
+    gpu(x) = x
+    cpu(x) = x
+end
 
 "Relu Activation function"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
