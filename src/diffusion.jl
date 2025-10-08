@@ -1,4 +1,4 @@
-using Random, Statistics, Zygote, NNlib, Tullio, LoopVectorization
+using Random, Statistics, Zygote, NNlib, Tullio, LoopVectorization, CUDA
 
 "Relu Activation function"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
@@ -48,7 +48,7 @@ function forward(m, x, t, time_embedding)
     return reshape(h, H, W)
 end
 
-noise(x) = randn(eltype(x), size(x))
+noise(x) = randn!(similar(x))
 "The entire noise variance schedule via β_t = β_min + (β_max - β_min) * (t-1)/(T-1)"
 noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T)
 "Entire signal variance schedule: α_t = 1 - β_t"
@@ -81,12 +81,12 @@ end
 posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])) .* ε̂) ./ sqrt(α[t])
 
 "Draws a sample xₜ₋₁ ~ μ + √βₜ · N(0, I) from the reverse diffusion step"
-latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
+latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn!(similar(x))
 
 "Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,0, starting from x_T ~ N(0,I). "
 function reverse_sample(m, β, α, ᾱ, T, d, time_embedding)
     H = W = isqrt(d)
-    x = randn(Float32, H, W)
+    x = randn!(similar(first(m), Float32, H, W))
     μ = similar(x)
     for t in T:-1:2
         ε̂ = forward(m, x, t, time_embedding)
@@ -102,7 +102,7 @@ end
 function reverse_samples(m, β, α, ᾱ, T, d, time_embedding, N)                                                                                                                             
     samples = Vector{Matrix{Float32}}(undef, N)                                                                     
      Threads.@threads for i in eachindex(samples)                                                                   
-        samples[i] = reverse_sample(m, β, α, ᾱ, T, d, time_embedding)                                              
+        samples[i] = cpu(reverse_sample(m, β, α, ᾱ, T, d, time_embedding))                                              
      end                                                                                                            
     return samples                                                                                                  
 end 
@@ -115,7 +115,7 @@ function train!(model, ᾱ, T, η, dataset, epochs, time_embedding)
     losses = Float32[]
     for _ in 1:epochs
         train!(model, ᾱ, T, η, dataset, time_embedding)
-        push!(losses, loss(model, xt_test, t_test, ε_test, time_embedding))
+        push!(losses, cpu(loss(model, xt_test, t_test, ε_test, time_embedding)))
     end
     display(plot(losses))
     return model
@@ -148,15 +148,15 @@ Random.seed!(42)
 H,W = 32, 32
 d = H*W
 whiteboxsize = 9
-dataset = shuffle(scale(boxes(H, W, whiteboxsize)))
+dataset = gpu.(shuffle(scale(boxes(H, W, whiteboxsize))))
 
 T = 1_000
-β = noise_schedule(T)
+β = noise_schedule(T) |> gpu
 α = signal_schedule(β)
 ᾱ = remaining_signal(α)
 s = snr(ᾱ)
 time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
-model = parameters()
+model = parameters() |> gpu
 
 # Why log.(ᾱ ./ (1 .- ᾱ) and not ᾱ 
 # plot(ᾱ, label = "ᾱ[t]") # Signal is compressed near 0 after 500 steps
