@@ -1,4 +1,4 @@
-using Random, Statistics, Zygote, NNlib, Tullio, LoopVectorization, Flux, CUDA
+using Random, Statistics, Zygote, Tullio, LoopVectorization
 
 "Relu Activation function"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
@@ -9,8 +9,8 @@ glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 "Glorot/Xavier for convolution"
 glorot(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
-"Convolution via Tullio for a 3x3 kernel with padding of 1."
-conv_tullio(x, kernel) = @tullio y[i, j, c_out, n] := kernel[4-ka, 4-kb, c_in, c_out] * x[pad(i + ka - 2, 1), pad(j + kb - 2, 1), c_in, n]
+"Convolution with padding via Tullio"
+convolution(x,k,padding) = @tullio y[i+_, j+_] := x[pad(i-a,padding), pad(j-b,padding)] * k[a,b]
 
 "Initialize fully convolutional network parameters for image-to-image noise forwardion"
 function parameters()
@@ -29,24 +29,24 @@ end
 
 "model's forward process: ε̂ = ϵθ(xt,t)"
 function forward(m, x, t, time_embedding)
-    H, W = size(x)
-    h = reshape(x, H, W, 1, 1)
+    # H, W = size(x)
+    # h = reshape(x, H, W, 1, 1)
     padding = (size(m.W₁, 1) - 1) ÷ 2
 
     # Layer 1 with time embedding injection
-    h = conv(h, m.W₁; pad=padding) .+ m.b₁ .+ m.W_time_embedding .* time_embedding[t]
+    h = convolution(h, m.W₁, padding) .+ m.b₁ .+ m.W_time_embedding .* time_embedding[t]
     h = relu(h)
 
     # Layer 2
-    h = conv(h, m.W₂; pad=padding) .+ m.b₂
+    h = convolution(h, m.W₂, padding) .+ m.b₂
     h = relu(h)
 
     # Layer 3
-    h = conv(h, m.W₃; pad=padding) .+ m.b₃
+    h = convolution(h, m.W₃, padding) .+ m.b₃
     h = relu(h)
     
     # Layer 4 (Final layer)
-    h = conv(h, m.W₄; pad=padding) .+ m.b₄
+    h = convolution(h, m.W₄, padding) .+ m.b₄
     
     return reshape(h, H, W)
 end
@@ -146,30 +146,21 @@ scale(imgs::AbstractVector) = map(scale, imgs)
 
 # Below is just a scratch pad -- will delete after
 using Test, Plots, BenchmarkTools
-
-H,W = 32, 32
+Random.seed!(42)
+H,W = 16, 16
 d = H*W
 whiteboxsize = 9
-x_vec = scale(boxes(H, W, whiteboxsize))
-x = reshape(first(x_vec), H, W, 1, 1)
-kernel = glorot(3, 3, 1, 16)
-padding = (size(kernel, 1) - 1) ÷ 2
-@test conv(x, kernel; pad=padding) ≈ conv_tullio(x, kernel)
+dataset = shuffle(scale(boxes(H, W, whiteboxsize)))
 
-# Random.seed!(42)
-# H,W = 32, 32
-# d = H*W
-# whiteboxsize = 9
-# dataset = gpu.(shuffle(scale(boxes(H, W, whiteboxsize))))
-
-# T = 1_000
-# β = noise_schedule(T) |> gpu
-# α = signal_schedule(β)
-# ᾱ = remaining_signal(α)
-# s = snr(ᾱ)
-# time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
-# model = parameters() |> gpu
-
+T = 1_000
+β = noise_schedule(T)
+α = signal_schedule(β)
+ᾱ = remaining_signal(α)
+s = snr(ᾱ)
+time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
+model = parameters()
+η = 1e-2
+train!(model, ᾱ, T, η, dataset, time_embedding)
 # # Why log.(ᾱ ./ (1 .- ᾱ) and not ᾱ 
 # plot(ᾱ, label = "ᾱ[t]") # Signal is compressed near 0 after 500 steps
 # plot(ᾱ ./ (1 .- ᾱ), label = "SNR(t) = ᾱ[t] / (1 - ᾱ[t])") # Large dynamic range, but signal explodes on each end
@@ -177,7 +168,7 @@ padding = (size(kernel, 1) - 1) ÷ 2
 
 # epochs = 10
 
-# train!(model, ᾱ, T, η, dataset, time_embedding)
+
 
 # @time model = train!(model, ᾱ, T, 1f-1, shuffle(dataset), epochs, time_embedding)
 # model = train!(model, ᾱ, T, 1f-2, shuffle(dataset), epochs, time_embedding)
