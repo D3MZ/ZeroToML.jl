@@ -4,7 +4,7 @@ using Tullio, LoopVectorization, Flux, Test, BenchmarkTools, Statistics
 function convolution(x,k)
     s1 = size(k,1)
     s2 = size(k,2)
-    @tullio y[i+_, j+_] := x[i+a, j+b] * k[s1-a+1, s2-b+1]
+    @tullio y[i+_, j+_] := x[i+a-1, j+b-1] * k[s1-a+1, s2-b+1] (a in 1:s1, b in 1:s2)
 end
 "Tullio Convolution with Padding"
 convolution(x,k;p=0) = @tullio y[i+_, j+_] := x[pad(i-a,p), pad(j-b,p)] * k[a,b]
@@ -13,7 +13,7 @@ convolution(x,k;p=0) = @tullio y[i+_, j+_] := x[pad(i-a,p), pad(j-b,p)] * k[a,b]
 function convolution_channels(x,k)
     s1 = size(k,1)
     s2 = size(k,2)
-    @tullio y[i+_, j+_, c_out] := x[i+a, j+b, c_in] * k[s1-a+1, s2-b+1, c_in, c_out]
+    @tullio y[i+_, j+_, c_out] := x[i+a-1, j+b-1, c_in] * k[s1-a+1, s2-b+1, c_in, c_out] (a in 1:s1, b in 1:s2)
 end
 
 function convolution_manual(x, k)
@@ -70,11 +70,11 @@ end
     y_manual = convolution_manual(x, k)
 
     x_flux = reshape(x, size(x)..., 1, 1)
-    k_flux = reshape(k, size(k)..., 1, 1)
+    k_flux = reshape(reverse(k, dims=(1,2)), size(k)..., 1, 1)
     y_flux = Flux.conv(x_flux, k_flux, pad = 0) |> x -> dropdims(x, dims=(3,4))
 
-    @test y_flux ≈ y_tullio 
-    @test y_flux ≈ y_manual 
+    @test y_flux ≈ y_tullio
+    @test y_flux ≈ y_manual
 
     @info "Tullio convolution benchmark:"
     tullio_bench = @benchmark convolution($x, $k)
@@ -98,7 +98,7 @@ end
     y_tullio_channels = convolution_channels(x,k)
 
     x_flux = reshape(x, size(x)..., 1)
-    y_flux = Flux.conv(x_flux, k, pad = 0) |> x -> dropdims(x, dims=4)
+    y_flux = Flux.conv(x_flux, reverse(k, dims=(1,2)), pad = 0) |> x -> dropdims(x, dims=4)
 
     @test y_flux ≈ y_manual_channels
     @test y_flux ≈ y_tullio_channels
