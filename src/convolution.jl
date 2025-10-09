@@ -1,4 +1,4 @@
-using Tullio, LoopVectorization, Flux, Test, BenchmarkTools
+using Tullio, LoopVectorization, Flux, Test, BenchmarkTools, Statistics
 
 "Tullio Convolution"
 convolution(x,k) = @tullio y[i+_, j+_] := x[i+a, j+b] * k[a,b]
@@ -23,6 +23,6 @@ convolution(x,k;p=0) = @tullio y[i+_, j+_] := x[pad(i-a,p), pad(j-b,p)] * k[a,b]
     @info "Flux convolution benchmark:"
     flux_bench = @benchmark Flux.conv($x_flux, $k_flux, pad = 0)
 
-    @test tullio_bench < flux_bench
+    @test median(tullio_bench).time < median(flux_bench).time
 end
 
