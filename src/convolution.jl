@@ -9,7 +9,8 @@ convolution(x,k;p=0) = @tullio y[i+_, j+_] := x[pad(i-a,p), pad(j-b,p)] * k[a,b]
 
 "Tullio Convolution with channels"
 function convolution_channels(x,k)
-    @tullio y[i+_, j+_, c_out] := x[i+a-1, j+b-1, c_in] * k[size(k,1)-a+1, size(k,2)-b+1, c_in, c_out] (a in 1:size(k,1), b in 1:size(k,2))
+    k_rev = reverse(k, dims=(1,2))
+    @tullio y[i+_, j+_, c_out] := x[i+a-1, j+b-1, c_in] * k_rev[a, b, c_in, c_out] (a in 1:size(k,1), b in 1:size(k,2))
 end
 
 function convolution_manual(x, k)
