@@ -29,3 +29,6 @@ Yet another AI from scratch repo. Framework free.
 - [ ] Abstract common functions? Might reduce readability :(
 - [ ] Test from-scratch versions against established libraries for correctness.
 - [ ] Create einstien notation-like that better exposes the math instead of hiding behind API abstractions.
+
+### Links
+[A guide to convolution arithmetic for deep learning](https://arxiv.org/pdf/1603.07285)

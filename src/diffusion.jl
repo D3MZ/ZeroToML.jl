@@ -10,7 +10,9 @@ glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 glorot(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
 "Convolution with padding via Tullio"
-convolution(x,k,padding) = @tullio y[i+_, j+_] := x[pad(i-a,padding), pad(j-b,padding)] * k[a,b]
+convolution(x,k) = @tullio y[i+_, j+_] := x[i+a, j+b] * k[a,b]
+convolution(x,k;s=stride) = @tullio y[i+_, j+_] := x[s*i-a, s*j-b] * k[a,b]
+convolution(x,k;p=padding) = @tullio y[i+_, j+_] := x[pad(i-a,p), pad(j-b,p)] * k[a,b]
 
 "Initialize fully convolutional network parameters for image-to-image noise forwardion"
 function parameters()
@@ -29,12 +31,10 @@ end
 
 "model's forward process: ε̂ = ϵθ(xt,t)"
 function forward(m, x, t, time_embedding)
-    # H, W = size(x)
-    # h = reshape(x, H, W, 1, 1)
     padding = (size(m.W₁, 1) - 1) ÷ 2
 
     # Layer 1 with time embedding injection
-    h = convolution(h, m.W₁, padding) .+ m.b₁ .+ m.W_time_embedding .* time_embedding[t]
+    h = convolution(x, m.W₁, padding) .+ m.b₁ .+ m.W_time_embedding .* time_embedding[t]
     h = relu(h)
 
     # Layer 2
@@ -160,7 +160,12 @@ s = snr(ᾱ)
 time_embedding = 2 .* (s .- minimum(s)) ./ (maximum(s) - minimum(s)) .- 1
 model = parameters()
 η = 1e-2
-train!(model, ᾱ, T, η, dataset, time_embedding)
+
+convolution(rand(dataset), model.W₁[:,:,:,1], 2)
+2
+# forward(model, rand(dataset), 10, rand())
+
+# train!(model, ᾱ, T, η, dataset, time_embedding)
 # # Why log.(ᾱ ./ (1 .- ᾱ) and not ᾱ 
 # plot(ᾱ, label = "ᾱ[t]") # Signal is compressed near 0 after 500 steps
 # plot(ᾱ ./ (1 .- ᾱ), label = "SNR(t) = ᾱ[t] / (1 - ᾱ[t])") # Large dynamic range, but signal explodes on each end
