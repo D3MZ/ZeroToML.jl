@@ -37,8 +37,8 @@ end
     k_flux = reshape(k, size(k)..., 1, 1)
     y_flux = Flux.conv(x_flux, k_flux, pad = 0) |> x -> dropdims(x, dims=(3,4))
 
-    @test y_tullio ≈ y_flux
-    @test y_manual ≈ y_tullio
+    @test y_flux ≈ y_tullio 
+    @test y_flux ≈ y_manual 
 
     @info "Tullio convolution benchmark:"
     tullio_bench = @benchmark convolution($x, $k)
