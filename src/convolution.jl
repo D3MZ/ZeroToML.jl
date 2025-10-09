@@ -2,7 +2,8 @@ using Tullio, LoopVectorization, Flux, Test, BenchmarkTools, Statistics
 
 "Tullio Convolution"
 function convolution(x,k)
-    @tullio y[i+_, j+_] := x[i+a-1, j+b-1] * k[size(k,1)-a+1, size(k,2)-b+1] (a in 1:size(k,1), b in 1:size(k,2))
+    k_rev = reverse(k, dims=(1,2))
+    @tullio y[i+_, j+_] := x[i+a-1, j+b-1] * k_rev[a,b] (a in 1:size(k,1), b in 1:size(k,2))
 end
 "Tullio Convolution with Padding"
 convolution(x,k;p=0) = @tullio y[i+_, j+_] := x[pad(i-a,p), pad(j-b,p)] * k[a,b]
