@@ -68,7 +68,7 @@ end
     y_manual = convolution_manual(x, k)
 
     x_flux = reshape(x, size(x)..., 1, 1)
-    k_flux = reshape(reverse(k, dims=(1,2)), size(k)..., 1, 1)
+    k_flux = reshape(k, size(k)..., 1, 1)
     y_flux = Flux.conv(x_flux, k_flux, pad = 0) |> x -> dropdims(x, dims=(3,4))
 
     @test y_flux ≈ y_tullio
@@ -96,7 +96,7 @@ end
     y_tullio_channels = convolution_channels(x,k)
 
     x_flux = reshape(x, size(x)..., 1)
-    y_flux = Flux.conv(x_flux, reverse(k, dims=(1,2)), pad = 0) |> x -> dropdims(x, dims=4)
+    y_flux = Flux.conv(x_flux, k, pad = 0) |> x -> dropdims(x, dims=4)
 
     @test y_flux ≈ y_manual_channels
     @test y_flux ≈ y_tullio_channels
@@ -108,6 +108,6 @@ end
     @btime convolution_manual_channels($x, $k)
 
     @info "Flux convolution with channels benchmark:"
-    @btime Flux.conv($x_flux, reverse($k, dims=(1,2)), pad = 0)
+    @btime Flux.conv($x_flux, $k, pad = 0)
 end
 
