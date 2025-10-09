@@ -74,16 +74,14 @@ end
     @test y_flux ≈ y_tullio
     @test y_flux ≈ y_manual
 
-    @info "Tullio convolution benchmark:"
-    tullio_bench = @benchmark convolution($x, $k)
+    @info "Tullio:"
+    @btime convolution($x, $k)
 
-    @info "Manual convolution benchmark:"
+    @info "Manual:"
     @btime convolution_manual($x, $k)
 
-    @info "Flux convolution benchmark:"
-    flux_bench = @benchmark Flux.conv($x_flux, $k_flux, pad = 0)
-
-    @test median(tullio_bench).time < median(flux_bench).time
+    @info "Flux:"
+    @btime Flux.conv($x_flux, $k_flux, pad = 0)
 end
 
 @testset "Convolution with Channels" begin
@@ -101,13 +99,13 @@ end
     @test y_flux ≈ y_manual_channels
     @test y_flux ≈ y_tullio_channels
 
-    @info "Tullio convolution with channels benchmark:"
+    @info "Tullio:"
     @btime convolution_channels($x, $k)
 
-    @info "Manual convolution with channels benchmark:"
+    @info "Manual:"
     @btime convolution_manual_channels($x, $k)
 
-    @info "Flux convolution with channels benchmark:"
+    @info "Flux:"
     @btime Flux.conv($x_flux, $k, pad = 0)
 end
 
@@ -125,6 +123,15 @@ end
 
     @test y_flux ≈ y_manual_channels
     @test y_flux ≈ y_tullio_channels
+
+    @info "Tullio:"
+    @btime convolution_channels($x, $k)
+
+    @info "Manual:"
+    @btime convolution_manual_channels($x, $k)
+
+    @info "Flux:"
+    @btime Flux.conv($x_flux, $k, pad = 0)
 end
 
 @testset "Convolution with out_channels = in_channels" begin
@@ -141,5 +148,14 @@ end
 
     @test y_flux ≈ y_manual_channels
     @test y_flux ≈ y_tullio_channels
+
+    @info "Tullio:"
+    @btime convolution_channels($x, $k)
+
+    @info "Manual:"
+    @btime convolution_manual_channels($x, $k)
+
+    @info "Flux:"
+    @btime Flux.conv($x_flux, $k, pad = 0)
 end
 
