@@ -14,7 +14,7 @@ function convolution_manual(x, k)
 
     for i in 1:output_rows
         for j in 1:output_cols
-            accumulator = 0.0
+            accumulator = zero(eltype(x))
             for ki in 1:kernel_rows
                 for kj in 1:kernel_cols
                     accumulator += x[i + ki - 1, j + kj - 1] * k[ki, kj]
