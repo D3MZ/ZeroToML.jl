@@ -5,6 +5,9 @@ convolution(x,k) = @tullio y[i+_, j+_] := x[i+a, j+b] * k[a,b]
 "Tullio Convolution with Padding"
 convolution(x,k;p=0) = @tullio y[i+_, j+_] := x[pad(i-a,p), pad(j-b,p)] * k[a,b]
 
+"Tullio Convolution with channels"
+convolution_channels(x,k) = @tullio y[i+_, j+_, c_out] := x[i+a, j+b, c_in] * k[end-a+1, end-b+1, c_in, c_out]
+
 function convolution_manual(x, k)
     (img_rows, img_cols) = size(x)
     (kernel_rows, kernel_cols) = size(k)
@@ -84,10 +87,21 @@ end
     k = rand(Float32, 3, 3, in_channels, out_channels)
 
     y_manual_channels = convolution_manual_channels(x, k)
+    y_tullio_channels = convolution_channels(x,k)
 
     x_flux = reshape(x, size(x)..., 1)
     y_flux = Flux.conv(x_flux, k, pad = 0) |> x -> dropdims(x, dims=4)
 
     @test y_flux ≈ y_manual_channels
+    @test y_flux ≈ y_tullio_channels
+
+    @info "Tullio convolution with channels benchmark:"
+    @btime convolution_channels($x, $k)
+
+    @info "Manual convolution with channels benchmark:"
+    @btime convolution_manual_channels($x, $k)
+
+    @info "Flux convolution with channels benchmark:"
+    @btime Flux.conv($x_flux, $k, pad = 0)
 end
 
