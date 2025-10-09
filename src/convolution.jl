@@ -1,12 +1,20 @@
 using Tullio, LoopVectorization, Flux, Test, BenchmarkTools, Statistics
 
 "Tullio Convolution"
-convolution(x,k) = @tullio y[i+_, j+_] := x[i+a, j+b] * k[a,b]
+function convolution(x,k)
+    s1 = size(k,1)
+    s2 = size(k,2)
+    @tullio y[i+_, j+_] := x[i+a, j+b] * k[s1-a+1, s2-b+1]
+end
 "Tullio Convolution with Padding"
 convolution(x,k;p=0) = @tullio y[i+_, j+_] := x[pad(i-a,p), pad(j-b,p)] * k[a,b]
 
 "Tullio Convolution with channels"
-convolution_channels(x,k) = @tullio y[i+_, j+_, c_out] := x[i+a, j+b, c_in] * k[end-a+1, end-b+1, c_in, c_out]
+function convolution_channels(x,k)
+    s1 = size(k,1)
+    s2 = size(k,2)
+    @tullio y[i+_, j+_, c_out] := x[i+a, j+b, c_in] * k[s1-a+1, s2-b+1, c_in, c_out]
+end
 
 function convolution_manual(x, k)
     (img_rows, img_cols) = size(x)
