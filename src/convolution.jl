@@ -26,6 +26,31 @@ function convolution_manual(x, k)
     return output
 end
 
+function convolution_manual_channels(x, k)
+    (img_rows, img_cols, in_channels) = size(x)
+    (kernel_rows, kernel_cols, _, out_channels) = size(k)
+    output_rows = img_rows - kernel_rows + 1
+    output_cols = img_cols - kernel_cols + 1
+    output = zeros(eltype(x), output_rows, output_cols, out_channels)
+
+    for cout in 1:out_channels
+        for i in 1:output_rows
+            for j in 1:output_cols
+                accumulator = zero(eltype(x))
+                for cin in 1:in_channels
+                    for ki in 1:kernel_rows
+                        for kj in 1:kernel_cols
+                            accumulator += x[i + ki - 1, j + kj - 1, cin] * k[kernel_rows - ki + 1, kernel_cols - kj + 1, cin, cout]
+                        end
+                    end
+                end
+                output[i, j, cout] = accumulator
+            end
+        end
+    end
+    return output
+end
+
 @testset "Convolution" begin
     x = rand(Float32, 10, 10)
     k = rand(Float32, 3, 3)
@@ -50,5 +75,19 @@ end
     flux_bench = @btime Flux.conv($x_flux, $k_flux, pad = 0)
 
     @test median(tullio_bench).time < median(flux_bench).time
+end
+
+@testset "Convolution with Channels" begin
+    in_channels = 3
+    out_channels = 4
+    x = rand(Float32, 10, 10, in_channels)
+    k = rand(Float32, 3, 3, in_channels, out_channels)
+
+    y_manual_channels = convolution_manual_channels(x, k)
+
+    x_flux = reshape(x, size(x)..., 1)
+    y_flux = Flux.conv(x_flux, k, pad = 0) |> x -> dropdims(x, dims=4)
+
+    @test y_flux ≈ y_manual_channels
 end
 
