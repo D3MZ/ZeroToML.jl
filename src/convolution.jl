@@ -18,9 +18,11 @@ convolution(x,k;p=0) = @tullio y[i+_, j+_] := x[pad(i-a,p), pad(j-b,p)] * k[a,b]
     @test y_tullio ≈ y_flux
 
     @info "Tullio convolution benchmark:"
-    @btime convolution($x, $k)
+    tullio_time = @btime convolution($x, $k)
 
     @info "Flux convolution benchmark:"
-    @btime Flux.conv($x_flux, $k_flux, pad = 0)
+    flux_time = @btime Flux.conv($x_flux, $k_flux, pad = 0)
+
+    @test tullio_time < flux_time
 end
 
