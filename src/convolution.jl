@@ -109,6 +109,31 @@ end
     @btime Flux.conv($x_flux, $k, pad = 0)
 end
 
+@testset "Convolution with out_channels = in_channels = 1" begin
+    in_channels = 1
+    out_channels = 1
+    x = rand(Float32, 10, 10, in_channels)
+    k = rand(Float32, 3, 3, in_channels, out_channels)
+
+    y_manual_channels = convolution_manual_channels(x, k)
+    y_tullio_channels = convolution_channels(x,k)
+
+    x_flux = reshape(x, size(x)..., 1)
+    y_flux = Flux.conv(x_flux, k, pad = 0) |> x -> dropdims(x, dims=4)
+
+    @test y_flux ≈ y_manual_channels
+    @test y_flux ≈ y_tullio_channels
+
+    @info "Tullio:"
+    @btime convolution_channels($x, $k)
+
+    @info "Manual:"
+    @btime convolution_manual_channels($x, $k)
+
+    @info "Flux:"
+    @btime Flux.conv($x_flux, $k, pad = 0)
+end
+
 @testset "Convolution with out_channels < in_channels" begin
     in_channels = 4
     out_channels = 3
