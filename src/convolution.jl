@@ -41,13 +41,13 @@ end
     @test y_flux ≈ y_manual 
 
     @info "Tullio convolution benchmark:"
-    tullio_bench = @benchmark convolution($x, $k)
+    tullio_bench = @btime convolution($x, $k)
 
     @info "Manual convolution benchmark:"
     @btime convolution_manual($x, $k)
 
     @info "Flux convolution benchmark:"
-    flux_bench = @benchmark Flux.conv($x_flux, $k_flux, pad = 0)
+    flux_bench = @btime Flux.conv($x_flux, $k_flux, pad = 0)
 
     @test median(tullio_bench).time < median(flux_bench).time
 end
