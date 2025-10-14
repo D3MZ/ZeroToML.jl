@@ -4,7 +4,13 @@ using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
 include("decoder.jl")
 include("diffusion.jl")
+
+#Models
+export DDPM, Decoder
+
 export
+    train!,
+    boxes,
     build_vocab,
     decode,
     encode,
