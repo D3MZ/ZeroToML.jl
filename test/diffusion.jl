@@ -9,14 +9,14 @@ using Statistics
     Random.seed!(42)
     H,W = 16, 16
     d = H*W
-    dataset = shuffle(scale(boxes(H, W)))
+    dataset = shuffle(scale(boxes(H, W, 3)))
 
     T = 100
     β = noise_schedule(T)
     α = signal_schedule(β)
     ᾱ = remaining_signal(α)
     time_embedding = ᾱ
-    model = conv_parameters(d)
+    model = parameters()
 
     # Calculate loss before training on a sample
     x0_test = rand(dataset)
@@ -26,7 +26,7 @@ using Statistics
     untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
 
     η = 1f-1
-    model = diffusion_train(model, ᾱ, T, η, dataset, time_embedding)
+    model = train!(model, ᾱ, T, η, dataset, time_embedding)
 
     # Calculate loss after training on the same sample
     trained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)

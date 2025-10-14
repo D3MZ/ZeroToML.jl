@@ -158,21 +158,3 @@ end
 scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
 scale(imgs::AbstractVector) = map(scale, imgs)
-
-# Below is just a scratch pad -- will delete after
-using Test, Plots, BenchmarkTools
-
-Random.seed!(42)
-H,W = 32, 32
-d = H*W
-whiteboxsize = 9
-dataset = shuffle(scale(boxes(H, W, whiteboxsize)))
-heatmap(rand(dataset))
-
-println("Benchmarking addbox! vs addbox!_tullio")
-@btime addbox!(img($H, $W), 16, 16, $whiteboxsize);
-@btime addbox!_tullio(img($H, $W), 16, 16, $whiteboxsize);
-
-println("Benchmarking boxes vs boxes_tullio")
-@btime boxes($H, $W, $whiteboxsize);
-@btime boxes_tullio($H, $W, $whiteboxsize);
