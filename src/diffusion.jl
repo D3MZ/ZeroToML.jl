@@ -111,15 +111,6 @@ end
 train!(model, ᾱ, T, η, dataset, time_embedding) = foldl((m, x0) -> diffusion_step!(m, x0, ᾱ, T, time_embedding; η=η), dataset; init=model)
 # "Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
 # train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
-function train!(model, ᾱ, T, η, dataset, epochs, time_embedding)
-    losses = Float32[]
-    for _ in 1:epochs
-        train!(model, ᾱ, T, η, dataset, time_embedding)
-        push!(losses, loss(model, xt_test, t_test, ε_test, time_embedding))
-    end
-    display(plot(losses))
-    return model
-end
 
 "Creates an h×w zero matrix for a blank image"  
 img(h, w) = zeros(Int, h, w)
