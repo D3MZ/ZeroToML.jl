@@ -24,48 +24,19 @@ function convolution(x, w, stride, pad)
 end
 
 @testset "convolution" begin
-    @testset "stride=1, pad=0" begin
-        x = rand(Float32, 10, 10, 3, 2)
-        w = rand(Float32, 3, 3, 3, 4)
-        
-        y_manual = convolution(x, w)
-        y_nnlib = NNlib.conv(x, w)
-        
-        @test y_manual ≈ y_nnlib
+    for (stride, pad) in [(1, 0), (2, 1), (2, 0)]
+        @testset "stride=$stride, pad=$pad" begin
+            x = rand(Float32, 10, 10, 3, 2)
+            w = rand(Float32, 3, 3, 3, 4)
+            
+            y_manual = convolution(x, w, stride, pad)
+            y_nnlib = NNlib.conv(x, w; stride=stride, pad=pad)
+            
+            @test y_manual ≈ y_nnlib
 
-        b_manual = @benchmark convolution($x, $w) samples=3
-        b_nnlib = @benchmark NNlib.conv($x, $w) samples=3
-        @info "Benchmark (stride=1, pad=0):" convolution=median(b_manual) NNlib.conv=median(b_nnlib)
-    end
-
-    @testset "stride=2, pad=1" begin
-        x = rand(Float32, 10, 10, 3, 2)
-        w = rand(Float32, 3, 3, 3, 4)
-        stride = 2
-        pad = 1
-        
-        y_manual = convolution(x, w, stride, pad)
-        y_nnlib = NNlib.conv(x, w; stride=stride, pad=pad)
-        
-        @test y_manual ≈ y_nnlib
-
-        b_manual = @benchmark convolution($x, $w, $stride, $pad) samples=3
-        b_nnlib = @benchmark NNlib.conv($x, $w; stride=$stride, pad=$pad) samples=3
-        @info "Benchmark (stride=2, pad=1):" convolution=median(b_manual) NNlib.conv=median(b_nnlib)
-    end
-
-    @testset "stride=2, pad=0" begin
-        x = rand(Float32, 10, 10, 3, 2)
-        w = rand(Float32, 3, 3, 3, 4)
-        stride = 2
-        
-        y_manual = convolution(x, w, stride)
-        y_nnlib = NNlib.conv(x, w; stride=stride, pad=0)
-        
-        @test y_manual ≈ y_nnlib
-
-        b_manual = @benchmark convolution($x, $w, $stride) samples=3
-        b_nnlib = @benchmark NNlib.conv($x, $w; stride=$stride, pad=0) samples=3
-        @info "Benchmark (stride=2, pad=0):" convolution=median(b_manual) NNlib.conv=median(b_nnlib)
+            b_manual = @benchmark convolution($x, $w, $stride, $pad) samples=3
+            b_nnlib = @benchmark NNlib.conv($x, $w; stride=$stride, pad=$pad) samples=3
+            @info "Benchmark (stride=$stride, pad=$pad):" convolution=median(b_manual) NNlib.conv=median(b_nnlib)
+        end
     end
 end
