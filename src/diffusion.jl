@@ -70,7 +70,7 @@ function sgd!(m::DDPM, ∇, η)
 end
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
-function diffusion_step!(m::DDPM, x₀, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
+function step!(m::DDPM, x₀, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
     ε  = noise(x₀)
     xt = noised_sample(x₀, ᾱ, t, ε)
     (∇,) = gradient(θ -> loss(θ, xt, t, ε, time_embedding), m)
@@ -109,7 +109,7 @@ function reverse_samples(m::DDPM, β, α, ᾱ, T, d, time_embedding, N)
 end 
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
-train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x₀) -> diffusion_step!(m, x₀, ᾱ, T, time_embedding; η=η), dataset; init=model)
+train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x₀) -> step!(m, x₀, ᾱ, T, time_embedding; η=η), dataset; init=model)
 # "Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
 # train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
 
