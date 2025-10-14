@@ -16,7 +16,7 @@ function manual_conv(x, w; stride = 1, pad = 0)
     Wo = (size(x, 1) - Ww) ÷ stride + 1
     Ho = (size(x, 2) - Hw) ÷ stride + 1
 
-    @tullio y[wo, ho, co, n] := x[(wo-1)*stride+kw, (ho-1)*stride+kh, ci, n] * w[kw, kh, ci, co] (wo in 1:Wo, ho in 1:Ho, kw in 1:Ww, kh in 1:Hw)
+    @tullio y[wo, ho, co, n] := x[(wo-1)*$stride+kw, (ho-1)*$stride+kh, ci, n] * w[kw, kh, ci, co] (wo in 1:Wo, ho in 1:Ho, kw in 1:Ww, kh in 1:Hw)
 end
 
 @testset "manual_conv" begin
