@@ -9,31 +9,16 @@ glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 "Glorot/Xavier for convolution"
 glorot(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
-struct DDPM
-    W₁
-    b₁
-    W₂
-    b₂
-    W₃
-    b₃
-    W₄
-    b₄
-    W_time_embedding
-end
-
-"Initialize fully convolutional network parameters for image-to-image noise forwardion"
-function DDPM()
-    DDPM(
-        glorot(3, 3, 1, 16),
-        zeros(Float32, 1, 1, 16, 1),
-        glorot(3, 3, 16, 32),
-        zeros(Float32, 1, 1, 32, 1),
-        glorot(3, 3, 32, 16),
-        zeros(Float32, 1, 1, 16, 1),
-        glorot(3, 3, 16, 1),
-        zeros(Float32, 1, 1, 1, 1),
-        reshape(glorot(16, 1), 1, 1, 16, 1)
-    )
+@kwdef struct DDPM
+    W₁ = glorot(3, 3, 1, 16)
+    b₁ = zeros(Float32, 1, 1, 16, 1)
+    W₂ = glorot(3, 3, 16, 32)
+    b₂ = zeros(Float32, 1, 1, 32, 1)
+    W₃ = glorot(3, 3, 32, 16)
+    b₃ = zeros(Float32, 1, 1, 16, 1)
+    W₄ = glorot(3, 3, 16, 1)
+    b₄ = zeros(Float32, 1, 1, 1, 1)
+    W_time_embedding = reshape(glorot(16, 1), 1, 1, 16, 1)
 end
 
 "model's forward process: ε̂ = ϵθ(xt,t)"
