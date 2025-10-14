@@ -15,7 +15,7 @@ using Statistics
     α = signal_schedule(β)
     ᾱ = remaining_signal(α)
     time_embedding = ᾱ
-    model = parameters()
+    model = DDPM()
 
     # Calculate loss before training on a sample
     x0_test = rand(dataset)
