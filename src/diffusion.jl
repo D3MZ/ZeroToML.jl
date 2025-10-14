@@ -115,37 +115,18 @@ train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x₀) -> s
 
 "Creates an h×w zero matrix for a blank image"  
 img(h, w) = zeros(Int, h, w)
+"Return the integer radius given a diameter"
+iradius(d::Integer) = isodd(d) ? (d - 1) ÷ 2 : d ÷ 2
+"Return index ranges for rows and columns centered at (i, j) with given diameter"
+center_range(i::Integer, d::Integer) = i-iradius(d):i+iradius(d)
 "Paints a blocksize×blocksize block of 255s centered at (i, j) into an image (mutates)"
-function addbox!(img, i, j, blocksize)
-    r = (blocksize - 1) ÷ 2
-    img[i-r:i+r, j-r:j+r] .= 255
-    img
-end
-"Generates an h×w image with a blocksize×blocksize white box at (i, j)"
-box(h, w, i, j, blocksize) = addbox!(img(h, w), i, j, blocksize)
+addbox!(img, i, j, d) = img[center_range(i, d), center_range(j, d)] .= 255
+"Generates an h×w image with a d×d white box at (i, j)"
+box(h, w, i, j, d) = addbox!(img(h, w), i, j, d)
+"Return the interior range excluding r pixels from each border (1+r:h-r)"
+interior(n::Integer, d::Integer) = 1+iradius(d):n-iradius(d)
 "Generates all possible unique boxes on a black background"
-function boxes(h, w, blocksize)
-    r = (blocksize - 1) ÷ 2
-    [box(h, w, i, j, blocksize) for i in 1+r:h-r for j in 1+r:w-r]
-end
-
-"Paints a blocksize×blocksize block of 255s centered at (i, j) into an image (mutates) using Tullio"
-function addbox!_tullio(img, i, j, blocksize)
-    r = (blocksize - 1) ÷ 2
-    row_range = i-r:i+r
-    col_range = j-r:j+r
-    @tullio img[x, y] = 255 (x in row_range, y in col_range)
-    img
-end
-
-"Generates all possible unique boxes on a black background using Tullio"
-function boxes_tullio(h, w, blocksize)
-    r = (blocksize - 1) ÷ 2
-    ni = h - 2r
-    nj = w - 2r
-    all_boxes = @tullio B[x, y, i, j] := (abs(x - (i+r)) <= r && abs(y - (j+r)) <= r) ? 255 : 0 (x in 1:h, y in 1:w, i in 1:ni, j in 1:nj)
-    [all_boxes[:, :, i, j] for i in 1:ni for j in 1:nj]
-end
+boxes(h, w, d) =  [box(h, w, i, j, blocksize) for i in interior(i, d) for j in interior(j, d)]
 "Scales an image (array) from [0,255] to [-1,1] via y = (2/255)*x - 1"
 scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
