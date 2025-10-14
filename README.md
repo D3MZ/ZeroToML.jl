@@ -19,6 +19,7 @@ Yet another AI from scratch repo. Framework free.
   - [ ] Impact on Different tokenizers (i.e. BPE tokenizer vs Character level)
   - [ ] Impact on number of heads
 - [ ] Diffusion
+  - [ ] Remove Flux / NNlib dependancies in core code
   - [ ] [DDPM — Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239)
   - [ ] [DDIM — Denoising Diffusion Implicit Models](https://arxiv.org/abs/2010.02502)
   - [ ] [SDE — Score-Based Generative Modeling through SDEs](https://arxiv.org/abs/2011.13456)
