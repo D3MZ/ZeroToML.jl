@@ -28,8 +28,8 @@ Yet another AI from scratch repo.
 - [ ] RL
 
 ### Architecture 
-- [ ] Abstract common functions? Might reduce readability :(
-  - [ ] Use Multiple Dispatch and Structs/Types
+- [x] Abstract common functions? Might reduce readability :(
+  - [x] Use Multiple Dispatch and Structs/Types
   - [ ] Paper name = Filename, Model name
 - [ ] Stateless? Memory allocations concerns if truely end-to-end stateless. We get history for free though. Maybe Stateless functions only?
 
