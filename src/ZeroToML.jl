@@ -4,9 +4,13 @@ using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
 include("decoder.jl")
 include("diffusion.jl")
+include("cnn.jl")
 
 #Models
 export DDPM, Decoder
+
+#Primitives
+export convolution
 
 export
     train!,

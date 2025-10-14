@@ -1,8 +1,6 @@
 using Test, Random, Statistics, NNlib, Tullio, LoopVectorization, BenchmarkTools, Zygote
 
-include("../src/cnn.jl")
-
-@testset "convolution" begin
+@testset "Convolution" begin
     for stride in [1, 2]
         @testset "stride=$stride" begin
             x = rand(Float32, 10, 10, 3, 2)

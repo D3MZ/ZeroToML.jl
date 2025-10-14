@@ -26,6 +26,15 @@ Yet another AI from scratch repo.
   - [ ] [Flow Matching](https://arxiv.org/abs/2210.02747)
   - [ ] [Rectified Flow — Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow](https://arxiv.org/abs/2209.03003)
 - [ ] RL
+- [ ] Neural Network primitives
+  - [ ] [CNN - A guide to convolution arithmetic for deep learning](https://arxiv.org/pdf/1603.07285)
+    - [x] Discrete convolutions
+    - [x] Stride
+    - [ ] Padding
+    - [ ] Pooling
+    - [ ] Transposed
+    - [ ] Dilated convolutions
+    - [ ] Works with Gradients
 
 ### Architecture 
 - [x] Abstract common functions? Might reduce readability :(
