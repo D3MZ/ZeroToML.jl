@@ -5,10 +5,29 @@ using Test, Random, Statistics, NNlib, Tullio, LoopVectorization, BenchmarkTools
 convolution(x, w) = convolution(x, w, 1, 0)
 convolution(x, w, stride) = convolution(x, w, stride, 0)
 
+function convolution(x, w, stride)
+    Wx, Hx, C_in, N = size(x)
+    Ww, Hw, C_in_w, C_out = size(w)
+    @assert C_in == C_in_w "Input channels must match kernel input channels"
+
+    if pad > 0
+        x_padded = zeros(eltype(x), Wx + 2*pad, Hx + 2*pad, C_in, N)
+        x_padded[pad+1:end-pad, pad+1:end-pad, :, :] = x
+        x = x_padded
+    end
+
+    Wo = (size(x, 1) - Ww) ÷ stride + 1
+    Ho = (size(x, 2) - Hw) ÷ stride + 1
+
+    w_flipped = @view w[end:-1:1, end:-1:1, :, :]
+    @tullio y[wo, ho, co, n] := x[(wo-1)*$stride+kw, (ho-1)*$stride+kh, ci, n] * w_flipped[kw, kh, ci, co] (wo in 1:Wo, ho in 1:Ho, kw in 1:Ww, kh in 1:Hw)
+end
+
 function convolution(x, w, stride, pad)
     Wx, Hx, C_in, N = size(x)
     Ww, Hw, C_in_w, C_out = size(w)
     @assert C_in == C_in_w "Input channels must match kernel input channels"
+    @asset pad > 0 "Pad must be > 0; Call convolution(x, w, stride) when pad==0"
 
     if pad > 0
         x_padded = zeros(eltype(x), Wx + 2*pad, Hx + 2*pad, C_in, N)
