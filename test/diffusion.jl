@@ -25,7 +25,7 @@ using Statistics
     untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
 
     η = 1f-1
-    model = train!(model, ᾱ, T, η, dataset, time_embedding)
+    model = ZeroToML.train!(model, ᾱ, T, η, dataset, time_embedding)
 
     # Calculate loss after training on the same sample
     trained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
