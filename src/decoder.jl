@@ -31,44 +31,22 @@ end
 
 # --- Network ---
 @kwdef struct Decoder
-    E
-    P
-    W_Q
-    W_K
-    W_V
-    W_O
-    ln1_γ
-    ln1_β
-    ln2_γ
-    ln2_β
-    W₁
-    b₁
-    W₂
-    b₂
-    W_out
-    b_out
-end
-
-function Decoder(vocab; dₑ=8, d_ff=16, max_seq_len=100)
-    vocab_size = length(vocab)
-    Decoder(
-        E = glorot_init(dₑ, vocab_size),
-        P = positional_encoding(max_seq_len, dₑ),
-        W_Q = glorot_init(dₑ, dₑ),
-        W_K = glorot_init(dₑ, dₑ),
-        W_V = glorot_init(dₑ, dₑ),
-        W_O = glorot_init(dₑ, dₑ),
-        ln1_γ = ones(Float32, dₑ, 1),
-        ln1_β = zeros(Float32, dₑ, 1),
-        ln2_γ = ones(Float32, dₑ, 1),
-        ln2_β = zeros(Float32, dₑ, 1),
-        W₁ = glorot_init(d_ff, dₑ),
-        b₁ = zeros(Float32, d_ff, 1),
-        W₂ = glorot_init(dₑ, d_ff),
-        b₂ = zeros(Float32, dₑ, 1),
-        W_out = glorot_init(vocab_size, dₑ),
-        b_out = zeros(Float32, vocab_size, 1),
-    )
+    E = glorot_init(8, 29)
+    P = positional_encoding(100, 8)
+    W_Q = glorot_init(8, 8)
+    W_K = glorot_init(8, 8)
+    W_V = glorot_init(8, 8)
+    W_O = glorot_init(8, 8)
+    ln1_γ = ones(Float32, 8, 1)
+    ln1_β = zeros(Float32, 8, 1)
+    ln2_γ = ones(Float32, 8, 1)
+    ln2_β = zeros(Float32, 8, 1)
+    W₁ = glorot_init(16, 8)
+    b₁ = zeros(Float32, 16, 1)
+    W₂ = glorot_init(8, 16)
+    b₂ = zeros(Float32, 8, 1)
+    W_out = glorot_init(29, 8)
+    b_out = zeros(Float32, 29, 1)
 end
 
 function layernorm(X, γ, β; ϵ=1f-5)

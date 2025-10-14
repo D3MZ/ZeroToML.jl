@@ -14,7 +14,7 @@ using Random
     learning_rate = 9f-1
     epochs  = 1_000
     max_seq_len = length(text)
-    model = Decoder(vocab; max_seq_len=max_seq_len)
+    model = Decoder()
     model = train(model, x, y, max_seq_len, learning_rate, epochs)
     ℓ = loss(model, x, y)
     @info "Post-train loss" loss=ℓ
