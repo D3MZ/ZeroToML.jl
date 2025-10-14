@@ -2,9 +2,10 @@ using Test, Random, Statistics, NNlib, Tullio, LoopVectorization, BenchmarkTools
 
 # "Apply convolution filter w to input x. x and w are 3d/4d/5d tensors in 1d/2d/3d convolutions respectively. x and w may have real or complex element types."
 
-convolution(x,k) = @tullio y[i+_, j+_] := x[i+a, j+b] * k[a,b]
+convolution(x, w) = convolution(x, w, 1, 0)
+convolution(x, w, stride) = convolution(x, w, stride, 0)
 
-function convolution(x, w; stride = 1, pad = 0)
+function convolution(x, w, stride, pad)
     Wx, Hx, C_in, N = size(x)
     Ww, Hw, C_in_w, C_out = size(w)
     @assert C_in == C_in_w "Input channels must match kernel input channels"
@@ -42,12 +43,12 @@ end
         stride = 2
         pad = 1
         
-        y_manual = convolution(x, w; stride=stride, pad=pad)
+        y_manual = convolution(x, w, stride, pad)
         y_nnlib = NNlib.conv(x, w; stride=stride, pad=pad)
         
         @test y_manual ≈ y_nnlib
 
-        b_manual = @benchmark convolution($x, $w; stride=$stride, pad=$pad) samples=3
+        b_manual = @benchmark convolution($x, $w, $stride, $pad) samples=3
         b_nnlib = @benchmark NNlib.conv($x, $w; stride=$stride, pad=$pad) samples=3
         @info "Benchmark (stride=2, pad=1):" convolution=median(b_manual) NNlib.conv=median(b_nnlib)
     end
@@ -56,15 +57,14 @@ end
         x = rand(Float32, 10, 10, 3, 2)
         w = rand(Float32, 3, 3, 3, 4)
         stride = 2
-        pad = 0
         
-        y_manual = convolution(x, w; stride=stride, pad=pad)
-        y_nnlib = NNlib.conv(x, w; stride=stride, pad=pad)
+        y_manual = convolution(x, w, stride)
+        y_nnlib = NNlib.conv(x, w; stride=stride, pad=0)
         
         @test y_manual ≈ y_nnlib
 
-        b_manual = @benchmark convolution($x, $w; stride=$stride, pad=$pad) samples=3
-        b_nnlib = @benchmark NNlib.conv($x, $w; stride=$stride, pad=$pad) samples=3
+        b_manual = @benchmark convolution($x, $w, $stride) samples=3
+        b_nnlib = @benchmark NNlib.conv($x, $w; stride=$stride, pad=0) samples=3
         @info "Benchmark (stride=2, pad=0):" convolution=median(b_manual) NNlib.conv=median(b_nnlib)
     end
 end
