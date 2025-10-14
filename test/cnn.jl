@@ -1,4 +1,4 @@
-using Test, Random, Statistics, NNlib, Tullio, LoopVectorization, BenchmarkTools
+using Test, Random, Statistics, NNlib, Tullio, LoopVectorization, BenchmarkTools, Zygote
 
 # "Apply convolution filter w to input x. x and w are 3d/4d/5d tensors in 1d/2d/3d convolutions respectively. x and w may have real or complex element types."
 
@@ -37,6 +37,17 @@ end
             b_manual = @benchmark convolution($x, $w, $stride, $pad) samples=3
             b_nnlib = @benchmark NNlib.conv($x, $w; stride=$stride, pad=$pad) samples=3
             @info "Benchmark (stride=$stride, pad=$pad):" convolution=median(b_manual) NNlib.conv=median(b_nnlib)
+
+            y_true = rand(eltype(y_manual), size(y_manual))
+            
+            loss(x, w) = sum(abs2, convolution(x, w, stride, pad) - y_true)
+            gs_manual = Zygote.gradient(loss, x, w)
+
+            loss_nnlib(x, w) = sum(abs2, NNlib.conv(x, w; stride=stride, pad=pad) - y_true)
+            gs_nnlib = Zygote.gradient(loss_nnlib, x, w)
+
+            @test gs_manual[1] ≈ gs_nnlib[1]
+            @test gs_manual[2] ≈ gs_nnlib[2]
         end
     end
 end
