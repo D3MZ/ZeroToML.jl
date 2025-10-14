@@ -28,7 +28,7 @@ function forward(m::DDPM, x, t, time_embedding)
     padding = (size(m.W₁, 1) - 1) ÷ 2
 
     # Layer 1 with time embedding injection
-    h = conv(h, m.W₁; pad=padding) .+ m.b₁ .+ m.W_time_embedding .* time_embedding[t]
+    h = conv(h, m.W₁; pad=padding) .+ m.b₁ .+ m.Wₜ .* time_embedding[t]
     h = relu(h)
 
     # Layer 2
