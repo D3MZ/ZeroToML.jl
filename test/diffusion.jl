@@ -8,7 +8,7 @@ using Statistics
     Random.seed!(42)
     H,W = 16, 16
     d = H*W
-    dataset = shuffle(scale(boxes(H, W, 3)))
+    dataset = shuffle(scale(ZeroToML.boxes(H, W, 3)))
 
     T = 100
     β = noise_schedule(T)
