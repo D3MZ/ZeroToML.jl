@@ -30,9 +30,28 @@ function softmax(x; dims=1)
 end
 
 # --- Network ---
-function parameters(vocab; dₑ=8, d_ff=16, max_seq_len=100)
+@kwdef struct Decoder
+    E
+    P
+    W_Q
+    W_K
+    W_V
+    W_O
+    ln1_γ
+    ln1_β
+    ln2_γ
+    ln2_β
+    W₁
+    b₁
+    W₂
+    b₂
+    W_out
+    b_out
+end
+
+function Decoder(vocab; dₑ=8, d_ff=16, max_seq_len=100)
     vocab_size = length(vocab)
-    (
+    Decoder(
         E = glorot_init(dₑ, vocab_size),
         P = positional_encoding(max_seq_len, dₑ),
         W_Q = glorot_init(dₑ, dₑ),
@@ -96,9 +115,10 @@ function loss(θ, x, y)
     -mean(correct_log_probs)
 end
 
-function step(model, x, y, η)
+function step(model::Decoder, x, y, η)
     (∇,) = gradient(m -> loss(m, x, y), model)
-    map((p, g) -> p .- η .* g, model, ∇)
+    updated_params = (p => getproperty(model, p) .- η .* getproperty(∇, p) for p in propertynames(model))
+    Decoder(;updated_params...)
 end
 
 # --- Training, Inference, and Helpers ---

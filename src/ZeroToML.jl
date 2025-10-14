@@ -12,7 +12,7 @@ export
     generate,
     loss,
     param_count,
-    parameters,
+    Decoder,
     positional_encoding,
     step,
     train,
