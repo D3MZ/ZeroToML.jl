@@ -128,6 +128,6 @@ interior(n::Integer, d::Integer) = 1+iradius(d):n-iradius(d)
 "Generates all possible unique boxes on a black background"
 boxes(h, w, d) = [box(h, w, i, j, d) for i in interior(h, d) for j in interior(w, d)]
 "Scales an image (array) from [0,255] to [-1,1] via y = (2/255)*x - 1"
-scale(img::Matrix) = (2 .* Float32.(img) ./ 255) .- 1
+scale(img::AbstractMatrix) = (2 .* Float32.(img) ./ 255) .- 1
 "Scales a vector of images by mapping `scale` over elements"
 scale(imgs::AbstractVector) = map(scale, imgs)
