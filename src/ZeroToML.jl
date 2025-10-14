@@ -16,7 +16,6 @@ export
     positional_encoding,
     step,
     train,
-    # diffusion
     diffusion_step,
     diffusion_train,
     mlp_parameters,
