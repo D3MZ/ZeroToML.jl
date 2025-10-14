@@ -1,5 +1,4 @@
-# using ZeroToML
-include("../src/diffusion.jl")
+using ZeroToML
 using Test
 using Random
 using Statistics
