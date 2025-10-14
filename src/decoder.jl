@@ -25,22 +25,22 @@ end
 
 # --- Activation function ---
 function softmax(x; dims=1)
-    e_x = exp.(x .- maximum(x, dims=dims))
-    return e_x ./ sum(e_x, dims=dims)
+    eₓ = exp.(x .- maximum(x, dims=dims))
+    return eₓ ./ sum(eₓ, dims=dims)
 end
 
 # --- Network ---
 @kwdef struct Decoder
     E = glorot_init(8, 29)
     P = positional_encoding(100, 8)
-    W_Q = glorot_init(8, 8)
-    W_K = glorot_init(8, 8)
-    W_V = glorot_init(8, 8)
-    W_O = glorot_init(8, 8)
-    ln1_γ = ones(Float32, 8, 1)
-    ln1_β = zeros(Float32, 8, 1)
-    ln2_γ = ones(Float32, 8, 1)
-    ln2_β = zeros(Float32, 8, 1)
+    Wₐ = glorot_init(8, 8)
+    Wₖ = glorot_init(8, 8)
+    Wᵥ = glorot_init(8, 8)
+    Wₒ = glorot_init(8, 8)
+    ln₁_γ = ones(Float32, 8, 1)
+    ln₁_β = zeros(Float32, 8, 1)
+    ln₂_γ = ones(Float32, 8, 1)
+    ln₂_β = zeros(Float32, 8, 1)
     W₁ = glorot_init(16, 8)
     b₁ = zeros(Float32, 16, 1)
     W₂ = glorot_init(8, 16)
@@ -62,21 +62,21 @@ function forward(x, θ)
 
     T  = eltype(X)
 
-    X₁ = layernorm(X, θ.ln1_γ, θ.ln1_β)
-    Q  = θ.W_Q * X₁
-    K  = θ.W_K * X₁
-    V  = θ.W_V * X₁
+    X₁ = layernorm(X, θ.ln₁_γ, θ.ln₁_β)
+    Q  = θ.Wₐ * X₁
+    K  = θ.Wₖ * X₁
+    V  = θ.Wᵥ * X₁
 
-    d_k   = size(K, 1)
-    scale = inv(sqrt(T(d_k)))
+    dₖ    = size(K, 1)
+    scale = inv(sqrt(T(dₖ)))
     S     = (K' * Q) .* scale #Attention score
 
     S = S .+ triu(fill(eltype(S)(-Inf), L, L), 1) #Casual mask
 
-    Z  = θ.W_O * (V * softmax(S; dims=2)')
+    Z  = θ.Wₒ * (V * softmax(S; dims=2)')
     X̃  = X .+ Z
 
-    X₂ = layernorm(X̃, θ.ln2_γ, θ.ln2_β)
+    X₂ = layernorm(X̃, θ.ln₂_γ, θ.ln₂_β)
     H₁ = max.(θ.W₁ * X₂ .+ θ.b₁, T(0))
     H₂ = θ.W₂ * H₁ .+ θ.b₂
     X = X̃ .+ H₂

@@ -18,7 +18,7 @@ glorot(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* 
     b₃ = zeros(Float32, 1, 1, 16, 1)
     W₄ = glorot(3, 3, 16, 1)
     b₄ = zeros(Float32, 1, 1, 1, 1)
-    W_time_embedding = reshape(glorot(16, 1), 1, 1, 16, 1)
+    Wₜ = reshape(glorot(16, 1), 1, 1, 16, 1)
 end
 
 "model's forward process: ε̂ = ϵθ(xt,t)"
@@ -59,7 +59,7 @@ marginal_mean(x, ᾱ, t) = sqrt(ᾱ[t]) .* x
 "Conditional marginal noise for the forward diffusion marginal q(xₜ | x₀). This is the random Gaussian noise part added to the deterministic mean √ᾱₜ · x₀."
 marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 "Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
-noised_sample(x0, ᾱ, t, ε) = marginal_mean(x0, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
+noised_sample(x₀, ᾱ, t, ε) = marginal_mean(x₀, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 "Mean boxd Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
 loss(θ::DDPM, x, t, y, time_embedding) = mean((y .- forward(θ, x, t, time_embedding)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
@@ -70,9 +70,9 @@ function sgd!(m::DDPM, ∇, η)
 end
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
-function diffusion_step!(m::DDPM, x0, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
-    ε  = noise(x0)
-    xt = noised_sample(x0, ᾱ, t, ε)
+function diffusion_step!(m::DDPM, x₀, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
+    ε  = noise(x₀)
+    xt = noised_sample(x₀, ᾱ, t, ε)
     (∇,) = gradient(θ -> loss(θ, xt, t, ε, time_embedding), m)
     sgd!(m, ∇, η)
     return m
@@ -109,7 +109,7 @@ function reverse_samples(m::DDPM, β, α, ᾱ, T, d, time_embedding, N)
 end 
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
-train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x0) -> diffusion_step!(m, x0, ᾱ, T, time_embedding; η=η), dataset; init=model)
+train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x₀) -> diffusion_step!(m, x₀, ᾱ, T, time_embedding; η=η), dataset; init=model)
 # "Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
 # train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
 

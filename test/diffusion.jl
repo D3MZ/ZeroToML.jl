@@ -18,10 +18,10 @@ using Statistics
     model = ZeroToML.DDPM()
 
     # Calculate loss before training on a sample
-    x0_test = rand(dataset)
-    ε_test = noise(x0_test)
+    x₀_test = rand(dataset)
+    ε_test = noise(x₀_test)
     t_test = rand(1:T)
-    xt_test = noised_sample(x0_test, ᾱ, t_test, ε_test)
+    xt_test = noised_sample(x₀_test, ᾱ, t_test, ε_test)
     untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
 
     η = 1f-1
