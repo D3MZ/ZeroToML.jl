@@ -101,8 +101,8 @@ end
 
 # --- Training, Inference, and Helpers ---
 dataloader(x, y, L) = zip(Iterators.partition(x, L), Iterators.partition(y, L))
-train(model, x, y, L, η) = foldl(((m,(xb,yb)) -> step(m, xb, yb, η)), dataloader(x, y, L); init = model)
-train(model, x, y, L, η, epochs) = foldl((m, _) -> train(m, x, y, L, η),1:epochs;init=model)
+train(model::Decoder, x, y, L, η) = foldl(((m,(xb,yb)) -> step(m, xb, yb, η)), dataloader(x, y, L); init = model)
+train(model::Decoder, x, y, L, η, epochs) = foldl((m, _) -> train(m, x, y, L, η),1:epochs;init=model)
 param_count(model) = sum(length, values(model))
 
 function generate(model, vocab, seed; n::Int=20)
