@@ -6,37 +6,25 @@ include("decoder.jl")
 include("diffusion.jl")
 include("cnn.jl")
 
-#Models
-export DDPM, Decoder
-
-#Primitives
-export convolution
-
-export
-    train!,
-    build_vocab,
+export build_vocab,
+    convolution,
+    DDPM,
     decode,
+    Decoder,
     encode,
     forward,
     generate,
     loss,
-    param_count,
-    Decoder,
-    positional_encoding,
-    step,
-    train,
-    diffusion_step,
-    diffusion_train,
-    mlp_parameters,
-    predict,
     noise,
     noise_schedule,
-    signal_schedule,
-    remaining_signal,
     noised_sample,
+    param_count,
+    positional_encoding,
+    remaining_signal,
     reverse_sample,
-    square,
-    scale,
-    timestep_embedding
+    reverse_samples,
+    signal_schedule,
+    train,
+    train!
 
 end
