@@ -45,6 +45,7 @@ function forward(m::DDPM, x, t, time_embedding)
     return reshape(h, H, W)
 end
 
+"Generates a box of the same type and size with random values"
 noise(x) = randn(eltype(x), size(x))
 "The entire noise variance schedule via β_t = β_min + (β_max - β_min) * (t-1)/(T-1)"
 noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T)
@@ -110,24 +111,5 @@ end
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
 train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x₀) -> step!(m, x₀, ᾱ, T, time_embedding; η=η), dataset; init=model)
-# "Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
-# train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
-
-"Creates an h×w zero matrix for a blank image"  
-img(h, w) = zeros(Int, h, w)
-"Return the integer radius given a diameter"
-iradius(d::Integer) = isodd(d) ? (d - 1) ÷ 2 : d ÷ 2
-"Return index ranges for rows and columns centered at (i, j) with given diameter"
-center_range(i::Integer, d::Integer) = i-iradius(d):i+iradius(d)
-"Paints a blocksize×blocksize block of 255s centered at (i, j) into an image (mutates)"
-addbox!(img, i, j, d) = img[center_range(i, d), center_range(j, d)] .= 255
-"Generates an h×w image with a d×d white box at (i, j)"
-box(h, w, i, j, d) = addbox!(img(h, w), i, j, d)
-"Return the interior range excluding r pixels from each border (1+r:h-r)"
-interior(n::Integer, d::Integer) = 1+iradius(d):n-iradius(d)
-"Generates all possible unique boxes on a black background"
-boxes(h, w, d) = [box(h, w, i, j, d) for i in interior(h, d) for j in interior(w, d)]
-"Scales an image (array) from [0,255] to [-1,1] via y = (2/255)*x - 1"
-scale(img::AbstractMatrix) = (2 .* Float32.(img) ./ 255) .- 1
-"Scales a vector of images by mapping `scale` over elements"
-scale(imgs::AbstractVector) = map(scale, imgs)
+"Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
+train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
