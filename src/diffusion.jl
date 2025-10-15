@@ -108,4 +108,15 @@ end
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
 train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x₀) -> step!(m, x₀, ᾱ, T, time_embedding; η=η), dataset; init=model)
 "Trains for E epochs by folding `train!(model, ᾱ, T, η, dataset, time_embedding)` over epochs: mₑ = foldl((m,_)->train!(m, ᾱ, T, η, dataset, time_embedding), 1:E; init=model)"
-train!(model, ᾱ, T, η, dataset, time_embedding, epochs) = foldl((m, _) -> train!(m, ᾱ, T, η, dataset, time_embedding), 1:epochs; init=model)
+function train!(model, ᾱ, T, η, dataset, time_embedding, epochs)
+    foldl(1:epochs; init=model) do m, epoch
+        trained = train!(m, ᾱ, T, η, dataset, time_embedding)
+        x₀ = rand(dataset)
+        ε = noise(x₀)
+        t = rand(1:T)
+        xt = noised_sample(x₀, ᾱ, t, ε)
+        ℓ = loss(trained, xt, t, ε, time_embedding)
+        @info "epoch=$(epoch) loss=$(ℓ)"
+        trained
+    end
+end
