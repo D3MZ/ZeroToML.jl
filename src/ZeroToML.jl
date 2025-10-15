@@ -14,7 +14,6 @@ export convolution
 
 export
     train!,
-    boxes,
     build_vocab,
     decode,
     encode,
