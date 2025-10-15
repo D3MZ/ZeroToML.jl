@@ -64,11 +64,7 @@ noised_sample(x₀, ᾱ, t, ε) = marginal_mean(x₀, ᾱ, t) .+ (sqrt(1-ᾱ[
 "Mean boxd Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
 loss(θ::DDPM, x, t, y, time_embedding) = mean((y .- forward(θ, x, t, time_embedding)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
-function sgd!(m::DDPM, ∇, η)
-    for p in propertynames(m)
-        getproperty(m, p) .-= η .* getproperty(∇, p)
-    end
-end
+sgd!(m::DDPM, ∇, η) = [getproperty(m, p) .-= η * getproperty(∇, p) for p in propertynames(m)]
 
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
 function step!(m::DDPM, x₀, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
@@ -112,4 +108,4 @@ end
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
 train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x₀) -> step!(m, x₀, ᾱ, T, time_embedding; η=η), dataset; init=model)
 "Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
-train(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train(m, ᾱ, T, η, dataset), 1:epochs; init=model)
+train!(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train!(m, ᾱ, T, η, dataset), 1:epochs; init=model)
