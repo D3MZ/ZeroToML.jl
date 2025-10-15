@@ -1,4 +1,4 @@
-using Test, Random, Statistics, NNlib, Tullio, LoopVectorization, BenchmarkTools, Zygote
+using Test, Random, Statistics, NNlib, Tullio, LoopVectorization, Zygote
 
 @testset "Convolution" begin
     for stride in [1, 2]
@@ -10,10 +10,6 @@ using Test, Random, Statistics, NNlib, Tullio, LoopVectorization, BenchmarkTools
             y_nnlib = NNlib.conv(x, w; stride=stride)
             
             @test y_manual ≈ y_nnlib
-
-            b_manual = @benchmark convolution($x, $w, $stride) samples=3
-            b_nnlib = @benchmark NNlib.conv($x, $w; stride=$stride) samples=3
-            @info "Benchmark (stride=$stride):" convolution=median(b_manual) NNlib.conv=median(b_nnlib)
 
             y_true = rand(eltype(y_manual), size(y_manual))
             
