@@ -39,11 +39,11 @@ Yet another AI from scratch repo.
 ### Architecture 
 - [x] Abstract common functions? Might reduce readability :(
   - [x] Use Multiple Dispatch and Structs/Types
-  - [ ] Paper name = Filename, Model name
+  - [ ] Filename, Model name is Paper name
 - [ ] Stateless? Memory allocations concerns if truely end-to-end stateless. We get history for free though. Maybe Stateless functions only?
 
 ### Features
-- [ ] Remove Flux / NNlib dependancies in core code. May be slower, but gain understanding.
-- [ ] Remove Zygote / AutoDiff? We lose flexibility in changing the model, but gain understanding.
+- [ ] Remove Flux / NNlib dependancies in core code. 
+- [ ] Remove Zygote / AutoDiff? We lose flexibility in changing the model.
 - [ ] Test from-scratch versions against established libraries for correctness.
 - [ ] Einstien notation-like that better exposes the math instead of hiding behind API abstractions. Maybe start with Tullio?
