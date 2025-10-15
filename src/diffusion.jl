@@ -5,9 +5,9 @@ relu(x::AbstractArray) = max.(x, zero(eltype(x)))
 relu(x::Number)        = max(x, zero(x))
 
 "Glorot/Xavier uniform initialization: Wᵢⱼ ~ U[-√(6/(m+n)), √(6/(m+n))] via https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf"
-glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
+@fastmath glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
 "Glorot/Xavier for convolution"
-glorot(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
+@fastmath glorot(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
 
 @kwdef struct DDPM
     W₁ = glorot(3, 3, 1, 16)
@@ -56,13 +56,13 @@ remaining_signal(α::AbstractRange) = cumprod(α)
 "Log Signal to Noise Ratio"
 snr(ᾱ) = log.(ᾱ ./ (1 .- ᾱ))
 "Conditional marginal mean E[xₜ | x₀] for the forward diffusion process q(xₜ | x₀)"
-marginal_mean(x, ᾱ, t) = sqrt(ᾱ[t]) .* x
+@fastmath marginal_mean(x, ᾱ, t) = sqrt(ᾱ[t]) .* x
 "Conditional marginal noise for the forward diffusion marginal q(xₜ | x₀). This is the random Gaussian noise part added to the deterministic mean √ᾱₜ · x₀."
-marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
+@fastmath marginal_noise(ᾱ, t, ε) = sqrt(1-ᾱ[t]).*ε
 "Forward noise sample q(x_t | x_0) = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε, with ε ~ N(0, I)"
-noised_sample(x₀, ᾱ, t, ε) = marginal_mean(x₀, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
-"Mean boxd Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
-loss(θ::DDPM, x, t, y, time_embedding) = mean((y .- forward(θ, x, t, time_embedding)).^2)
+@fastmath noised_sample(x₀, ᾱ, t, ε) = marginal_mean(x₀, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
+"Mean Squared Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
+loss(θ::DDPM, x, t, ε, time_embedding) = mean((ε .- forward(θ, x, t, time_embedding)).^2)
 "Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
 sgd!(m::DDPM, ∇, η) = [getproperty(m, p) .-= η * getproperty(∇, p) for p in propertynames(m)]
 
@@ -76,10 +76,10 @@ function step!(m::DDPM, x₀, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
 end
 
 "Computes μₜ = (xₜ − (βₜ / √(1−ᾱₜ))·ε̂) / √αₜ for the reverse diffusion mean"
-posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])) .* ε̂) ./ sqrt(α[t])
+@fastmath posterior_mean(x, ε̂, β, α, ᾱ, t) = (x .- (β[t]/sqrt(1-ᾱ[t])) .* ε̂) ./ sqrt(α[t])
 
 "Draws a sample xₜ₋₁ ~ μ + √βₜ · N(0, I) from the reverse diffusion step"
-latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
+@fastmath latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
 "Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,0, starting from x_T ~ N(0,I). "
 function reverse_sample(m::DDPM, β, α, ᾱ, T, d, time_embedding)
@@ -107,5 +107,5 @@ end
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
 train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x₀) -> step!(m, x₀, ᾱ, T, time_embedding; η=η), dataset; init=model)
-"Trains for E epochs by folding `train(model, ᾱ, T, η, dataset)` over epochs: mₑ = foldl((m,_)->train(m, ᾱ, T, η, dataset), 1:E; init=model)"
-train!(model, ᾱ, T, η, dataset, epochs) = foldl((m, _) -> train!(m, ᾱ, T, η, dataset), 1:epochs; init=model)
+"Trains for E epochs by folding `train!(model, ᾱ, T, η, dataset, time_embedding)` over epochs: mₑ = foldl((m,_)->train!(m, ᾱ, T, η, dataset, time_embedding), 1:E; init=model)"
+train!(model, ᾱ, T, η, dataset, time_embedding, epochs) = foldl((m, _) -> train!(m, ᾱ, T, η, dataset, time_embedding), 1:epochs; init=model)
