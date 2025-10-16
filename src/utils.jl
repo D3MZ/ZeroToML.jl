@@ -23,6 +23,13 @@ function softmax(logits::AbstractVector)
     weights ./ (sum(weights) + Float32(eps()))
 end
 
+"Numerically stable softmax for matrices, computed column-wise"
+function softmax(logits::AbstractMatrix)
+    shifted = logits .- maximum(logits; dims=1)
+    weights = exp.(shifted)
+    weights ./ (sum(weights; dims=1) .+ Float32(eps()))
+end
+
 "In-place stochastic gradient descent update"
 function sgd!(model, grads, η)
     for field in propertynames(model)
