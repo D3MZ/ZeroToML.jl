@@ -1,0 +1,184 @@
+using Random, Statistics, Zygote, LinearAlgebra
+
+"Proximal Policy Optimization (PPO) actor-critic implemented with small multilayer perceptrons"
+@kwdef struct PPO
+    input_dim
+    action_dim
+    hidden_dim = 32
+    actor_W₁ = glorot(hidden_dim, input_dim)
+    actor_b₁ = zeros(Float32, hidden_dim)
+    actor_W₂ = glorot(action_dim, hidden_dim)
+    actor_b₂ = zeros(Float32, action_dim)
+    critic_W₁ = glorot(hidden_dim, input_dim)
+    critic_b₁ = zeros(Float32, hidden_dim)
+    critic_w₂ = vec(glorot(1, hidden_dim))
+    critic_b₂ = zeros(Float32, 1)
+    clipϵ = 0.2f0
+    γ = 0.99f0
+    λ = 0.95f0
+    η = 3e-4f0
+end
+
+"Placeholder reset! definition for environments that do not implement it"
+reset!(env) = error("reset! not implemented for $(typeof(env))")
+
+"Placeholder step! definition for environments that do not implement it"
+step!(env, action) = error("step! not implemented for $(typeof(env))")
+
+"Dense layer: W × x + b"
+@fastmath dense(W, b, x) = W * x .+ b
+
+"Convert state-like input into a Float32 feature vector"
+features(state::AbstractArray) = vec(Float32.(state))
+features(state::Tuple) = features(collect(state))
+features(state::Number) = Float32[state]
+
+"Information entropy of a categorical distribution"
+entropy(probs) = -sum(probs .* log.(probs .+ Float32(eps())))
+
+"Numerically stable softmax"
+function stable_softmax(logits)
+    shifted = logits .- maximum(logits)
+    weights = exp.(shifted)
+    weights ./ (sum(weights) + Float32(eps()))
+end
+
+"Forward pass through the actor network to compute logits"
+function actor_logits(ppo::PPO, state)
+    x = features(state)
+    h = relu(dense(ppo.actor_W₁, ppo.actor_b₁, x))
+    dense(ppo.actor_W₂, ppo.actor_b₂, h)
+end
+
+"Policy π(a|s) represented as a categorical distribution over actions"
+policy(ppo::PPO, state) = stable_softmax(actor_logits(ppo, state))
+
+"Forward pass through the critic network estimating V(s)"
+function value(ppo::PPO, state)
+    x = features(state)
+    h = relu(dense(ppo.critic_W₁, ppo.critic_b₁, x))
+    dot(ppo.critic_w₂, h) + first(ppo.critic_b₂)
+end
+
+"Log probability of sampling `action` from categorical distribution `probs`"
+logprob(probs, action) = log(probs[action] + Float32(eps()))
+
+"Draw a single action according to the current policy"
+function sample_action(probs)
+    u = rand(Float32)
+    total = zero(Float32)
+    for idx in eachindex(probs)
+        total += probs[idx]
+        if u <= total
+            return idx
+        end
+    end
+    lastindex(probs)
+end
+
+"Collect trajectory data for a fixed number of interaction steps"
+function rollout(ppo::PPO, env, steps)
+    states = Vector{Vector{Float32}}(undef, steps)
+    actions = Vector{Int}(undef, steps)
+    rewards = zeros(Float32, steps)
+    dones = falses(steps)
+    log_probs = zeros(Float32, steps)
+    values = zeros(Float32, steps)
+
+    state = features(reset!(env))
+    for step in eachindex(actions)
+        states[step] = copy(state)
+        probs = policy(ppo, state)
+        action = sample_action(probs)
+        actions[step] = action
+        log_probs[step] = logprob(probs, action)
+        values[step] = value(ppo, state)
+
+        new_state, reward, done = step!(env, action)
+        rewards[step] = Float32(reward)
+        dones[step] = done
+        state = done ? features(reset!(env)) : features(new_state)
+    end
+
+    (; states, actions, rewards, dones, log_probs, values)
+end
+
+"Generalized Advantage Estimation (GAE-λ)"
+function advantages(ppo::PPO, rewards, values, dones)
+    adv = similar(rewards)
+    gae = 0f0
+    next_value = 0f0
+    for t in reverse(eachindex(rewards))
+        mask = dones[t] ? 0f0 : 1f0
+        δ = rewards[t] + ppo.γ * next_value * mask - values[t]
+        gae = δ + ppo.γ * ppo.λ * mask * gae
+        adv[t] = gae
+        next_value = values[t]
+    end
+    returns = adv .+ values
+    μ = Float32(mean(adv))
+    σ = Float32(std(adv))
+    ϵ = Float32(eps())
+    normalized = (adv .- μ) ./ (σ + ϵ)
+    normalized, returns
+end
+
+"Clipped PPO objective combining policy, value, and entropy terms"
+function ppo_loss(ppo::PPO, states, actions, advantages, returns, old_log_probs)
+    policy_sum = 0f0
+    value_sum = 0f0
+    entropy_sum = 0f0
+    n = length(actions)
+
+    for idx in 1:n
+        π = policy(ppo, states[idx])
+        new_logπ = Float32(logprob(π, actions[idx]))
+        ratio = exp(new_logπ - old_log_probs[idx])
+        clipped_ratio = clamp(ratio, 1f0 - ppo.clipϵ, 1f0 + ppo.clipϵ)
+        advantage = advantages[idx]
+        policy_sum += min(ratio * advantage, clipped_ratio * advantage)
+
+        v̂ = Float32(value(ppo, states[idx]))
+        δv = v̂ - returns[idx]
+        value_sum += δv * δv
+
+        entropy_sum += Float32(entropy(π))
+    end
+
+    policy_term = -policy_sum / n
+    value_term = value_sum / n
+    entropy_term = entropy_sum / n
+    policy_term + 0.5f0 * value_term - 0.01f0 * entropy_term
+end
+
+"Stochastic gradient descent on PPO parameters"
+function sgd!(ppo::PPO, ∇, η)
+    for field in propertynames(ppo)
+        θ = getproperty(ppo, field)
+        g = getproperty(∇, field)
+        (g === nothing || !(θ isa AbstractArray)) && continue
+        θ .-= η .* g
+    end
+    ppo
+end
+
+"Per-iteration improvement using collected trajectories"
+function improve!(ppo::PPO, batch, adv, returns, epochs)
+    for _ in 1:epochs
+        (∇,) = gradient(θ -> ppo_loss(θ, batch.states, batch.actions, adv, returns, batch.log_probs), ppo)
+        sgd!(ppo, ∇, ppo.η)
+    end
+    ppo
+end
+
+"Train PPO through repeated rollouts and improvement steps"
+function train!(ppo::PPO, env, steps, iterations; epochs=4)
+    foldl(1:iterations; init=ppo) do agent, iteration
+        batch = rollout(agent, env, steps)
+        adv, returns = advantages(agent, batch.rewards, batch.values, batch.dones)
+        improve!(agent, batch, adv, returns, epochs)
+        loss_value = ppo_loss(agent, batch.states, batch.actions, adv, returns, batch.log_probs)
+        @info "iteration=$(iteration) loss=$(loss_value)"
+        agent
+    end
+end
