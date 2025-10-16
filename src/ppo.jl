@@ -19,44 +19,44 @@ using Random, Statistics, Zygote, LinearAlgebra
     η = 3e-4f0
 end
 
-"""Placeholder reset! to be specialized by concrete environments"""
+"Placeholder reset! to be specialized by concrete environments"
 reset!(env) = error("reset! not implemented for $(typeof(env))")
 
-"""Placeholder step! to be specialized by concrete environments"""
+"Placeholder step! to be specialized by concrete environments"
 step!(env, action) = error("step! not implemented for $(typeof(env))")
 
-"""Dense layer: W × x + b"""
+"Dense layer: W × x + b"
 @fastmath dense(W, b, x) = W * x .+ b
 
-"""Convert arbitrary state into a Float32 feature vector"""
+"Convert arbitrary state into a Float32 feature vector"
 features(state::AbstractArray) = vec(Float32.(state))
 features(state::Tuple) = features(collect(state))
 features(state::Number) = Float32[state]
 
-"""Information entropy of a categorical distribution"""
+"Information entropy of a categorical distribution"
 entropy(probs) = -sum(probs .* log.(probs .+ Float32(eps())))
 
-"""Actor network logits ϕ(s) for the current policy"""
+"Actor network logits ϕ(s) for the current policy"
 function actor_logits(ppo::PPO, state)
     x = features(state)
     h = relu(dense(ppo.actor_W₁, ppo.actor_b₁, x))
     dense(ppo.actor_W₂, ppo.actor_b₂, h)
 end
 
-"""Policy π(a|s) represented as a categorical distribution over actions"""
+"Policy π(a|s) represented as a categorical distribution over actions"
 policy(ppo::PPO, state) = softmax(actor_logits(ppo, state))
 
-"""Critic network estimating the state value V(s)"""
+"Critic network estimating the state value V(s)"
 function value(ppo::PPO, state)
     x = features(state)
     h = relu(dense(ppo.critic_W₁, ppo.critic_b₁, x))
     dot(ppo.critic_w₂, h) + first(ppo.critic_b₂)
 end
 
-"""Log probability of sampling an action from a categorical distribution"""
+"Log probability of sampling an action from a categorical distribution"
 logprob(probs, action) = log(probs[action] + Float32(eps()))
 
-"""Categorical sampling without auxiliary frameworks"""
+"Categorical sampling without auxiliary frameworks"
 function sample_action(probs)
     u = rand(Float32)
     total = zero(Float32)
@@ -69,7 +69,7 @@ function sample_action(probs)
     lastindex(probs)
 end
 
-"""Collect trajectory data for a fixed number of interaction steps"""
+"Collect trajectory data for a fixed number of interaction steps"
 function rollout(ppo::PPO, env, steps)
     states = Vector{Vector{Float32}}(undef, steps)
     actions = Vector{Int}(undef, steps)
@@ -96,7 +96,7 @@ function rollout(ppo::PPO, env, steps)
     (; states, actions, rewards, dones, log_probs, values)
 end
 
-"""Generalized Advantage Estimation (GAE-λ)"""
+"Generalized Advantage Estimation (GAE-λ)"
 function advantages(ppo::PPO, rewards, values, dones)
     adv = similar(rewards)
     gae = 0f0
@@ -116,7 +116,7 @@ function advantages(ppo::PPO, rewards, values, dones)
     normalized, returns
 end
 
-"""Clipped PPO objective combining policy, value, and entropy terms"""
+"Clipped PPO objective combining policy, value, and entropy terms"
 function ppo_loss(ppo::PPO, states, actions, advantages, returns, old_log_probs)
     policy_sum = 0f0
     value_sum = 0f0
@@ -144,7 +144,7 @@ function ppo_loss(ppo::PPO, states, actions, advantages, returns, old_log_probs)
     policy_term + 0.5f0 * value_term - 0.01f0 * entropy_term
 end
 
-"""Per-iteration improvement using collected trajectories"""
+"Per-iteration improvement using collected trajectories"
 function improve!(ppo::PPO, batch, adv, returns, epochs)
     for _ in 1:epochs
         (∇,) = gradient(θ -> ppo_loss(θ, batch.states, batch.actions, adv, returns, batch.log_probs), ppo)
@@ -153,7 +153,7 @@ function improve!(ppo::PPO, batch, adv, returns, epochs)
     ppo
 end
 
-"""Train PPO through repeated rollouts and improvement steps"""
+"Train PPO through repeated rollouts and improvement steps"
 function train!(ppo::PPO, env, steps, iterations; epochs=4)
     foldl(1:iterations; init=ppo) do agent, iteration
         batch = rollout(agent, env, steps)
