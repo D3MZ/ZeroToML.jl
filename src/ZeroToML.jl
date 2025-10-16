@@ -35,6 +35,8 @@ export build_vocab,
     rollout,
     sgd!,
     train,
-    train!
+    train!,
+    reset!,
+    step!
 
 end

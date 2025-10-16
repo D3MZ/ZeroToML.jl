@@ -24,21 +24,21 @@ end
 @testset "PPO" begin
     Random.seed!(7)
     env = BanditEnv()
-    s₀ = ZeroToML.reset!(env)
+    s₀ = reset!(env)
 
     input_dim = length(s₀)
     action_dim = length(env.rewards)
 
     η = 5f-3
-    agent = ZeroToML.PPO(; input_dim=input_dim, action_dim=action_dim, hidden_dim=16, η=η)
+    agent = PPO(; input_dim=input_dim, action_dim=action_dim, hidden_dim=16, η=η)
 
-    π₀ = ZeroToML.policy(agent, s₀)
+    π₀ = policy(agent, s₀)
 
     steps = 64
     iterations = 25
-    agent = ZeroToML.train!(agent, env, steps, iterations; epochs=4)
+    agent = train!(agent, env, steps, iterations; epochs=4)
 
-    πᴱ = ZeroToML.policy(agent, ZeroToML.reset!(env))
+    πᴱ = policy(agent, reset!(env))
     @info "initial=$(π₀) trained=$(πᴱ)"
     @test first(πᴱ) > first(π₀)
     @test sum(πᴱ) ≈ 1f0 atol=1f-3
