@@ -1,13 +1,5 @@
-using Random, Statistics, Zygote, NNlib, Tullio, LoopVectorization
-
-"Relu Activation function"
-relu(x::AbstractArray) = max.(x, zero(eltype(x)))
-relu(x::Number)        = max(x, zero(x))
-
-"Glorot/Xavier uniform initialization: Wᵢⱼ ~ U[-√(6/(m+n)), √(6/(m+n))] via https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf"
-@fastmath glorot(m, n) = rand(Float32, m, n) .* (2f0*sqrt(6f0/(m+n))) .- sqrt(6f0/(m+n))
-"Glorot/Xavier for convolution"
-@fastmath glorot(w, h, c_in, c_out) = (rand(Float32, w, h, c_in, c_out) .* 2f0 .- 1f0) .* sqrt(6f0 / (w * h * (c_in + c_out)))
+using Random, Statistics, Zygote, Tullio, LoopVectorization
+using NNlib: conv
 
 @kwdef struct DDPM
     W₁ = glorot(3, 3, 1, 16)
@@ -63,9 +55,6 @@ snr(ᾱ) = log.(ᾱ ./ (1 .- ᾱ))
 @fastmath noised_sample(x₀, ᾱ, t, ε) = marginal_mean(x₀, ᾱ, t) .+ (sqrt(1-ᾱ[t]) .* ε)
 "Mean Squared Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
 loss(θ::DDPM, x, t, ε, time_embedding) = mean((ε .- forward(θ, x, t, time_embedding)).^2)
-"Stochastic Gradient Descent (SGD). m, ∇, η are mlp_parameters, gradients, and learning rate respectively"
-sgd!(m::DDPM, ∇, η) = [getproperty(m, p) .-= η * getproperty(∇, p) for p in propertynames(m)]
-
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
 function step!(m::DDPM, x₀, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
     ε  = noise(x₀)

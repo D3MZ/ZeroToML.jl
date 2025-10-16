@@ -1,6 +1,3 @@
-# --- Weight Initialization ---
-glorot_init(m, n) = (rand(Float32, m, n) .- 0.5f0) .* sqrt(2.0f0 / (m + n))
-
 # --- Tokenizer ---
 build_vocab(text) = sort(unique(collect(text)))
 
@@ -31,21 +28,21 @@ end
 
 # --- Network ---
 @kwdef struct Decoder
-    E = glorot_init(8, 29)
+    E = glorot(8, 29; gain=inv(sqrt(3f0)))
     P = positional_encoding(100, 8)
-    Wₐ = glorot_init(8, 8)
-    Wₖ = glorot_init(8, 8)
-    Wᵥ = glorot_init(8, 8)
-    Wₒ = glorot_init(8, 8)
+    Wₐ = glorot(8, 8; gain=inv(sqrt(3f0)))
+    Wₖ = glorot(8, 8; gain=inv(sqrt(3f0)))
+    Wᵥ = glorot(8, 8; gain=inv(sqrt(3f0)))
+    Wₒ = glorot(8, 8; gain=inv(sqrt(3f0)))
     ln₁_γ = ones(Float32, 8, 1)
     ln₁_β = zeros(Float32, 8, 1)
     ln₂_γ = ones(Float32, 8, 1)
     ln₂_β = zeros(Float32, 8, 1)
-    W₁ = glorot_init(16, 8)
+    W₁ = glorot(16, 8; gain=inv(sqrt(3f0)))
     b₁ = zeros(Float32, 16, 1)
-    W₂ = glorot_init(8, 16)
+    W₂ = glorot(8, 16; gain=inv(sqrt(3f0)))
     b₂ = zeros(Float32, 8, 1)
-    W_out = glorot_init(29, 8)
+    W_out = glorot(29, 8; gain=inv(sqrt(3f0)))
     b_out = zeros(Float32, 29, 1)
 end
 

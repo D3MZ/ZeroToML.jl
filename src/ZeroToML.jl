@@ -2,6 +2,7 @@ module ZeroToML
 
 using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
+include("utils.jl")
 include("decoder.jl")
 include("diffusion.jl")
 include("ppo.jl")
@@ -26,9 +27,13 @@ export build_vocab,
     reverse_sample,
     reverse_samples,
     signal_schedule,
+    glorot,
+    relu,
+    softmax,
     policy,
     value,
     rollout,
+    sgd!,
     train,
     train!
 
