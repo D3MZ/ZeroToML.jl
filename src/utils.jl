@@ -28,7 +28,7 @@ function sgd!(model, grads, η)
     for field in propertynames(model)
         θ = getproperty(model, field)
         g = getproperty(grads, field)
-        # (g === nothing || !(θ isa AbstractArray)) && continue
+        (g === nothing || !(θ isa AbstractArray)) && continue
         θ .-= η .* g
     end
     model
