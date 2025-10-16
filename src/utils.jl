@@ -14,6 +14,7 @@ end
 
 "ReLU activation"
 relu(x::AbstractArray) = max.(x, zero(eltype(x)))
+"ReLU activation"
 relu(x::Number) = max(x, zero(x))
 
 "Numerically stable softmax for vectors"
