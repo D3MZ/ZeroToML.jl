@@ -26,6 +26,10 @@ Yet another AI from scratch repo.
   - [ ] [Flow Matching](https://arxiv.org/abs/2210.02747)
   - [ ] [Rectified Flow — Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow](https://arxiv.org/abs/2209.03003)
 - [ ] RL
+  - [ ] [PPO - Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)
+  - [ ] [GRPO - Group Relative Policy Optimization](https://arxiv.org/abs/2402.03300)
+  - [ ] [SAC - Soft Actor-Critic Algorithms and Applications](https://arxiv.org/abs/1812.05905)
+  - [ ] Framework: [STOMP/OAK - Reward-Respecting Subtasks for Model-Based Reinforcement Learning](https://arxiv.org/pdf/2202.03466) 
 - [ ] Neural Network primitives
   - [ ] [CNN - A guide to convolution arithmetic for deep learning](https://arxiv.org/pdf/1603.07285)
     - [x] Discrete convolutions
