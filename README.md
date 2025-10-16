@@ -8,7 +8,7 @@ Yet another AI from scratch repo.
 - The files are appropriately named.
     - [notes](/notes) on my notes. They're still very rough.
     - [test](/test) for it in action on limited resources.
-    - [examples](/examples) long training on real datasets.
+    - [examples](/examples) long training on real datasets. This doesn't train well due to the small networks.
 - May contain AI slop.
 
 ## Roadmap
@@ -20,7 +20,7 @@ Yet another AI from scratch repo.
   - [ ] Impact on Different tokenizers (i.e. BPE tokenizer vs Character level)
   - [ ] Impact on number of heads
 - [ ] Diffusion
-  - [ ] [DDPM — Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239)
+  - [x] [DDPM — Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239)
   - [ ] [DDIM — Denoising Diffusion Implicit Models](https://arxiv.org/abs/2010.02502)
   - [ ] [SDE — Score-Based Generative Modeling through SDEs](https://arxiv.org/abs/2011.13456)
   - [ ] [Flow Matching](https://arxiv.org/abs/2210.02747)
@@ -51,3 +51,6 @@ Yet another AI from scratch repo.
 - [ ] Remove Zygote / AutoDiff? We lose flexibility in changing the model.
 - [ ] Test from-scratch versions against established libraries for correctness.
 - [ ] Einstien notation-like that better exposes the math instead of hiding behind API abstractions. Maybe start with Tullio?
+
+### TODO
+- [ ] Improve training in examples/
