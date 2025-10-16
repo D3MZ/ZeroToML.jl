@@ -14,4 +14,8 @@ using Test
     @testset "Neural Network Primitives" begin
         include("cnn.jl")
     end
+
+    @testset "Reinforcement Learning" begin
+        include("ppo.jl")
+    end
 end

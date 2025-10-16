@@ -4,11 +4,13 @@ using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
 include("decoder.jl")
 include("diffusion.jl")
+include("ppo.jl")
 include("cnn.jl")
 
 export build_vocab,
     convolution,
     DDPM,
+    PPO,
     decode,
     Decoder,
     encode,
@@ -24,6 +26,9 @@ export build_vocab,
     reverse_sample,
     reverse_samples,
     signal_schedule,
+    policy,
+    value,
+    rollout,
     train,
     train!
 
