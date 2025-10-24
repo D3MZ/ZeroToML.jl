@@ -1,6 +1,6 @@
 module ZeroToML
 
-# using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
+using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
 include("utils.jl")
 include("decoder.jl")
