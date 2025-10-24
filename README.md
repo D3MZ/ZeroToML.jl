@@ -13,6 +13,8 @@ Yet another AI from scratch repo.
 
 ## Roadmap
 ### Research
+- [ ] Decision Trees
+  - [ ] [LightGBM: A Highly Efficient Gradient Boosting Decision Tree](https://proceedings.neurips.cc/paper_files/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf)
 - [ ] Transformers
   - [ ] Encoder
   - [x] Decoder
@@ -39,6 +41,7 @@ Yet another AI from scratch repo.
     - [ ] Transposed
     - [ ] Dilated convolutions
     - [ ] Works with Gradients
+- [ ] [Errors and residuals](https://en.wikipedia.org/wiki/Errors_and_residuals)
 
 ### Architecture 
 - [x] Abstract common functions? Might reduce readability :(
