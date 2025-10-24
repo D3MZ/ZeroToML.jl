@@ -10,4 +10,12 @@ using Test
     @testset "Diffusion" begin
         include("diffusion.jl")
     end
+
+    @testset "Neural Network Primitives" begin
+        include("cnn.jl")
+    end
+
+    @testset "Reinforcement Learning" begin
+        include("ppo.jl")
+    end
 end

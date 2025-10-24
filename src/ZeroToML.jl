@@ -2,33 +2,41 @@ module ZeroToML
 
 # using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
-# include("decoder.jl")
-# include("diffusion.jl")
-# export
-#     build_vocab,
-#     decode,
-#     encode,
-#     forward,
-#     generate,
-#     loss,
-#     param_count,
-#     parameters,
-#     positional_encoding,
-#     step,
-#     train,
-#     # diffusion
-#     diffusion_step,
-#     diffusion_train,
-#     mlp_parameters,
-#     predict,
-#     noise,
-#     noise_schedule,
-#     signal_schedule,
-#     remaining_signal,
-#     noised_sample,
-#     reverse_sample,
-#     square,
-#     scale,
-#     timestep_embedding
+include("utils.jl")
+include("decoder.jl")
+include("diffusion.jl")
+include("ppo.jl")
+include("cnn.jl")
+
+export build_vocab,
+    convolution,
+    DDPM,
+    PPO,
+    decode,
+    Decoder,
+    encode,
+    forward,
+    generate,
+    loss,
+    noise,
+    noise_schedule,
+    noised_sample,
+    param_count,
+    positional_encoding,
+    remaining_signal,
+    reverse_sample,
+    reverse_samples,
+    signal_schedule,
+    glorot,
+    relu,
+    softmax,
+    policy,
+    value,
+    rollout,
+    sgd!,
+    train,
+    train!,
+    reset!,
+    step!
 
 end
