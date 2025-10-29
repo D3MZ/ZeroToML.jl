@@ -5,6 +5,17 @@ using Statistics
 using Plots
 
 @testset "GaussianProcess" begin
+    x_range = -5f0:0.1f0:5f0
+    X_prior = reshape(collect(x_range), :, 1)
+    gp_prior = GaussianProcess()
+    μ, Σ = predict(gp_prior, X_prior)
+    L = cholesky(Σ + gp_prior.noise * I).L
+    p = plot(title="Four samples from GP prior")
+    for i in 1:4
+        y_sample = μ + L * randn(Float32, length(μ))
+        plot!(p, X_prior, y_sample; label="sample $i")
+    end
+
     x = collect(range(-1f0, 1f0; length=15))
     X = reshape(x, :, 1)
     y = sin.(2f0 * π .* x)
