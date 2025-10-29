@@ -2,6 +2,7 @@ using ZeroToML
 using Test
 using LinearAlgebra
 using Statistics
+using Plots
 
 @testset "GaussianProcess" begin
     x = collect(range(-1f0, 1f0; length=15))
