@@ -7,9 +7,11 @@ include("decoder.jl")
 include("diffusion.jl")
 include("ppo.jl")
 include("cnn.jl")
+include("gaussian.jl")
 
 export build_vocab,
     convolution,
+    GaussianProcess,
     DDPM,
     PPO,
     decode,
@@ -28,6 +30,10 @@ export build_vocab,
     reverse_samples,
     signal_schedule,
     glorot,
+    covariance,
+    squared_exponential,
+    squared_exponential_kernel,
+    predict,
     relu,
     softmax,
     policy,

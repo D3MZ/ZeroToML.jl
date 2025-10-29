@@ -18,4 +18,8 @@ using Test
     @testset "Reinforcement Learning" begin
         include("ppo.jl")
     end
+
+    @testset "Gaussian Processes" begin
+        include("gaussian.jl")
+    end
 end
