@@ -3,7 +3,7 @@ using LinearAlgebra
 "Gaussian process with radial basis function kernel and noisy observations"
 @kwdef mutable struct GaussianProcess
     kernel = squared_exponential_kernel()
-    noise = 1f-6
+    noise = 1f-5
     X = Matrix{Float32}(undef, 0, 0)
     y = Float32[]
     L = Matrix{Float32}(undef, 0, 0)
