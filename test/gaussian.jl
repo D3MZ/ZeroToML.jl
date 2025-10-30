@@ -4,7 +4,7 @@ using LinearAlgebra
 using Statistics
 using Plots
 
-function plot_gp_posterior(X_data, y_data, X_prior; n_samples=4)
+function plot_gp_posterior(X_data, y_data, X_prior, objective_fn; n_samples=4)
     gp = GaussianProcess()
     train!(gp, X_data, y_data)
 
@@ -12,13 +12,14 @@ function plot_gp_posterior(X_data, y_data, X_prior; n_samples=4)
     std = sqrt.(diag(Σ))
 
     n_pts = size(X_data, 1)
-    p = plot(X_prior, μ; ribbon=2 .* std, label="Mean", title="$n_pts data points", legend=false, ylims=(-3,3))
+    p = plot(X_prior, objective_fn.(X_prior); label="Objective", color=:black, linestyle=:dot, title="$n_pts data points", legend=false, ylims=(-3,3))
+    plot!(p, X_prior, μ; ribbon=2 .* std, label="Mean")
     
     if !isempty(y_data)
         scatter!(p, X_data, y_data; label="Data", markersize=3)
     end
 
-    L = cholesky(Σ + (gp.noise + 1f-6) * I).L
+    L = cholesky(Symmetric(Σ) + (gp.noise + 1f-6) * I).L
     for _ in 1:n_samples
         y_sample = μ + L * randn(Float32, length(μ))
         plot!(p, X_prior, y_sample; label="", linestyle=:dash)
@@ -27,19 +28,29 @@ function plot_gp_posterior(X_data, y_data, X_prior; n_samples=4)
 end
 
 # @testset "GaussianProcess" begin
+    objective(x::Float32) = sin(x * 2.5f0) * exp(-0.1f0 * x^2) * 2.0f0
+    
     x_range = -5f0:0.1f0:5f0
-    X_prior = reshape(collect(x_range), :, 1)
+    X_search = reshape(collect(x_range), :, 1)
 
-    # Full dataset with 8 points
-    X_data_full = reshape(Float32[-4, -3, -2, -1, 1, 2, 3, 4], :, 1)
-    y_data_full = Float32[1.5, -1, 1, -1.5, 1.5, -1, 1, -1.5]
+    X_data = Matrix{Float32}(undef, 0, 1)
+    y_data = Float32[]
 
-    plot_counts = [0, 1, 2, 3, 4, 5, 6, 8]
     plots_list = []
-    for n_pts in plot_counts
-        X_d = X_data_full[1:n_pts, :]
-        y_d = y_data_full[1:n_pts]
-        p = plot_gp_posterior(X_d, y_d, X_prior; n_samples=4)
+    n_points_to_plot = [0, 1, 2, 3, 4, 5, 6, 8]
+    current_n_points = 0
+    
+    for target_n_points in n_points_to_plot
+        while current_n_points < target_n_points
+            gp = GaussianProcess()
+            train!(gp, X_data, y_data)
+            next_x = propose_next_point(gp, X_search; κ=2.0f0)
+            next_y = objective(next_x[1])
+            X_data = vcat(X_data, next_x)
+            y_data = vcat(y_data, next_y)
+            current_n_points += 1
+        end
+        p = plot_gp_posterior(X_data, y_data, X_search, objective; n_samples=4)
         push!(plots_list, p)
     end
 

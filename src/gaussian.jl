@@ -50,10 +50,28 @@ end
 
 "Posterior mean μ and covariance Σ for query inputs X̃"
 function predict(gp::GaussianProcess, X̃)
+    if isempty(gp.y)
+        μ = zeros(Float32, size(X̃, 1))
+        Σ = covariance(gp.kernel, X̃, X̃)
+        return μ, Symmetric(Σ)
+    end
+
     Kₛ = covariance(gp.kernel, X̃, gp.X)
     μ = Kₛ * gp.α
     v = gp.L \ Kₛ'
     Kₛₛ = covariance(gp.kernel, X̃, X̃)
     Σ = Symmetric(Kₛₛ .- (v' * v))
     μ, Σ
+end
+
+"Upper Confidence Bound acquisition function"
+upper_confidence_bound(μ, σ; κ=1.0f0) = μ .+ κ .* σ
+
+"Find the next point to sample by maximizing the acquisition function"
+function propose_next_point(gp::GaussianProcess, X_search; κ=1.0f0)
+    μ, Σ = predict(gp, X_search)
+    σ = sqrt.(diag(Σ))
+    ucb_values = upper_confidence_bound(μ, σ; κ=κ)
+    best_idx = argmax(ucb_values)
+    X_search[best_idx:best_idx, :]
 end
