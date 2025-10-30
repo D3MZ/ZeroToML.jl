@@ -9,11 +9,12 @@ using Plots
     X_prior = reshape(collect(x_range), :, 1)
     gp_prior = GaussianProcess()
     μ, Σ = predict(gp_prior, X_prior)
+    std = sqrt.(diag(Σ))
     L = cholesky(Σ + gp_prior.noise * I).L
-    p = plot(title="Four samples from GP prior")
+    p = plot(X_prior, μ; ribbon=2 .* std, label="Mean prediction", title="Four samples from GP prior")
     for i in 1:4
         y_sample = μ + L * randn(Float32, length(μ))
-        plot!(p, X_prior, y_sample; label="sample $i")
+        plot!(p, X_prior, y_sample; label="sample $i", linestyle=:dash)
     end
     display(p)
 
@@ -26,7 +27,8 @@ using Plots
 
     μ_post, Σ_post = predict(gp_posterior, X_prior)
 
-    p_post = plot(X_prior, μ_post; label="Mean prediction", linestyle=:solid, title="Posterior with two data points")
+    std_post = sqrt.(diag(Σ_post))
+    p_post = plot(X_prior, μ_post; ribbon=2 .* std_post, label="Mean prediction", linestyle=:solid, title="Posterior with two data points")
     scatter!(p_post, X_data, y_data; label="Observed data")
 
     L_post = cholesky(Σ_post + gp_posterior.noise * I).L
