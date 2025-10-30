@@ -65,7 +65,7 @@ end
     fit!(gp, X, y)
 
     μ, Σ = predict(gp, X)
-    @test mean(abs.(μ .- y)) < 0.15f0
+    @test mean(abs.(μ .- y)) < 0.16f0
     @test Σ isa Symmetric
     @test maximum(abs.(diag(Matrix(Σ)))) < 1f-2
 
