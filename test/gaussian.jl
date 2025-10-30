@@ -53,7 +53,10 @@ function bayesian_optimization_demo()
     end
 
     final_plot = plot(plots_list...; layout=(4,2), size=(800, 1600))
-    display(final_plot)
+    if isinteractive()
+        display(final_plot)
+    end
+    return final_plot
 end
 
 @testset "GaussianProcess" begin
