@@ -17,6 +17,25 @@ using Plots
     end
     display(p)
 
+    # Posterior with two data points
+    X_data = reshape([-4f0, 4f0], :, 1)
+    y_data = [1f0, -1f0]
+
+    gp_posterior = GaussianProcess()
+    train!(gp_posterior, X_data, y_data)
+
+    μ_post, Σ_post = predict(gp_posterior, X_prior)
+
+    p_post = plot(X_prior, μ_post; label="Mean prediction", linestyle=:solid, title="Posterior with two data points")
+    scatter!(p_post, X_data, y_data; label="Observed data")
+
+    L_post = cholesky(Σ_post + gp_posterior.noise * I).L
+    for i in 1:4
+        y_sample = μ_post + L_post * randn(Float32, length(μ_post))
+        plot!(p_post, X_prior, y_sample; label="sample $i", linestyle=:dash)
+    end
+    display(p_post)
+
 #     x = collect(range(-1f0, 1f0; length=15))
 #     X = reshape(x, :, 1)
 #     y = sin.(2f0 * π .* x)
