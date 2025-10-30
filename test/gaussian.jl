@@ -43,7 +43,7 @@ end
         push!(plots_list, p)
     end
 
-    final_plot = plot(plots_list...; layout=(2,4), size=(1600, 800))
+    final_plot = plot(plots_list...; layout=(4,2), size=(800, 1600))
     display(final_plot)
 
 #     x = collect(range(-1f0, 1f0; length=15))
