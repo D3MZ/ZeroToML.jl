@@ -1,4 +1,4 @@
-using ZeroToML
+include("../src/gaussian.jl")
 using Test
 using LinearAlgebra
 using Statistics
