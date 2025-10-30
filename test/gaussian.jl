@@ -37,7 +37,7 @@ function bayesian_optimization_demo()
     y_data = Float32[]
 
     plots_list = []
-    n_points_to_plot = [0, 1, 2, 3, 4, 5, 6, 8]
+    n_points_to_plot = [2^i for i in 1:8]
     
     for target_n_points in n_points_to_plot
         while size(X_data, 1) < target_n_points
