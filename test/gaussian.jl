@@ -46,9 +46,9 @@ end
             train!(gp, X_data, y_data)
             next_x = propose_next_point(gp, X_search; κ=2.0f0)
             next_y = objective(next_x[1])
-            X_data = vcat(X_data, next_x)
-            y_data = vcat(y_data, next_y)
-            current_n_points += 1
+            global X_data = vcat(X_data, next_x)
+            global y_data = vcat(y_data, next_y)
+            global current_n_points += 1
         end
         p = plot_gp_posterior(X_data, y_data, X_search, objective; n_samples=4)
         push!(plots_list, p)
