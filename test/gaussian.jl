@@ -19,8 +19,8 @@ using Plots
     display(p)
 
     # Posterior with two data points
-    X_data = reshape([-4f0, 4f0], :, 1)
-    y_data = [1f0, -1f0]
+    X_data = reshape([-4f0,2,4f0], :, 1)
+    y_data = [1f0,0, -1f0]
 
     gp_posterior = GaussianProcess()
     train!(gp_posterior, X_data, y_data)
