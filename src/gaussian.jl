@@ -37,7 +37,7 @@ function covariance(kernel, X, Y)
 end
 
 "Condition the process on data (X, y) by computing the Cholesky factor and α = K⁻¹y"
-function train!(gp::GaussianProcess, X, y)
+function fit!(gp::GaussianProcess, X, y)
     gp.X = X
     gp.y = y
     K = covariance(gp.kernel, X, X)

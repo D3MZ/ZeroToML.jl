@@ -6,7 +6,7 @@ using Plots
 
 function plot_gp_posterior(X_data, y_data, X_prior, objective_fn; n_samples=4)
     gp = GaussianProcess()
-    train!(gp, X_data, y_data)
+    fit!(gp, X_data, y_data)
 
     μ, Σ = predict(gp, X_prior)
     σ = sqrt.(diag(Σ))
@@ -42,7 +42,7 @@ function bayesian_optimization_demo()
     for target_n_points in n_points_to_plot
         while size(X_data, 1) < target_n_points
             gp = GaussianProcess()
-            train!(gp, X_data, y_data)
+            fit!(gp, X_data, y_data)
             next_x = propose_next_point(gp, X_search; κ=2.0f0)
             next_y = objective(first(next_x))
             X_data = vcat(X_data, next_x)
@@ -62,7 +62,7 @@ end
     y = sin.(2f0 * π .* x)
 
     gp = GaussianProcess()
-    train!(gp, X, y)
+    fit!(gp, X, y)
 
     μ, Σ = predict(gp, X)
     @test mean(abs.(μ .- y)) < 0.15f0
@@ -74,7 +74,7 @@ end
     x̃ = Float32[-1, 0, 1]
     X̃ = reshape(x̃, :, 1)
     ỹ = Float32[0, 1, 0]
-    train!(gp_custom, X̃, ỹ)
+    fit!(gp_custom, X̃, ỹ)
 
     Xₛ = reshape(Float32[-0.5, 0.5], :, 1)
     μₛ, Σₛ = predict(gp_custom, Xₛ)

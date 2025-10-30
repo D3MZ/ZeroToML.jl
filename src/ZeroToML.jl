@@ -42,7 +42,7 @@ export build_vocab,
     rollout,
     sgd!,
     train,
-    train!,
+    fit!,
     reset!,
     step!
 
