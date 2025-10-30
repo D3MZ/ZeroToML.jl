@@ -70,7 +70,7 @@ upper_confidence_bound(μ, σ; κ=1.0f0) = μ .+ κ .* σ
 "Find the next point to sample by maximizing the acquisition function"
 function propose_next_point(gp::GaussianProcess, X_search; κ=1.0f0)
     μ, Σ = predict(gp, X_search)
-    σ = sqrt.(diag(Σ))
+    σ = sqrt.(max.(0f0, diag(Σ)))
     ucb_values = upper_confidence_bound(μ, σ; κ=κ)
     best_idx = argmax(ucb_values)
     X_search[best_idx:best_idx, :]
