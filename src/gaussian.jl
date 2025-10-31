@@ -35,12 +35,6 @@ end
 function fit!(gp::GaussianProcess, X, y)
     gp.X = X
     gp.y = y
-    if isempty(y)
-        T = eltype(X)
-        gp.L = Matrix{T}(undef, 0, 0)
-        gp.α = similar(y, 0)
-        return gp
-    end
 
     K = covariance(gp.kernel, X, X)
     jitter = gp.noise + eps(eltype(K))
@@ -66,12 +60,6 @@ end
 
 "Posterior mean μ and covariance Σ for query inputs X̃"
 function predict(gp::GaussianProcess, X̃)
-    if isempty(gp.y)
-        μ = zeros(Float32, size(X̃, 1))
-        Σ = covariance(gp.kernel, X̃, X̃)
-        return μ, Symmetric(Σ)
-    end
-
     Kₛ = covariance(gp.kernel, X̃, gp.X)
     μ = Kₛ * gp.α
     v = gp.L \ Kₛ'
