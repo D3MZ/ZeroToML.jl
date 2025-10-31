@@ -19,7 +19,7 @@ function plot_gp_posterior(X_data, y_data, X_prior, objective_fn; n_samples=4)
         scatter!(p, X_data, y_data; label="Data", markersize=3)
     end
 
-    L = cholesky(Symmetric(Σ) + (gp.noise + 1f-5) * I).L
+    L = cholesky(Symmetric(Σ) + (gp.noise + 1f-4) * I).L
     for _ in 1:n_samples
         y_sample = μ + L * randn(Float32, length(μ))
         plot!(p, X_prior, y_sample; label="", linestyle=:dash)
