@@ -72,7 +72,7 @@ end
     @test Σ isa Symmetric
     @test maximum(abs.(diag(Matrix(Σ)))) < 1f-2
 
-    kernel = squared_exponential_kernel(; ℓ=0.5f0, σ=1f0)
+    kernel = (x, x̃) -> squared_exponential(x, x̃; ℓ=0.5f0, σ=1f0)
     gp_custom = GaussianProcess(; kernel=kernel, noise=1f-6)
     x̃ = Float32[-1, 0, 1]
     X̃ = reshape(x̃, :, 1)
