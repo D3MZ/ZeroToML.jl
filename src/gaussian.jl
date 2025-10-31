@@ -18,17 +18,9 @@ function squared_exponential(x, x̃; ℓ=1f0, σ=1f0)
     σ² * exp(-0.5f0 * (scaled ⋅ scaled))
 end
 
-"Construct covariance matrix K_ij = κ(xᵢ, yⱼ)"
-function covariance(kernel, X, Y)
-    K = similar(X, size(X, 1), size(Y, 1))
-    @views for i in axes(X, 1)
-        xᵢ = X[i, :]
-        for j in axes(Y, 1)
-            yⱼ = Y[j, :]
-            K[i, j] = kernel(xᵢ, yⱼ)
-        end
-    end
-    K
+"Construct kernel matrix K_ij = κ(xᵢ, yⱼ)"
+function kernel_matrix(kernel, X, Y)
+    [kernel(X[i, :], Y[j, :]) for i in axes(X, 1), j in axes(Y, 1)]
 end
 
 "Condition the process on data (X, y) by computing the Cholesky factor and α = K⁻¹y"
@@ -36,7 +28,7 @@ function fit!(gp::GaussianProcess, X, y)
     gp.X = X
     gp.y = y
 
-    K = covariance(gp.kernel, X, X)
+    K = kernel_matrix(gp.kernel, X, X)
     jitter = gp.noise + eps(eltype(K))
     factor = nothing
     for attempt in 1:6
@@ -60,10 +52,10 @@ end
 
 "Posterior mean μ and covariance Σ for query inputs X̃"
 function predict(gp::GaussianProcess, X̃)
-    Kₛ = covariance(gp.kernel, X̃, gp.X)
+    Kₛ = kernel_matrix(gp.kernel, X̃, gp.X)
     μ = Kₛ * gp.α
     v = gp.L \ Kₛ'
-    Kₛₛ = covariance(gp.kernel, X̃, X̃)
+    Kₛₛ = kernel_matrix(gp.kernel, X̃, X̃)
     Σ_latent = Kₛₛ .- (v' * v)
     Σ_latent = (Σ_latent + Σ_latent') .* 0.5f0
     for i in 1:size(Σ_latent, 1)

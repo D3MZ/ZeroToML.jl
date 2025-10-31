@@ -83,7 +83,7 @@ end
     μₛ, Σₛ = predict(gp_custom, Xₛ)
     @test length(μₛ) == 2
 
-    Kₛ = covariance(gp_custom.kernel, Xₛ, gp_custom.X)
+    Kₛ = kernel_matrix(gp_custom.kernel, Xₛ, gp_custom.X)
     @test size(Kₛ) == (2, 3)
 
     eigenvalues = eigvals(Matrix(Σₛ))
