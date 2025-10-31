@@ -19,9 +19,7 @@ function squared_exponential(x, x̃; ℓ=1f0, σ=1f0)
 end
 
 "Construct kernel matrix K_ij = κ(xᵢ, yⱼ)"
-function kernel_matrix(kernel, X, Y)
-    [kernel(X[i, :], Y[j, :]) for i in axes(X, 1), j in axes(Y, 1)]
-end
+kernel_matrix(kernel, X, Y) = [kernel(X[i, :], Y[j, :]) for i in axes(X, 1), j in axes(Y, 1)]
 
 "Condition the process on data (X, y) by computing the Cholesky factor and α = K⁻¹y"
 function fit!(gp::GaussianProcess, X, y)
