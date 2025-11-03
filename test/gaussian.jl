@@ -38,12 +38,13 @@ function bayesian_optimization_demo()
 
     plots_list = []
     
-    for i in 1:8
+    for i in 1:5
         target_n_points = 2^i
         while size(X_data, 1) < target_n_points
             gp = GaussianProcess()
             fit!(gp, X_data, y_data)
             next_x = propose_next_point(gp, X_search; κ=2.0f0)
+            @info next_x
             next_y = objective(first(next_x))
             X_data = vcat(X_data, next_x)
             y_data = vcat(y_data, next_y)

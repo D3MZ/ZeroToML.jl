@@ -76,3 +76,21 @@ function propose_next_point(gp::GaussianProcess, X_search; κ=1.0f0)
     best_idx = argmax(ucb_values)
     X_search[best_idx:best_idx, :]
 end
+
+objective(x) = sin(x * 2.5f0) * exp(-0.1f0 * x^2) * 2.0f0    
+x_range = -5f0:0.1f0:5f0
+X_search = reshape(collect(x_range), :, 1)
+
+X_data = Matrix{Float32}(undef, 0, 1)
+y_data = Float32[]
+
+gp = GaussianProcess()
+kernel = squared_exponential
+noise = 1f-5
+X = Matrix{Float32}(undef, 0, 0)
+y = Float32[]
+L = Matrix{Float32}(undef, 0, 0)
+α = Float32[]
+
+# fit!(gp, X_data, y_data)
+K = kernel_matrix(gp.kernel, X, X)
