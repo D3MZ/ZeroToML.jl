@@ -1,20 +1,13 @@
-You can have all sorts of wacky functions that'll perfectly interpolate data because nothing constrains the behavior between the known points. You may draw a straight line between two points, but nothing is stoping you from connecting those two points by first going to infinity and then back.
+There can be many functions that fit a given set of points. Gaussian Process (GP) is interesting because it allows you to not only discriminate functions on how well they fit the data, but also how they behave inbetween the data points.
 
-A Gaussian Process (GP) places a probability distribution over functions, which effectively bounds the infinite space of possibilities. 
 
-Given the general form of a probability density function is:
+
+This the general form of a probability density function is:
 $${\displaystyle f(x;\mu ,\sigma ^{2})={\frac {1}{\sqrt {2\pi \sigma ^{2}}}}e^{-{\frac {(x-\mu )^{2}}{2\sigma ^{2}}}}}=\mathcal{N}(x\mid\mu,\sigma^2)$$
 
 A Gaussian Process represents the mean $\mu$ as a function $m(x)$, and the variance $\sigma ^{2}$ as a covariance (kernel) function $k(x, x')$ - which just needs to be symmetric and a PSD in output.
 
-
-The GP prior $f \sim \mathcal{GP}(m, k)$ encodes assumptions—via the mean function $m(x)$ and covariance (kernel) function $k(x, x’)$—about smoothness, correlation, and scale. Once conditioned on observed data $D = \{(x_i, y_i)\}_{i=1}^n$, the GP produces a posterior distribution that specifies how likely each function is between points, yielding both a mean prediction and uncertainty that reflect what is plausible given the data and the prior.
-
-
-is an opinionated way of deciding what the ideal function looks like inbetween the datapoints that we know about.
-
-
-When $y = f(x)$ is too hard to specify directly, we can extend our toolbox by adding Gaussian (normal) noise $\varepsilon \sim \mathcal{N}(0, \sigma_n^2)$ that's independent from x. For a linear model we can write
+When $y = f(x)$ is too hard to specify directly, we can extend our toolbox by adding Gaussian (normal) noise $\varepsilon \sim \mathcal{N}(0, \sigma_n^2)$ that's independent and identically distributed (i.i.d) from x. For a linear model we can write
 
 $$f(x) = x^{\top} w, \quad y = f(x) + \varepsilon,$$
 
@@ -24,7 +17,7 @@ This reframing yields a likelihood without violating the model: $\mathbb{E}[y\mi
 
 $$p(\mathbf{y} \mid X, \mathbf{w}) \;=\; \prod_{i=1}^n p(y_i \mid x_i, \mathbf{w}).$$
 
-Because the additive noise is Gaussian with zero mean and variance $\sigma_n^2$, each conditional term is Gaussian; **independence across $i$** is used only to factorize the joint (product form), not to make each term Gaussian:
+Because the additive noise is Gaussian with zero mean and variance $\sigma_n^2$, each conditional term is also Gaussian:
 
 $$y_i \mid x_i,\mathbf{w} \sim \mathcal{N}(x_i^{\top}\mathbf{w},\,\sigma_n^2).$$
 
