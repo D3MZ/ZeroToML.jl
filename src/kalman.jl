@@ -21,8 +21,8 @@ end
 function simulate(Φ, M, Q, x₀, T; R=0.01)
     d = length(x₀)
     o = size(M, 1)
-    xs = Array{eltype(x₀)}(undef, d, T)
-    ys = Array{eltype(x₀)}(undef, o, T)
+    xs = Matrix{eltype(x₀)}(undef, d, T)
+    ys = Matrix{eltype(x₀)}(undef, o, T)
     x = copy(x₀)
     Qₗ = cholesky(Q).L
     Rₗ = sqrt(R)
