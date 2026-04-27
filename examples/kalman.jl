@@ -12,7 +12,7 @@ Random.seed!(42)
 Φ₁ = [1 0; 0 1]
 M₁ = [1 0]           # observe position, not velocity
 Q₁ = 1e-4 * I        # tiny process noise
-kf₁ = KalmanFilter{Float64}(Φ₁, M₁, Q₁, [0.25;;], [0, 0], [10 0; 0 10])
+kf₁ = KalmanFilter(Φ₁, M₁, Q₁, [0.25;;], [0, 0], [10 0; 0 10])
 
 timesteps = 200
 obs = [5.0 + 0.5 * randn() for _ in 1:timesteps]
@@ -48,7 +48,7 @@ for t in 1:T
     xs[:, t] = state
 end
 
-kf₂ = KalmanFilter{Float64}(Φ₂, M₂, Q₂, [0.25;;], [0, 1], [10 0; 0 10])
+kf₂ = KalmanFilter(Φ₂, M₂, Q₂, [0.25;;], [0, 1], [10 0; 0 10])
 est = similar(xs)
 for t in 1:T
     step!(kf₂, ys[:, t])
@@ -75,7 +75,7 @@ xlabel!("time"); ylabel!("velocity")
 Φ₄ = [1 0; 0 1]
 M₄ = [1 0]
 Q₄ = 1e-4 * I
-kf₄ = KalmanFilter{Float64}(Φ₄, M₄, Q₄, [0.25;;], [0, 0], [10 0; 0 10])
+kf₄ = KalmanFilter(Φ₄, M₄, Q₄, [0.25;;], [0, 0], [10 0; 0 10])
 
 covs = Vector{Float64}(undef, 50)
 for t in 1:50

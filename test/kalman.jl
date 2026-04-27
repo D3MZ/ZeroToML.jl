@@ -12,7 +12,7 @@ Random.seed!(42)
         x₀ = [42.0, 0.0]
         P₀ = [1 0; 0 1]
 
-        kf = KalmanFilter{Float64}(Φ, M, Q, [0.01;;], x₀, P₀)
+        kf = KalmanFilter(Φ, M, Q, [0.01;;], x₀, P₀)
 
         for _ in 1:10
             step!(kf, [42.0])
@@ -28,7 +28,7 @@ Random.seed!(42)
         x₀ = [0.0, 1.0]
         P₀ = [1 0; 0 1]
 
-        kf = KalmanFilter{Float64}(Φ, M, Q, [0.01;;], x₀, P₀)
+        kf = KalmanFilter(Φ, M, Q, [0.01;;], x₀, P₀)
 
         T = 30
         xs = Matrix{Float64}(undef, 2, T)
@@ -55,7 +55,7 @@ Random.seed!(42)
         x₀ = [0.0, 0.0]
         P₀ = [10 0; 0 10]
 
-        kf = KalmanFilter{Float64}(Φ, M, Q, [0.25;;], x₀, P₀)
+        kf = KalmanFilter(Φ, M, Q, [0.25;;], x₀, P₀)
         P_initial = kf.P[1, 1]
         for _ in 1:50
             step!(kf, [randn()])
@@ -77,7 +77,7 @@ end
     @test all(isfinite, xs)
     @test all(isfinite, ys)
 
-    kf = KalmanFilter{Float64}(Φ, M, Q, [0.25;;], x₀, [10 0; 0 10])
+    kf = KalmanFilter(Φ, M, Q, [0.25;;], x₀, [10 0; 0 10])
     for t in 1:T
         step!(kf, ys[:, t])
     end

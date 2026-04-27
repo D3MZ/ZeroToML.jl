@@ -1,5 +1,5 @@
 "Kalman filter for the linear-Gaussian state-space model"
-mutable struct KalmanFilter{T}
+mutable struct KalmanFilter
     Φ          # Transition matrix
     M          # Observation matrix
     Q          # Process noise covariance
