@@ -5,6 +5,24 @@
 using LinearAlgebra
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 0. The big idea
+# ─────────────────────────────────────────────────────────────────────────────
+# The Kalman filter assumes both the state (position, velocity) and the
+# observations are random variables with Gaussian (normal) distributions.
+#
+# Instead of tracking a single number for position, it tracks a *distribution*
+# over positions: a mean (best guess) and a variance (how sure we are).
+#
+# At each step:
+#   1. PREDICT: evolve the distribution forward in time (Φ makes it move,
+#      Q adds uncertainty because the world is random)
+#   2. UPDATE: blend the prediction with a new measurement (weighted by how
+#      sure we are vs how noisy the sensor is)
+#
+# Because Gaussians have nice math properties, both steps are just matrix
+# multiplications. The whole filter is ~5 lines of linear algebra.
+#
+# ─────────────────────────────────────────────────────────────────────────────
 # 1. What our model looks like
 # ─────────────────────────────────────────────────────────────────────────────
 # State:  x = [position, velocity]    (2 numbers we want to track)
