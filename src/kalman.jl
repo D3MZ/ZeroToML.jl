@@ -21,14 +21,14 @@ end
 function simulate(Φ, M, Q, x₀, T; R=0.01)
     d = length(x₀)
     o = size(M, 1)
-    xs = Matrix{eltype(x₀)}(undef, d, T)
-    ys = Matrix{eltype(x₀)}(undef, o, T)
+    xs = Array{eltype(x₀)}(undef, d, T)
+    ys = Array{eltype(x₀)}(undef, o, T)
     x = copy(x₀)
     Qₗ = cholesky(Q).L
     Rₗ = sqrt(R)
     for t in 1:T
-        x = Φ * x + Qₗ * randn(eltype(x₀), d)
-        y = M * x + Rₗ * randn(eltype(x₀), o)
+        x = Φ * x + Qₗ * randn(d)
+        y = M * x + Rₗ * randn(o)
         xs[:, t] = x
         ys[:, t] = y
     end
