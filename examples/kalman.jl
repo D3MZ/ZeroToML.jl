@@ -9,46 +9,46 @@ Random.seed!(42)
 # Example 1: 1D constant position — tracking a fixed target
 # ─────────────────────────────────────────────────────────────────────────────
 # Model: position stays still, we observe it with noise
-Φ₁ = Float32[1 0; 0 1]
-M₁ = Float32[1 0]           # observe position, not velocity
-Q₁ = 1f-4 * I                # tiny process noise
-R₁ = Float32[0.25;;]
-kf₁ = KalmanFilter(Φ₁, M₁, Q₁, Float32[0.25;;], Float32[0, 0], Float32[10 0; 0 10])
+Φ₁ = [1 0; 0 1]
+M₁ = [1 0]           # observe position, not velocity
+Q₁ = 1e-4 * I        # tiny process noise
+kf₁ = KalmanFilter{Float64}(Φ₁, M₁, Q₁, [0.25;;], [0, 0], [10 0; 0 10])
+
 timesteps = 200
-obs = [5f0 + 0.5f0 * randn() for _ in 1:timesteps]
-est = Vector{Float32}(undef, timesteps)
+obs = [5.0 + 0.5 * randn() for _ in 1:timesteps]
+est = Vector{Float64}(undef, timesteps)
 for t in 1:timesteps
-    step!(kf₁, Float32[obs[t]])
+    step!(kf₁, [obs[t]])
     est[t] = kf₁.x[1]
 end
 
 p1 = plot(1:timesteps, obs; label="noisy obs", color=:red, marker=:circle, markersize=3, lw=0)
 plot!(1:timesteps, est; label="estimate", color=:blue, lw=2)
-hline!([5f0]; color=:black, linestyle=:dash, lw=2, label="truth (5)")
+hline!([5]; color=:black, linestyle=:dash, lw=2, label="truth (5)")
 title!("Tracking a fixed target")
 xlabel!("time"); ylabel!("position")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Example 2: 2D constant-velocity — position tracking under noise
 # ─────────────────────────────────────────────────────────────────────────────
-dt = 1f0
-Φ₂ = Float32[1 dt; 0 1]
-M₂ = Float32[1 0]
-Q₂ = Float32[1f-4 0; 0 1f-4]
+dt = 1.0
+Φ₂ = [1 dt; 0 1]
+M₂ = [1 0]
+Q₂ = [1e-4 0; 0 1e-4]
 
 # Simulate ground truth
 T = 50
-xs = Matrix{Float32}(undef, 2, T)
-ys = Matrix{Float32}(undef, 1, T)
-global state = Float32[0, 1]
+xs = Matrix{Float64}(undef, 2, T)
+ys = Matrix{Float64}(undef, 1, T)
+state = [0.0, 1.0]
 for t in 1:T
     global state
-    state = Φ₂ * state + Float32[0.02f0 * randn(), 0.05f0 * randn()]
-    ys[:, t] = M₂ * state .+ 0.5f0 * randn()
+    state = Φ₂ * state + [0.02 * randn(), 0.05 * randn()]
+    ys[:, t] = M₂ * state .+ 0.5 * randn()
     xs[:, t] = state
 end
 
-kf₂ = KalmanFilter(Φ₂, M₂, Q₂, Float32[0.25;;], Float32[0, 1], Float32[10 0; 0 10])
+kf₂ = KalmanFilter{Float64}(Φ₂, M₂, Q₂, [0.25;;], [0, 1], [10 0; 0 10])
 est = similar(xs)
 for t in 1:T
     step!(kf₂, ys[:, t])
@@ -72,14 +72,14 @@ xlabel!("time"); ylabel!("velocity")
 # ─────────────────────────────────────────────────────────────────────────────
 # Example 4 — error covariance shrinks as observations accumulate
 # ─────────────────────────────────────────────────────────────────────────────
-Φ₄ = Float32[1 0; 0 1]
-M₄ = Float32[1 0]
-Q₄ = 1f-4 * I
-kf₄ = KalmanFilter(Φ₄, M₄, Q₄, Float32[0.25;;], Float32[0, 0], Float32[10 0; 0 10])
+Φ₄ = [1 0; 0 1]
+M₄ = [1 0]
+Q₄ = 1e-4 * I
+kf₄ = KalmanFilter{Float64}(Φ₄, M₄, Q₄, [0.25;;], [0, 0], [10 0; 0 10])
 
-covs = Vector{Float32}(undef, 50)
+covs = Vector{Float64}(undef, 50)
 for t in 1:50
-    step!(kf₄, Float32[5f0 + 0.5f0 * randn()])
+    step!(kf₄, [5.0 + 0.5 * randn()])
     covs[t] = kf₄.P[1, 1]
 end
 
