@@ -8,10 +8,12 @@ include("diffusion.jl")
 include("ppo.jl")
 include("cnn.jl")
 include("gaussian.jl")
+include("kalman.jl")
 
 export build_vocab,
     convolution,
     GaussianProcess,
+    KalmanFilter,
     DDPM,
     PPO,
     decode,
@@ -43,6 +45,7 @@ export build_vocab,
     train,
     fit!,
     reset!,
-    step!
+    step!,
+    simulate
 
 end

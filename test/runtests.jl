@@ -22,4 +22,8 @@ using Test
     @testset "Gaussian Processes" begin
         include("gaussian.jl")
     end
+
+    @testset "Kalman Filter" begin
+        include("kalman.jl")
+    end
 end

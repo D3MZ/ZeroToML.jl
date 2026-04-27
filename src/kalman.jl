@@ -1,0 +1,36 @@
+"Kalman filter for the linear-Gaussian state-space model"
+@kwdef mutable struct KalmanFilter
+    Φ          # Transition matrix
+    M          # Observation matrix
+    Q          # Process noise covariance
+    R          # Observation noise covariance
+    x          # State estimate x̂ₜ₊₁|ₜ
+    P          # Error covariance Pₜ₊₁|ₜ
+end
+
+"One step of the Kalman filter: predict then update given observation y"
+function step!(kf::KalmanFilter, y)
+    S = kf.M * kf.P * kf.M' + kf.R      # innovation covariance
+    Δ = kf.Φ * kf.P * kf.M' / S         # optimal weighting (Kalman gain)
+    Φ★ = kf.Φ - Δ * kf.M                 # Φ★ = Φ - ΔM
+    kf.x = Φ★ * kf.x + Δ * y             # state update
+    kf.P = Φ★ * kf.P * Φ★' + kf.Q        # covariance update
+end
+
+"Simulate a trajectory from the latent state-space model"
+function simulate(Φ, M, Q, x₀, T; R=1f-1)
+    d = length(x₀)
+    o = size(M, 1)
+    xs = Matrix{Float32}(undef, d, T)
+    ys = Matrix{Float32}(undef, o, T)
+    x = copy(x₀)
+    Qₗ = cholesky(Q).L
+    Rₗ = sqrt(R)
+    for t in 1:T
+        x = Φ * x + Qₗ * randn(Float32, d)
+        y = M * x + Rₗ * randn(Float32, o)
+        xs[:, t] = x
+        ys[:, t] = y
+    end
+    xs, ys
+end
