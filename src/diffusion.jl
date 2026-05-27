@@ -73,7 +73,7 @@ end
 "Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,0, starting from x_T ~ N(0,I). "
 function reverse_sample(m::DDPM, β, α, ᾱ, T, d, time_embedding)
     H = W = isqrt(d)
-    x = randn!(similar(first(m), Float32, H, W))
+    x = randn(Float32, H, W)
     μ = similar(x)
     for t in T:-1:2
         ε̂ = forward(m, x, t, time_embedding)
