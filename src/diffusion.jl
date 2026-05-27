@@ -37,8 +37,20 @@ function forward(m::DDPM, x, t, time_embedding)
     return reshape(h, H, W)
 end
 
+abstract type Noise end
+
+struct Gaussian <: Noise end
+struct StudentT <: Noise
+    ν
+end
+struct Cauchy <: Noise end
+
 "Generates a box of the same type and size with random values"
-noise(x) = randn(eltype(x), size(x))
+noise(x) = noise(x, Gaussian())
+noise(x, process::Noise) = noise(Random.default_rng(), x, process)
+noise(rng, x, ::Gaussian) = randn(rng, eltype(x), size(x))
+noise(rng, x, process::StudentT) = clamp.(randn(rng, eltype(x), size(x)) ./ sqrt.(dropdims(sum(abs2, randn(rng, eltype(x), size(x)..., Int(process.ν)); dims=ndims(x)+1); dims=ndims(x)+1) ./ process.ν), -eltype(x)(10), eltype(x)(10))
+noise(rng, x, ::Cauchy) = clamp.(tan.(eltype(x)(π) .* (rand(rng, eltype(x), size(x)) .- eltype(x)(0.5))), -eltype(x)(10), eltype(x)(10))
 "The entire noise variance schedule via β_t = β_min + (β_max - β_min) * (t-1)/(T-1)"
 noise_schedule(T; βmin=1f-4, βmax=0.02f0) = range(βmin, βmax; length=T)
 "Entire signal variance schedule: α_t = 1 - β_t"
@@ -56,8 +68,8 @@ snr(ᾱ) = log.(ᾱ ./ (1 .- ᾱ))
 "Mean Squared Error (MSE) loss used for DDPM training: Lₛᵢₘₚₗₑ(θ) := 𝐄ₜ,ₓ₀,ϵ ‖ϵ − ϵθ(√ᾱₜ·x₀ + √(1−ᾱₜ)·ϵ, t)‖²"
 loss(θ::DDPM, x, t, ε, time_embedding) = mean((ε .- forward(θ, x, t, time_embedding)).^2)
 "Performs one training step: adds noise xₜ = √ᾱₜ·x₀ + √(1−ᾱₜ)·ε and updates model by gradient of the loss (ε̂, ε)"
-function step!(m::DDPM, x₀, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0)
-    ε  = noise(x₀)
+function step!(m::DDPM, x₀, ᾱ, T, time_embedding; t=rand(1:T), η=1e-3f0, process=Gaussian())
+    ε  = noise(x₀, process)
     xt = noised_sample(x₀, ᾱ, t, ε)
     (∇,) = gradient(θ -> loss(θ, xt, t, ε, time_embedding), m)
     sgd!(m, ∇, η)
@@ -95,13 +107,13 @@ function reverse_samples(m::DDPM, β, α, ᾱ, T, d, time_embedding, N)
 end 
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
-train!(model::DDPM, ᾱ, T, η, dataset, time_embedding) = foldl((m, x₀) -> step!(m, x₀, ᾱ, T, time_embedding; η=η), dataset; init=model)
+train!(model::DDPM, ᾱ, T, η, dataset, time_embedding; process=Gaussian()) = foldl((m, x₀) -> step!(m, x₀, ᾱ, T, time_embedding; η=η, process=process), dataset; init=model)
 "Trains for E epochs by folding `train!(model, ᾱ, T, η, dataset, time_embedding)` over epochs: mₑ = foldl((m,_)->train!(m, ᾱ, T, η, dataset, time_embedding), 1:E; init=model)"
-function train!(model, ᾱ, T, η, dataset, time_embedding, epochs)
+function train!(model, ᾱ, T, η, dataset, time_embedding, epochs; process=Gaussian())
     foldl(1:epochs; init=model) do m, epoch
-        trained = train!(m, ᾱ, T, η, dataset, time_embedding)
+        trained = train!(m, ᾱ, T, η, dataset, time_embedding; process=process)
         x₀ = rand(dataset)
-        ε = noise(x₀)
+        ε = noise(x₀, process)
         t = rand(1:T)
         xt = noised_sample(x₀, ᾱ, t, ε)
         ℓ = loss(trained, xt, t, ε, time_embedding)
