@@ -22,9 +22,9 @@ using Random
 
     n_generate = 40
     seed_len = 10
-    start_idx = rand(1:(length(text) - (n_generate + seed_len)))
-    seed_text = text[start_idx:start_idx+seed_len-1]
+    seed_text = text[begin:seed_len]
     generated = generate(model, vocab, seed_text; n=n_generate)
-    actual_text = text[start_idx:start_idx+seed_len+n_generate-1]
+    actual_text = text[begin:seed_len+n_generate]
     @info "Generated" seed=seed_text generated=generated actual=actual_text
+    @test generated == actual_text
 end
