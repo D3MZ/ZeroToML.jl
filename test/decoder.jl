@@ -5,7 +5,6 @@ using BenchmarkTools
 using Random
 
 @testset "Decoder" begin
-    Random.seed!(0xBAADF00D)
     text = "A quick brown fox jumps over the lazy dog. " ^ 2
     vocab = build_vocab(text)
     x = encode(text[1:end-1], vocab)
@@ -30,9 +29,8 @@ using Random
     end
 
     @testset "relative sequences" begin
-        Random.seed!(0xBAADF00D)
-        learning_rate = 1f-1
-        epochs = 100
+        learning_rate = 5f-2
+        epochs = 300
         n_generate = 40
         seed_len = 10
         sequence_len = seed_len + n_generate
@@ -46,7 +44,7 @@ using Random
         seed_text = text[start_idx:start_idx+seed_len-1]
         generated = generate(model, vocab, seed_text; n=n_generate, position=relative, choose=argmax)
         actual_text = text[start_idx:start_idx+sequence_len-1]
-        @info "Generated relative" seed=seed_text generated=generated actual=actual_text
+        @info "Generated relative" start=start_idx seed=seed_text generated=generated actual=actual_text
         @test generated == actual_text
     end
 end
