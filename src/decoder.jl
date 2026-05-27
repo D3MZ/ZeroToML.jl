@@ -53,9 +53,12 @@ function layernorm(X, γ, β; ϵ=1f-5)
     return X̂ .* γ .+ β
 end
 
-function forward(x, θ)
+absolute(sequence) = sequence
+relative(sequence) = 1:length(sequence)
+
+function forward(x, θ, sequence=relative(eachindex(x)))
     L = length(x)
-    X = θ.E[:, x] .+ θ.P[:, 1:L]
+    X = θ.E[:, x] .+ θ.P[:, sequence]
 
     T  = eltype(X)
 
@@ -82,32 +85,40 @@ function forward(x, θ)
     return logits
 end
 
-function loss(θ, x, y)
-    ŷ = forward(x, θ)
+function loss(θ, x, y, sequence=relative(eachindex(x)))
+    ŷ = forward(x, θ, sequence)
     max_ŷ = maximum(ŷ; dims=1)
     log_probs = ŷ .- max_ŷ .- log.(sum(exp.(ŷ .- max_ŷ); dims=1))
     correct_log_probs = log_probs[CartesianIndex.(y, eachindex(y))]
     -mean(correct_log_probs)
 end
 
-function step(model::Decoder, x, y, η)
-    (∇,) = gradient(m -> loss(m, x, y), model)
+function step(model::Decoder, x, y, sequence, η)
+    (∇,) = gradient(m -> loss(m, x, y, sequence), model)
     updated_params = (p => getproperty(model, p) .- η .* getproperty(∇, p) for p in propertynames(model))
     Decoder(;updated_params...)
 end
 
 # --- Training, Inference, and Helpers ---
-dataloader(x, y, L) = zip(Iterators.partition(x, L), Iterators.partition(y, L))
-train(model::Decoder, x, y, L, η) = foldl(((m,(xb,yb)) -> step(m, xb, yb, η)), dataloader(x, y, L); init = model)
-train(model::Decoder, x, y, L, η, epochs) = foldl((m, _) -> train(m, x, y, L, η),1:epochs;init=model)
-param_count(model) = sum(length, values(model))
+sequencebatch(x, y, span, position) = (x[span], y[span], position(span))
 
-function generate(model, vocab, seed; n::Int=20)
+function dataloader(x, y, L; position=relative, stride=L)
+    sequence_len = min(L, length(x))
+    last_start = length(x) - sequence_len + 1
+    (sequencebatch(x, y, start:start+sequence_len-1, position) for start in 1:stride:last_start)
+end
+
+train(model::Decoder, x, y, L, η; position=relative, stride=L) = foldl(((m, (xb, yb, s)) -> step(m, xb, yb, s, η)), dataloader(x, y, L; position, stride); init = model)
+train(model::Decoder, x, y, L, η, epochs; position=relative, stride=L) = foldl((m, _) -> train(m, x, y, L, η; position, stride), 1:epochs; init=model)
+param_count(model) = sum(length, values(model))
+choose(p) = sample(eachindex(p), Weights(p))
+
+function generate(model, vocab, seed; n::Int=20, position=relative, choose=choose)
     idx = encode(string(seed), vocab)
     for _ in 1:n
-        logits = forward(idx, model)
+        logits = forward(idx, model, position(eachindex(idx)))
         p = softmax(logits[:, end])
-        push!(idx, sample(1:length(vocab), Weights(p)))
+        push!(idx, choose(p))
     end
     join(vocab[i] for i in idx)
 end

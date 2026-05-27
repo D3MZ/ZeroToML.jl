@@ -10,7 +10,8 @@ include("cnn.jl")
 include("gaussian.jl")
 include("kalman.jl")
 
-export build_vocab,
+export absolute,
+    build_vocab,
     convolution,
     GaussianProcess,
     KalmanFilter,
@@ -27,6 +28,7 @@ export build_vocab,
     noised_sample,
     param_count,
     positional_encoding,
+    relative,
     remaining_signal,
     reverse_sample,
     reverse_samples,
