@@ -4,6 +4,7 @@ using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
 include("utils.jl")
 include("decoder.jl")
+include("trm.jl")
 include("diffusion.jl")
 include("ppo.jl")
 include("cnn.jl")
@@ -37,11 +38,15 @@ export absolute,
     reverse_samples,
     signal_schedule,
     StudentT,
+    TRM,
     glorot,
     kernel_matrix,
     squared_exponential,
     predict,
     propose_next_point,
+    latent_recursion,
+    deep_recursion,
+    halt,
     relu,
     softmax,
     policy,

@@ -7,6 +7,10 @@ using Test
         include("decoder.jl")
     end
 
+    @testset "Recursive Reasoning" begin
+        include("trm.jl")
+    end
+
     @testset "Diffusion" begin
         include("diffusion.jl")
     end
