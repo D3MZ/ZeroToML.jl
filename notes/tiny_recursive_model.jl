@@ -199,3 +199,50 @@ accuracies = [mean(predict(trained, x; n=3, T=T) .== y) for T in Ts]
 plot(Ts, accuracies; marker=:circle, label=false,
      xlabel="T full recursions", ylabel="token accuracy", ylim=(0, 1.05),
      title="more test-time recursion")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. Decoder-style discrete vocabulary example
+# ─────────────────────────────────────────────────────────────────────────────
+# Because TRM predicts discrete tokens, the closest existing test is the decoder
+# test rather than the diffusion test. Diffusion learns continuous denoising;
+# this learns a token at every position with cross entropy.
+#
+# Here we copy the decoder test setup: x is a character sequence and y is the
+# same text shifted one character forward.
+
+text = "A quick brown fox jumps over the lazy dog. "
+vocab = build_vocab(text)
+context = 12
+
+x_text = text[begin:context]
+y_text = text[begin+1:context+1]
+
+x_tokens = encode(x_text, vocab)
+y_tokens = encode(y_text, vocab)
+
+text_model = TRM(vocab=length(vocab), context=context, width=20)
+text_before = predict(text_model, x_tokens; n=2, T=2)
+
+text_trained, text_losses = train_trace(text_model, x_tokens, y_tokens, 0.05f0, 200; n=2, T=2)
+text_after = predict(text_trained, x_tokens; n=2, T=2)
+
+println("input:  ", x_text)
+println("target: ", y_text)
+println("before: ", decode(text_before, vocab))
+println("after:  ", decode(text_after, vocab))
+
+plot(text_losses; label=false, xlabel="epoch", ylabel="loss", title="TRM decoder-style loss")
+
+text_rows = trace(text_trained, x_tokens; n=2, T=4)
+text_accuracy = [mean(row.answer .== y_tokens) for row in text_rows]
+
+plot(text_accuracy; marker=:circle, label=false,
+     xlabel="recursive step", ylabel="token accuracy", ylim=(0, 1.05),
+     title="next-character accuracy through recursion")
+
+# Each row is one recursive step. Each column is one character position.
+# Green means correct next-character prediction at that position.
+correct = hcat([(row.answer .== y_tokens) for row in text_rows]...)'
+heatmap(correct; c=:greens, colorbar=false,
+        xlabel="character position", ylabel="recursive step",
+        title="where the shifted-text prediction is correct")
