@@ -7,21 +7,21 @@ using Random
 
     text = "A quick brown fox jumps over the lazy dog. "
     vocab = build_vocab(text)
-    context = 12
+    context = length(text) - 1
     x = encode(text[begin:context], vocab)
     y = encode(text[begin+1:context+1], vocab)
 
-    model = TRM(vocab=length(vocab), context=context, width=20)
+    model = TRM(vocab=length(vocab), context=context, width=32)
     logits, answer, latent = forward(x, model; n=2, T=2)
 
     @test size(logits) == (length(vocab), context)
-    @test size(answer) == (20, context)
-    @test size(latent) == (20, context)
+    @test size(answer) == (32, context)
+    @test size(latent) == (32, context)
     @test length(predict(model, x; n=2, T=2)) == length(y)
     @test 0 ≤ halt(model, answer) ≤ 1
 
     initial = loss(model, x, y; n=2, T=2)
-    trained = train(model, x, y, 0.05f0, 200; n=2, T=2)
+    trained = train(model, x, y, 0.03f0, 300; n=2, T=2)
     final = loss(trained, x, y; n=2, T=2)
     generated = decode(predict(trained, x; n=2, T=2), vocab)
     actual = text[begin+1:context+1]
