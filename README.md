@@ -13,7 +13,7 @@ Yet another AI from scratch repo.
 
 ## Roadmap
 ### Research
-- [ ] [Gaussian Processes](https://gaussianprocess.org/gpml/chapters/RW.pdf?utm_source=chatgpt.com)
+- [ ] [Gaussian Processes](https://gaussianprocess.org/gpml/chapters/RW.pdf)
 - [ ] Decision Trees
   - [ ] [LightGBM: A Highly Efficient Gradient Boosting Decision Tree](https://proceedings.neurips.cc/paper_files/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf)
 - [ ] Transformers
