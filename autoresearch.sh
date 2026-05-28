@@ -8,7 +8,7 @@ boxes(H=16, W=16, h=3, w=3) = [(g = -ones(Float32, H, W); g[i:i+h-1, j:j+w-1] .=
 input(rng, x₀, ᾱ, t, process) = noised_sample(x₀, ᾱ, t, noise(rng, x₀, process))
 denoise(model, x, β, α, ᾱ, t, time_embedding) = foldl(t:-1:1; init=x) do sample, step
     ε̂ = forward(model, sample, step, time_embedding)
-    (sample .- 0.9f0 .* (β[step] / sqrt(1 - ᾱ[step])) .* ε̂) ./ sqrt(α[step])
+    (sample .- 0.8f0 .* (β[step] / sqrt(1 - ᾱ[step])) .* ε̂) ./ sqrt(α[step])
 end
 function reproduce(sample, h, w)
     scores = [sum(sample[i:i+h-1, j:j+w-1]) for i in 1:size(sample, 1)-h+1, j in 1:size(sample, 2)-w+1]
