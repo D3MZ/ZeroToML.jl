@@ -35,7 +35,9 @@ dataset = shuffle(MersenneTwister(1), boxes(H, W, h, w))
 time_embedding = ᾱ
 evaluation = dataset[[1, 29, 57, 85, 113, 141, 169, 196]]
 
-train!(DDPM(), ᾱ, T, η, first(dataset, 2), time_embedding; process=Gaussian())
+for process in processes
+    train!(DDPM(), ᾱ, T, rate(process, η), first(dataset, 2), time_embedding; process=process);
+end
 
 training_times = Float64[]
 noise_losses = Float32[]

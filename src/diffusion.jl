@@ -107,7 +107,9 @@ function reverse_samples(m::DDPM, β, α, ᾱ, T, d, time_embedding, N)
 end 
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
-train!(model::DDPM, ᾱ, T, η, dataset, time_embedding; process=Gaussian()) = foldl((m, x₀) -> step!(m, x₀, ᾱ, T, time_embedding; η=η, process=process), dataset; init=model)
+train!(model::DDPM, ᾱ, T, η, dataset, time_embedding; process=Gaussian()) = foldl(1:3; init=model) do m, epoch
+    foldl((θ, x₀) -> step!(θ, x₀, ᾱ, T, time_embedding; η=η, process=process), dataset; init=m)
+end
 "Trains for E epochs by folding `train!(model, ᾱ, T, η, dataset, time_embedding)` over epochs: mₑ = foldl((m,_)->train!(m, ᾱ, T, η, dataset, time_embedding), 1:E; init=model)"
 function train!(model, ᾱ, T, η, dataset, time_embedding, epochs; process=Gaussian())
     foldl(1:epochs; init=model) do m, epoch
