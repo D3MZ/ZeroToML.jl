@@ -16,7 +16,7 @@ using Test
     end
 
     @testset "Neural Network Primitives" begin
-        include("cnn.jl")
+        include("convolution.jl")
     end
 
     @testset "Reinforcement Learning" begin

@@ -7,7 +7,7 @@ include("decoder.jl")
 include("trm.jl")
 include("diffusion.jl")
 include("ppo.jl")
-include("cnn.jl")
+include("convolution.jl")
 include("gaussian.jl")
 include("kalman.jl")
 
