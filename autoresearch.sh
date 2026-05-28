@@ -58,7 +58,7 @@ for (index, process) in enumerate(processes)
 
     for sample in evaluation
         noisy = input(rng, sample, ᾱ, denoise_steps, process)
-        raw = denoise(model, noisy, β, α, ᾱ, denoise_steps, time_embedding)
+        raw = clamp.(denoise(model, noisy, β, α, ᾱ, denoise_steps, time_embedding), -1f0, 1f0)
         push!(raw_box_losses, mean((raw .- reproduce(raw, h, w)).^2))
     end
 end

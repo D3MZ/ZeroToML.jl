@@ -68,7 +68,7 @@ using Plots
         (model, untrained_loss, trained_loss)
     end
 
-    denoised = [denoise(model, sample, β, α, ᾱ, denoise_steps, time_embedding) for ((model, _, _), sample) in zip(losses, inputs)]
+    denoised = [clamp.(denoise(model, sample, β, α, ᾱ, denoise_steps, time_embedding), -1f0, 1f0) for ((model, _, _), sample) in zip(losses, inputs)]
     learned = [reproduce(sample, h, w) for sample in denoised]
     raw_box_losses = [mean((sample .- learned_sample).^2) for (sample, learned_sample) in zip(denoised, learned)]
     @info "Raw box loss" mean=mean(raw_box_losses) losses=raw_box_losses
