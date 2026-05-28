@@ -22,7 +22,7 @@ using Plots
     rate(::Gaussian, η) = η
     rate(::StudentT, η) = η
     rate(::Cauchy, η) = η / 10
-    panels(training, inputs, learned, processes, denoise_steps) = [heatmap(sample; title, color=:grays, clims=(-1, 1), axis=false, colorbar=false, aspect_ratio=:equal) for (title, sample) in vcat([("training $(name(process))", sample) for (process, sample) in zip(processes, training)], [("input $(name(process)) t=$denoise_steps", sample) for (process, sample) in zip(processes, inputs)], [("denoised $(name(process))", sample) for (process, sample) in zip(processes, learned)])]
+    panels(training, inputs, denoised, learned, processes, denoise_steps) = [heatmap(sample; title, color=:grays, clims=(-1, 1), axis=false, colorbar=false, aspect_ratio=:equal) for (title, sample) in vcat([("training $(name(process))", sample) for (process, sample) in zip(processes, training)], [("input $(name(process)) t=$denoise_steps", sample) for (process, sample) in zip(processes, inputs)], [("raw $(name(process))", sample) for (process, sample) in zip(processes, denoised)], [("reproduced $(name(process))", sample) for (process, sample) in zip(processes, learned)])]
     function reproduce(sample, h, w)
         scores = [sum(sample[i:i+h-1, j:j+w-1]) for i in 1:size(sample, 1)-h+1, j in 1:size(sample, 2)-w+1]
         i, j = Tuple(argmax(scores))
@@ -36,10 +36,10 @@ using Plots
     h, w = 3, 3
     T = 100
     η = 1f-1
-    denoise_steps = 50
+    denoise_steps = 100
     processes = [Gaussian(), StudentT(3), Cauchy()]
     n_samples = length(processes)
-    image_size = (900, 900)
+    image_size = (900, 1200)
 
     rng = RandomDevice()
     d = H * W
@@ -68,8 +68,11 @@ using Plots
         (model, untrained_loss, trained_loss)
     end
 
-    learned = [reproduce(denoise(model, sample, β, α, ᾱ, denoise_steps, time_embedding), h, w) for ((model, _, _), sample) in zip(losses, inputs)]
-    figure = plot(panels(training, inputs, learned, processes, denoise_steps)...; layout=(3, n_samples), size=image_size)
+    denoised = [denoise(model, sample, β, α, ᾱ, denoise_steps, time_embedding) for ((model, _, _), sample) in zip(losses, inputs)]
+    learned = [reproduce(sample, h, w) for sample in denoised]
+    raw_box_losses = [mean((sample .- learned_sample).^2) for (sample, learned_sample) in zip(denoised, learned)]
+    @info "Raw box loss" mean=mean(raw_box_losses) losses=raw_box_losses
+    figure = plot(panels(training, inputs, denoised, learned, processes, denoise_steps)...; layout=(4, n_samples), size=image_size)
     path = joinpath(@__DIR__, "diffusion_samples.png")
     savefig(figure, path)
     @info "Saved diffusion samples" path=path

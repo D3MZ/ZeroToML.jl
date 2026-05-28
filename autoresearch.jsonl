@@ -1,0 +1,1 @@
+{"type":"config","name":"Optimize diffusion raw box loss","metricName":"mean_raw_box_loss","metricUnit":"","bestDirection":"lower"}
