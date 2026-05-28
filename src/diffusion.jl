@@ -108,7 +108,7 @@ end
 
 "Trains the diffusion model over the dataset by repeatedly applying one training step"
 train!(model::DDPM, ᾱ, T, η, dataset, time_embedding; process=Gaussian()) = foldl(1:3; init=model) do m, epoch
-    foldl((θ, x₀) -> step!(θ, x₀, ᾱ, T, time_embedding; η=η, process=process), dataset; init=m)
+    foldl((θ, x₀) -> step!(θ, x₀, ᾱ, T, time_embedding; η=1.25f0 * η, process=process), dataset; init=m)
 end
 "Trains for E epochs by folding `train!(model, ᾱ, T, η, dataset, time_embedding)` over epochs: mₑ = foldl((m,_)->train!(m, ᾱ, T, η, dataset, time_embedding), 1:E; init=model)"
 function train!(model, ᾱ, T, η, dataset, time_embedding, epochs; process=Gaussian())
