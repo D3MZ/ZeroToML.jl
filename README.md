@@ -24,6 +24,15 @@ Yet another AI from scratch repo.
   - [ ] Impact on number of heads
 - [ ] Diffusion
   - [x] [DDPM — Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239)
+    - [ ] Separate Gaussian DDPM from heavy-tailed diffusion experiments
+    - [ ] Replace variance-based scaling for Cauchy with scale-parameter schedules
+    - [ ] Add distribution-specific forward sampling for Gaussian, StudentT, Cauchy, and other noise families
+    - [ ] Train distribution-specific targets instead of always predicting Gaussian-style ε
+    - [ ] Add score-matching targets for non-Gaussian noise processes
+    - [ ] Implement distribution-aware reverse steps instead of reusing the Gaussian posterior formula
+    - [ ] Explore approximate posterior samplers for StudentT and Cauchy transitions
+    - [ ] Compare ε-prediction, score-prediction, and x₀-prediction objectives
+    - [ ] Validate heavy-tailed diffusion with broader held-out samples, not only toy box reconstruction
   - [ ] [DDIM — Denoising Diffusion Implicit Models](https://arxiv.org/abs/2010.02502)
   - [ ] [SDE — Score-Based Generative Modeling through SDEs](https://arxiv.org/abs/2011.13456)
   - [ ] [Flow Matching](https://arxiv.org/abs/2210.02747)
