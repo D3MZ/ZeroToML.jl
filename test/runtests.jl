@@ -12,7 +12,7 @@ using Test
     end
 
     @testset "Diffusion" begin
-        include("diffusion.jl")
+        include("ddpm.jl")
     end
 
     @testset "Neural Network Primitives" begin

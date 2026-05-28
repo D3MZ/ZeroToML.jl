@@ -13,8 +13,8 @@ Move the diffusion raw denoising mean box loss toward zero without using `reprod
 `./autoresearch.sh` — outputs `METRIC name=value` lines.
 
 ## Files in Scope
-- `src/diffusion.jl` — DDPM model, forward pass, noise process, training, reverse helpers.
-- `test/diffusion.jl` — diffusion visualization/test and raw box loss reporting.
+- `src/ddpm.jl` — DDPM model, forward pass, noise process, training, reverse helpers.
+- `test/ddpm.jl` — DDPM visualization/test and raw box loss reporting.
 - `autoresearch.sh` — benchmark harness and metric extraction.
 - `autoresearch.md` — session notes and tried ideas.
 - `autoresearch.ideas.md` — deferred promising ideas.

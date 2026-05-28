@@ -5,7 +5,7 @@ using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 include("utils.jl")
 include("decoder.jl")
 include("trm.jl")
-include("diffusion.jl")
+include("ddpm.jl")
 include("ppo.jl")
 include("convolution.jl")
 include("gaussian.jl")

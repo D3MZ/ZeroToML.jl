@@ -73,9 +73,9 @@ using Plots
     raw_box_losses = [mean((sample .- learned_sample).^2) for (sample, learned_sample) in zip(denoised, learned)]
     @info "Raw box loss" mean=mean(raw_box_losses) losses=raw_box_losses
     figure = plot(panels(training, inputs, denoised, learned, processes, denoise_steps)...; layout=(4, n_samples), size=image_size)
-    path = joinpath(@__DIR__, "diffusion_samples.png")
+    path = joinpath(@__DIR__, "ddpm_samples.png")
     savefig(figure, path)
-    @info "Saved diffusion samples" path=path
+    @info "Saved DDPM samples" path=path
 
     @test all(loss -> loss[3] < loss[2], losses)
     @test all(sample -> issquare(sample, h, w), learned)
