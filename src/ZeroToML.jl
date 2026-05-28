@@ -6,6 +6,7 @@ include("utils.jl")
 include("decoder.jl")
 include("trm.jl")
 include("ddpm.jl")
+include("sde.jl")
 include("ppo.jl")
 include("convolution.jl")
 include("gaussian.jl")
@@ -18,6 +19,8 @@ export absolute,
     KalmanFilter,
     Cauchy,
     DDPM,
+    ScoreSDE,
+    VPSDE,
     Gaussian,
     Noise,
     PPO,
@@ -30,6 +33,9 @@ export absolute,
     noise,
     noise_schedule,
     noised_sample,
+    perturbed_sample,
+    denoised_mean,
+    marginal_std,
     param_count,
     positional_encoding,
     relative,

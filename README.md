@@ -34,7 +34,7 @@ Yet another AI from scratch repo.
     - [ ] Compare ε-prediction, score-prediction, and x₀-prediction objectives
     - [ ] Validate heavy-tailed diffusion with broader held-out samples, not only toy box reconstruction
   - [ ] [DDIM — Denoising Diffusion Implicit Models](https://arxiv.org/abs/2010.02502)
-  - [ ] [SDE — Score-Based Generative Modeling through SDEs](https://arxiv.org/abs/2011.13456)
+  - [x] [SDE — Score-Based Generative Modeling through SDEs](https://arxiv.org/abs/2011.13456)
   - [ ] [Flow Matching](https://arxiv.org/abs/2210.02747)
   - [ ] [Rectified Flow — Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow](https://arxiv.org/abs/2209.03003)
 - [ ] RL
