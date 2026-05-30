@@ -11,7 +11,6 @@ using Plots
 
     boxes(H=12, W=12, h=3, w=3) = [(g = -ones(Float32, H, W); g[i:i+h-1, j:j+w-1] .= 1f0; g) for i in 1:H-h+1 for j in 1:W-w+1]
     diffuse(rng, sde, x₀, t) = perturbed_sample(sde, x₀, t, randn(rng, Float32, size(x₀)))
-    name(::VPSDE) = "VP SDE"
     panel(title, sample) = heatmap(sample; title, color=:grays, clims=(-1, 1), axis=false, colorbar=false, aspect_ratio=:equal)
     Random.seed!(1)
 
@@ -22,6 +21,7 @@ using Plots
     rng = MersenneTwister(1)
     dataset = shuffle(rng, boxes(H, W, h, w))
     sde = VPSDE(βmin=0.1f0, βmax=2f0)
+    label = "VP SDE"
     model = ScoreSDE()
     x₀ = rand(rng, dataset)
     ε = randn(rng, Float32, size(x₀))
@@ -33,13 +33,13 @@ using Plots
     denoised = clamp.(denoised_mean(model, sde, input, t), -1f0, 1f0)
     input_loss = mean((input .- x₀).^2)
     denoised_loss = mean((denoised .- x₀).^2)
-    @info "$(name(sde)) score loss" untrained=untrained_loss trained=trained_loss
+    @info "$label score loss" untrained=untrained_loss trained=trained_loss
     @info "Denoising loss" input=input_loss denoised=denoised_loss
 
     figure = plot(
-        panel("training $(name(sde))", x₀),
-        panel("input $(name(sde)) t=$t", input),
-        panel("denoised $(name(sde))", denoised);
+        panel("training $label", x₀),
+        panel("input $label t=$t", input),
+        panel("denoised $label", denoised);
         layout=(1, 3), size=(900, 300)
     )
     path = joinpath(@__DIR__, "sde_samples.png")
