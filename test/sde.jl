@@ -17,7 +17,7 @@ using Plots
     H, W = 12, 12
     h, w = 3, 3
     η = 5f-3
-    t = 0.25f0
+    t = 0.5f0
     rng = MersenneTwister(1)
     dataset = shuffle(rng, boxes(H, W, h, w))
     sde = VPSDE(βmin=0.1f0, βmax=2f0)
@@ -28,7 +28,7 @@ using Plots
     input = diffuse(rng, sde, x₀, t)
 
     untrained_loss = loss(model, sde, x₀, t, ε)
-    model = train!(model, sde, η, dataset; epochs=3)
+    model = train!(model, sde, η, dataset; epochs=10)
     trained_loss = loss(model, sde, x₀, t, ε)
     denoised = clamp.(denoised_mean(model, sde, input, t), -1f0, 1f0)
     input_loss = mean((input .- x₀).^2)
@@ -39,7 +39,7 @@ using Plots
     figure = plot(
         panel("training $label", x₀),
         panel("input $label t=$t", input),
-        panel("denoised $label", denoised);
+        panel("one-step estimate $label", denoised);
         layout=(1, 3), size=(900, 300)
     )
     path = joinpath(@__DIR__, "sde_samples.png")
