@@ -1,10 +1,11 @@
 name = "ZeroToML"
 uuid = "92d4436d-aade-4fb1-9591-dec7c909cb55"
-authors = ["Demetrius Michael <arrrwalktheplank@gmail.com> and contributors"]
 version = "1.0.0-DEV"
+authors = ["Demetrius Michael <arrrwalktheplank@gmail.com> and contributors"]
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+BlackBoxOptim = "a134a8b2-14d6-55f6-9291-3336d3ab0209"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -21,6 +22,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 BenchmarkTools = "1.6.0"
+BlackBoxOptim = "0.6.5"
 Dates = "1.11.0"
 LinearAlgebra = "1.11.0"
 Logging = "1.11.0"
