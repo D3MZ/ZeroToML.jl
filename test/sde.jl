@@ -29,7 +29,7 @@ using Plots
     untrained_loss = loss(model, sde, x₀, t, ε)
     model = train!(model, sde, η, dataset; epochs=15)
     trained_loss = loss(model, sde, x₀, t, ε)
-    denoised = clamp.(denoise(model, sde, input, t; steps=100), -1f0, 1f0)
+    denoised = clamp.(probability_flow_sample(model, sde, input, t; steps=100), -1f0, 1f0)
     input_loss = mean((input .- x₀).^2)
     denoised_loss = mean((denoised .- x₀).^2)
     @info "$label score loss" untrained=untrained_loss trained=trained_loss
@@ -38,7 +38,7 @@ using Plots
     figure = plot(
         panel("training $label", x₀),
         panel("input $label t=$t", input),
-        panel("reverse $label", denoised);
+        panel("probability flow $label", denoised);
         layout=(1, 3), size=(900, 300)
     )
     path = joinpath(@__DIR__, "sde_samples.png")

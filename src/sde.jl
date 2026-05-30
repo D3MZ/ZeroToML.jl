@@ -67,32 +67,59 @@ function train!(model::ScoreSDE, sde::VPSDE, η, dataset; epochs=1)
 end
 
 @fastmath denoised_mean(m::ScoreSDE, sde::VPSDE, x, t) = (x .+ marginal_std(sde, t)^2 .* forward(m, x, t)) ./ exp(-0.5f0 * ∫β(sde, t))
+denoise(m::ScoreSDE, sde::VPSDE, x, t) = denoised_mean(m, sde, x, t)
 
-function denoise(m::ScoreSDE, sde::VPSDE, x, t; steps=100)
+function reverse_predictor(m::ScoreSDE, sde::VPSDE, x, t, Δt; rng=Random.default_rng())
+    score = forward(m, x, t)
+    dx = drift(sde, x, t) .- diffusion(sde, t)^2 .* score
+    x .- dx .* Δt .+ diffusion(sde, t) * sqrt(Δt) .* randn(rng, Float32, size(x))
+end
+
+function langevin_corrector(m::ScoreSDE, x, t; snr=0.16f0, steps=1, rng=Random.default_rng())
+    foldl(1:steps; init=x) do sample, _
+        score = forward(m, sample, t)
+        noise = randn(rng, Float32, size(sample))
+        score_norm = sqrt(mean(score .^ 2))
+        score_norm += eps(score_norm)
+        noise_norm = sqrt(mean(noise .^ 2))
+        η = 2f0 * (snr * noise_norm / score_norm)^2
+        sample .+ η .* score .+ sqrt(2f0 * η) .* noise
+    end
+end
+
+function reverse_denoise(m::ScoreSDE, sde::VPSDE, x, t; steps=100, corrector_steps=0, snr=0.16f0, rng=Random.default_rng())
     Δt = t / steps
-    foldl(steps:-1:1; init=x) do sample, step
+    sample = foldl(steps:-1:1; init=x) do sample, step
         τ = max(Float32(step * Δt), 1f-3)
-        sample .- (drift(sde, sample, τ) .- diffusion(sde, τ)^2 .* forward(m, sample, τ)) .* Δt
+        predicted = reverse_predictor(m, sde, sample, τ, Δt; rng=rng)
+        langevin_corrector(m, predicted, τ; snr=snr, steps=corrector_steps, rng=rng)
     end
+    denoise(m, sde, sample, 1f-3)
 end
 
-function reverse_sample(m::ScoreSDE, sde::VPSDE, d; steps=100)
+function probability_flow_sample(m::ScoreSDE, sde::VPSDE, x, t; steps=100)
+    Δt = t / steps
+    sample = foldl(steps:-1:1; init=x) do sample, step
+        τ = max(Float32(step * Δt), 1f-3)
+        score = forward(m, sample, τ)
+        dx = drift(sde, sample, τ) .- 0.5f0 * diffusion(sde, τ)^2 .* score
+        sample .- dx .* Δt
+    end
+    denoise(m, sde, sample, 1f-3)
+end
+
+function reverse_sample(m::ScoreSDE, sde::VPSDE, d; steps=100, corrector_steps=0, snr=0.16f0, rng=Random.default_rng())
     H = W = isqrt(d)
-    x = randn(Float32, H, W)
-    Δt = 1f0 / steps
-    for i in steps:-1:1
-        t = max(Float32(i / steps), 1f-3)
-        score = forward(m, x, t)
-        dx = drift(sde, x, t) .- β(sde, t) .* score
-        x = x .- dx .* Δt .+ diffusion(sde, t) * sqrt(Δt) .* randn(Float32, size(x))
-    end
-    x
+    x = randn(rng, Float32, H, W)
+    reverse_denoise(m, sde, x, 1f0; steps=steps, corrector_steps=corrector_steps, snr=snr, rng=rng)
 end
 
-function reverse_samples(m::ScoreSDE, sde::VPSDE, d, N; steps=100)
+predictor_corrector_sample(m::ScoreSDE, sde::VPSDE, d; steps=100, corrector_steps=1, snr=0.16f0, rng=Random.default_rng()) = reverse_sample(m, sde, d; steps=steps, corrector_steps=corrector_steps, snr=snr, rng=rng)
+
+function reverse_samples(m::ScoreSDE, sde::VPSDE, d, N; steps=100, corrector_steps=0, snr=0.16f0)
     samples = Vector{Matrix{Float32}}(undef, N)
     Threads.@threads for i in eachindex(samples)
-        samples[i] = reverse_sample(m, sde, d; steps=steps)
+        samples[i] = reverse_sample(m, sde, d; steps=steps, corrector_steps=corrector_steps, snr=snr)
     end
     samples
 end

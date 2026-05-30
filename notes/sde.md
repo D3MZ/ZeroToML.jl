@@ -180,9 +180,25 @@ x = x .- dx .* Δt .+ diffusion(sde, t) * sqrt(Δt) .* randn(Float32, size(x))
 
 The subtraction appears because the loop moves backward in time.
 
+The paper also adds predictor-corrector sampling. A predictor takes a reverse SDE step. A corrector applies Langevin MCMC at the same time value:
+
+```math
+x \leftarrow x + \eta s_\theta(x,t) + \sqrt{2\eta}z
+```
+
+In code this is split into `reverse_predictor`, `langevin_corrector`, and `predictor_corrector_sample`.
+
+The paper also defines the deterministic probability-flow ODE:
+
+```math
+dx = \left[f(x,t) - \frac{1}{2}g(t)^2\nabla_x\log p_t(x)\right]dt
+```
+
+This is implemented as `probability_flow_sample`.
+
 ## 6. Denoising a sample
 
-For tests, full reverse sampling is noisy and expensive. The test also uses the Tweedie-style denoised mean:
+The final denoising estimate uses the Tweedie-style denoised mean:
 
 ```math
 \hat{x}_0 = \frac{x_t + \sigma(t)^2s_\theta(x_t,t)}{m(t)}
@@ -195,13 +211,15 @@ denoised_mean(m::ScoreSDE, sde::VPSDE, x, t) =
     (x .+ marginal_std(sde, t)^2 .* forward(m, x, t)) ./ exp(-0.5f0 * ∫β(sde, t))
 ```
 
-This is useful for the toy box test:
+This is useful after reverse SDE, predictor-corrector, or probability-flow sampling to remove endpoint noise near `t=0`.
 
-1. Make a clean square.
-2. Add SDE noise.
-3. Train the score network.
-4. Denoise the noisy square.
-5. Check that the recovered image still contains a square.
+The toy box test:
+
+1. Makes a clean square.
+2. Adds SDE noise at `t=1`.
+3. Trains the score network.
+4. Runs probability-flow sampling backward.
+5. Checks that the raw denoising loss improves.
 
 ## 7. How this differs from DDPM
 
@@ -232,7 +250,10 @@ Implemented in `src/sde.jl`:
 - denoising score-matching loss
 - training loop
 - reverse SDE sampler
-- denoised mean helper
+- Langevin corrector
+- predictor-corrector sampler
+- probability-flow sampler
+- final denoised mean helper
 
 Tested in `test/sde.jl` with the same style as the DDPM toy box test.
 
@@ -242,8 +263,6 @@ The paper also includes ideas not yet implemented here:
 
 - VE SDE
 - sub-VP SDE
-- predictor-corrector sampling
-- probability flow ODE
 - exact likelihood computation
 - inverse problems like inpainting and colorization
 - larger U-Net style architectures
