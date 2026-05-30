@@ -24,7 +24,7 @@ using Plots
     H, W = 12, 12
     h, w = 3, 3
     η = 1f-2
-    t = 0.75f0
+    t = 1f0
     rng = MersenneTwister(1)
     dataset = shuffle(rng, boxes(H, W, h, w))
     sde = VPSDE(βmin=0.1f0, βmax=2f0)
