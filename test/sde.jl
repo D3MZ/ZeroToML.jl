@@ -10,14 +10,6 @@ using Plots
     @info "This is testing SDE and denoising score matching: https://arxiv.org/abs/2011.13456"
 
     boxes(H=12, W=12, h=3, w=3) = [(g = -ones(Float32, H, W); g[i:i+h-1, j:j+w-1] .= 1f0; g) for i in 1:H-h+1 for j in 1:W-w+1]
-    function denoise(model, sde, x, t; steps=100)
-        Δt = t / steps
-        foldl(steps:-1:1; init=x) do sample, step
-            τ = max(Float32(step * Δt), 1f-3)
-            β = sde.βmin + τ * (sde.βmax - sde.βmin)
-            sample .- (-0.5f0 .* β .* sample .- β .* forward(model, sample, τ)) .* Δt
-        end
-    end
     panel(title, sample) = heatmap(sample; title, color=:grays, clims=(-1, 1), axis=false, colorbar=false, aspect_ratio=:equal)
     Random.seed!(1)
 

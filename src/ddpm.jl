@@ -82,6 +82,13 @@ end
 "Draws a sample xₜ₋₁ ~ μ + √βₜ · N(0, I) from the reverse diffusion step"
 @fastmath latent(μ, β, t, x) = μ .+ sqrt(β[t]) .* randn(eltype(x), size(x))
 
+function denoise(m::DDPM, x, β, α, ᾱ, t, time_embedding)
+    foldl(t:-1:1; init=x) do sample, step
+        ε̂ = forward(m, sample, step, time_embedding)
+        posterior_mean(sample, ε̂, β, α, ᾱ, step)
+    end
+end
+
 "Generates ~x0 by iteratively sampling xₜ₋₁ = μₜ(xₜ, ε̂) + √βₜ·z for t = T,…,0, starting from x_T ~ N(0,I). "
 function reverse_sample(m::DDPM, β, α, ᾱ, T, d, time_embedding)
     H = W = isqrt(d)

@@ -66,6 +66,14 @@ end
 
 @fastmath denoised_mean(m::ScoreSDE, sde::VPSDE, x, t) = (x .+ marginal_std(sde, t)^2 .* forward(m, x, t)) ./ exp(-0.5f0 * ∫β(sde, t))
 
+function denoise(m::ScoreSDE, sde::VPSDE, x, t; steps=100)
+    Δt = t / steps
+    foldl(steps:-1:1; init=x) do sample, step
+        τ = max(Float32(step * Δt), 1f-3)
+        sample .- (drift(sde, sample, τ) .- diffusion(sde, τ)^2 .* forward(m, sample, τ)) .* Δt
+    end
+end
+
 function reverse_sample(m::ScoreSDE, sde::VPSDE, d; steps=100)
     H = W = isqrt(d)
     x = randn(Float32, H, W)

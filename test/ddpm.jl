@@ -12,10 +12,6 @@ using Plots
     "Generate all possible h×w boxes (filled with +1f0s) in a H×W grid of -1f0s."
     boxes(H=16, W=16, h=3, w=3) = [(g = -ones(Float32, H, W); g[i:i+h-1, j:j+w-1] .= 1.0f0; g) for i in 1:H-h+1 for j in 1:W-w+1]
     diffuse(rng, x₀, ᾱ, t, process) = noised_sample(x₀, ᾱ, t, noise(rng, x₀, process))
-    denoise(model, x, β, α, ᾱ, t, time_embedding) = foldl(t:-1:1; init=x) do sample, step
-        ε̂ = forward(model, sample, step, time_embedding)
-        (sample .- 0.8f0 .* (β[step] / sqrt(1 - ᾱ[step])) .* ε̂) ./ sqrt(α[step])
-    end
     name(::Gaussian) = "Gaussian"
     name(process::StudentT) = "StudentT ν=$(process.ν)"
     name(::Cauchy) = "Cauchy"
