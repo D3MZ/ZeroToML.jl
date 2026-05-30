@@ -48,4 +48,5 @@ using Plots
 
     @test trained_loss < untrained_loss
     @test denoised_correlation > input_correlation
+    @info denoised_correlation
 end

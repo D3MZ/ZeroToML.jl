@@ -54,6 +54,7 @@ Yet another AI from scratch repo.
 - [ ] [Errors and residuals](https://en.wikipedia.org/wiki/Errors_and_residuals)
 
 ### Architecture 
+- [ ] train should take Dates.period instead of epochs like sde? This simplifies autoresearch.
 - [x] Abstract common functions? Might reduce readability :(
   - [x] Use Multiple Dispatch and Structs/Types
   - [ ] Filename, Model name is Paper name
