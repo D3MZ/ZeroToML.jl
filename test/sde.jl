@@ -29,7 +29,7 @@ using Plots
     input = perturbed_sample(sde, x₀, t, ε)
 
     untrained_loss = loss(model, sde, x₀, t, ε)
-    model = train!(model, sde, η, dataset; epochs=15)
+    @time model = train!(model, sde, η, dataset; epochs=50)
     trained_loss = loss(model, sde, x₀, t, ε)
     denoised = clamp.(probability_flow_sample(model, sde, input, t; steps=100), -1f0, 1f0)
     input_loss = mean((input .- x₀).^2)
