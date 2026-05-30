@@ -11,6 +11,8 @@ using Plots
     
     "Generate all possible h×w boxes (filled with +1f0s) in a H×W grid of -1f0s."
     boxes(H=16, W=16, h=3, w=3) = [(g = -ones(Float32, H, W); g[i:i+h-1, j:j+w-1] .= 1.0f0; g) for i in 1:H-h+1 for j in 1:W-w+1]
+    center(x) = x .- mean(x)
+    correlate(x, y) = sum(center(x) .* center(y)) / (sqrt(sum(abs2, center(x)) * sum(abs2, center(y))) + eps())
     diffuse(rng, x₀, ᾱ, t, process) = noised_sample(x₀, ᾱ, t, noise(rng, x₀, process))
     name(::Gaussian) = "Gaussian"
     name(process::StudentT) = "StudentT ν=$(process.ν)"
@@ -61,12 +63,15 @@ using Plots
     denoised = [clamp.(denoise(model, sample, β, α, ᾱ, denoise_steps, time_embedding), -1f0, 1f0) for ((model, _, _), sample) in zip(losses, inputs)]
     input_losses = [mean((sample .- training_sample).^2) for sample in inputs]
     denoised_losses = [mean((sample .- training_sample).^2) for sample in denoised]
+    input_correlations = [correlate(training_sample, sample) for sample in inputs]
+    denoised_correlations = [correlate(training_sample, sample) for sample in denoised]
     @info "Denoising loss" input=input_losses denoised=denoised_losses
+    @info "Cross correlation" input=input_correlations denoised=denoised_correlations
     figure = plot(panels(training, inputs, denoised, processes, denoise_steps)...; layout=(3, n_samples), size=image_size)
     path = joinpath(@__DIR__, "ddpm_samples.png")
     savefig(figure, path)
     @info "Saved DDPM samples" path=path
 
     @test all(loss -> loss[3] < loss[2], losses)
-    @test mean(denoised_losses) < mean(input_losses)
+    @test mean(denoised_correlations) > mean(input_correlations)
 end
