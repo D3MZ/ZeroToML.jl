@@ -1,3 +1,4 @@
+# This is testing SDE and denoising score matching: https://arxiv.org/abs/2011.13456
 ENV["GKSwstype"] = "100"
 
 using ZeroToML
@@ -7,8 +8,6 @@ using Statistics
 using Plots
 
 @testset "Score SDE" begin
-    @info "This is testing SDE and denoising score matching: https://arxiv.org/abs/2011.13456"
-
     boxes(H=12, W=12, h=3, w=3) = [(g = -ones(Float32, H, W); g[i:i+h-1, j:j+w-1] .= 1f0; g) for i in 1:H-h+1 for j in 1:W-w+1]
     center(x) = x .- mean(x)
     correlate(x, y) = sum(center(x) .* center(y)) / (sqrt(sum(abs2, center(x)) * sum(abs2, center(y))) + eps())
@@ -29,16 +28,13 @@ using Plots
     input = perturbed_sample(sde, x₀, t, ε)
 
     untrained_loss = loss(model, sde, x₀, t, ε)
-    @time model = train!(model, sde, η, dataset; epochs=50)
+    model = train!(model, sde, η, dataset, 50)
     trained_loss = loss(model, sde, x₀, t, ε)
     denoised = clamp.(probability_flow_sample(model, sde, input, t; steps=100), -1f0, 1f0)
     input_loss = mean((input .- x₀).^2)
     denoised_loss = mean((denoised .- x₀).^2)
     input_correlation = correlate(x₀, input)
     denoised_correlation = correlate(x₀, denoised)
-    @info "$label score loss" untrained=untrained_loss trained=trained_loss
-    @info "Denoising loss" input=input_loss denoised=denoised_loss
-    @info "Cross correlation" input=input_correlation denoised=denoised_correlation
 
     figure = plot(
         panel("training $label", x₀),
@@ -48,7 +44,7 @@ using Plots
     )
     path = joinpath(@__DIR__, "sde_samples.png")
     savefig(figure, path)
-    @info "Saved SDE samples" path=path
+    # @info "Saved SDE samples" path=path
 
     @test trained_loss < untrained_loss
     @test denoised_correlation > input_correlation

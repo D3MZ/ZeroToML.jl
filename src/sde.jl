@@ -1,5 +1,5 @@
 using Base: @kwdef
-using Random, Statistics, Zygote
+using Random, Statistics, Zygote, Dates
 using NNlib: conv
 using .ZeroToML: glorot, relu, sgd!
 
@@ -66,16 +66,29 @@ function step!(m::ScoreSDE, sde::VPSDE, x₀; t=rand(Float32), η=1f-3)
     return m
 end
 
-"Trains a score model across random continuous SDE times, source: https://arxiv.org/abs/2011.13456"
-function train!(model::ScoreSDE, sde::VPSDE, η, dataset; epochs=1)
-    foldl(1:epochs; init=model) do m, epoch
+"Trains a score model for N epochs across random continuous SDE times, source: https://arxiv.org/abs/2011.13456"
+function train!(model::ScoreSDE, sde::VPSDE, η, dataset, epochs::Int=1)
+    foldl(1:epochs; init=model) do m, _
         trained = foldl((θ, x₀) -> step!(θ, sde, x₀; η=η), dataset; init=m)
         x₀ = rand(dataset)
         t = max(rand(Float32), 1f-3)
         ℓ = loss(trained, sde, x₀, t, randn(Float32, size(x₀)))
-        @info "epoch=$(epoch) score loss=$(ℓ)"
         trained
     end
+end
+
+"Trains a score model for a time budget, completing full epochs, source: https://arxiv.org/abs/2011.13456"
+function train!(model::ScoreSDE, sde::VPSDE, η, dataset, duration::Dates.Period)
+    target_s = duration isa Dates.Second ? Dates.value(duration) :
+                duration isa Dates.Minute ? Dates.value(duration) * 60 :
+                duration isa Dates.Hour ? Dates.value(duration) * 3600 :
+                Dates.value(duration)
+    t₀ = time()
+    while true
+        time() - t₀ >= target_s && break
+        model = foldl((θ, x₀) -> step!(θ, sde, x₀; η=η), dataset; init=model)
+    end
+    model
 end
 
 "Final denoised estimate x̂₀ from the score, source: https://arxiv.org/abs/2011.13456"
