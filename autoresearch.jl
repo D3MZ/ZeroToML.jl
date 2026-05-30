@@ -35,4 +35,9 @@ res = bboptimize(evaluate;
 )
 
 best_val = -best_fitness(res)
+best_x = best_candidate(res)
+best_η = exp10(best_x[1])
+best_βmax = exp(best_x[2])
+best_βmin = exp(best_x[3])
 println("METRIC denoised_correlation=$best_val")
+println("BEST η=$best_η βmax=$best_βmax βmin=$best_βmin")
