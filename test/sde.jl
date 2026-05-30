@@ -3,7 +3,7 @@ ENV["GKSwstype"] = "100"
 
 using ZeroToML
 using Test
-using Random
+using Random, Dates
 using Statistics
 using Plots
 
@@ -28,7 +28,7 @@ using Plots
     input = perturbed_sample(sde, x₀, t, ε)
 
     untrained_loss = loss(model, sde, x₀, t, ε)
-    model = train!(model, sde, η, dataset, 50)
+    model = train!(model, sde, η, dataset, Second(10))
     trained_loss = loss(model, sde, x₀, t, ε)
     denoised = clamp.(probability_flow_sample(model, sde, input, t; steps=100), -1f0, 1f0)
     input_loss = mean((input .- x₀).^2)
