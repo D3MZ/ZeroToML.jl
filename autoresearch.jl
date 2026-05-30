@@ -32,7 +32,7 @@ res = bboptimize(evaluate;
     SearchRange = [(-5.0, 1.0), (-1.0, 3.0), (-4.0, 0.0), (3.0, 5.5)],
     Method = :de_rand_1_bin,
     PopulationSize = 10,
-    MaxFuncEvals = 30,
+    MaxFuncEvals = 50,
     TraceMode = :silent
 )
 
