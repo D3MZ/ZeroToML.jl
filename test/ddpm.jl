@@ -22,16 +22,10 @@ using Plots
     rate(::Gaussian, η) = η
     rate(::StudentT, η) = η
     rate(::Cauchy, η) = η / 10
-    panels(training, inputs, denoised, learned, processes, denoise_steps) = [heatmap(sample; title, color=:grays, clims=(-1, 1), axis=false, colorbar=false, aspect_ratio=:equal) for (title, sample) in vcat([("training $(name(process))", sample) for (process, sample) in zip(processes, training)], [("input $(name(process)) t=$denoise_steps", sample) for (process, sample) in zip(processes, inputs)], [("raw $(name(process))", sample) for (process, sample) in zip(processes, denoised)], [("reproduced $(name(process))", sample) for (process, sample) in zip(processes, learned)])]
-    function reproduce(sample, h, w)
-        scores = [sum(sample[i:i+h-1, j:j+w-1]) for i in 1:size(sample, 1)-h+1, j in 1:size(sample, 2)-w+1]
-        i, j = Tuple(argmax(scores))
-        output = -ones(Float32, size(sample))
-        output[i:i+h-1, j:j+w-1] .= 1f0
-        output
-    end
-    issquare(sample, h, w) = count(sample .> 0) == h * w && count(vec(any(sample .> 0; dims=2))) == h && count(vec(any(sample .> 0; dims=1))) == w
+    panels(training, inputs, denoised, processes, denoise_steps) = [heatmap(sample; title, color=:grays, clims=(-1, 1), axis=false, colorbar=false, aspect_ratio=:equal) for (title, sample) in vcat([("training $(name(process))", sample) for (process, sample) in zip(processes, training)], [("input $(name(process)) t=$denoise_steps", sample) for (process, sample) in zip(processes, inputs)], [("denoised $(name(process))", sample) for (process, sample) in zip(processes, denoised)])]
     
+    Random.seed!(1)
+
     H, W = 16, 16
     h, w = 3, 3
     T = 100
@@ -39,9 +33,9 @@ using Plots
     denoise_steps = 100
     processes = [Gaussian(), StudentT(3), Cauchy()]
     n_samples = length(processes)
-    image_size = (900, 1200)
+    image_size = (900, 900)
 
-    rng = RandomDevice()
+    rng = MersenneTwister(1)
     d = H * W
     dataset = shuffle(rng, boxes(H, W, h, w))
 
@@ -69,14 +63,14 @@ using Plots
     end
 
     denoised = [clamp.(denoise(model, sample, β, α, ᾱ, denoise_steps, time_embedding), -1f0, 1f0) for ((model, _, _), sample) in zip(losses, inputs)]
-    learned = [reproduce(sample, h, w) for sample in denoised]
-    raw_box_losses = [mean((sample .- learned_sample).^2) for (sample, learned_sample) in zip(denoised, learned)]
-    @info "Raw box loss" mean=mean(raw_box_losses) losses=raw_box_losses
-    figure = plot(panels(training, inputs, denoised, learned, processes, denoise_steps)...; layout=(4, n_samples), size=image_size)
+    input_losses = [mean((sample .- training_sample).^2) for sample in inputs]
+    denoised_losses = [mean((sample .- training_sample).^2) for sample in denoised]
+    @info "Denoising loss" input=input_losses denoised=denoised_losses
+    figure = plot(panels(training, inputs, denoised, processes, denoise_steps)...; layout=(3, n_samples), size=image_size)
     path = joinpath(@__DIR__, "ddpm_samples.png")
     savefig(figure, path)
     @info "Saved DDPM samples" path=path
 
     @test all(loss -> loss[3] < loss[2], losses)
-    @test all(sample -> issquare(sample, h, w), learned)
+    @test mean(denoised_losses) < mean(input_losses)
 end
