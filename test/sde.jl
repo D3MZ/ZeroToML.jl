@@ -16,11 +16,11 @@ using Plots
 
     H, W = 12, 12
     h, w = 3, 3
-    η = 0.0522f0
+    η = 0.139f0
     t = 1f0
     rng = MersenneTwister(1)
     dataset = shuffle(rng, boxes(H, W, h, w))
-    sde = VPSDE(βmin=0.0204f0, βmax=2.03f0)
+    sde = VPSDE(βmin=0.215f0, βmax=0.43f0)
     label = "VP SDE"
     model = ScoreSDE()
     x₀ = rand(rng, dataset)
@@ -30,7 +30,7 @@ using Plots
     untrained_loss = loss(model, sde, x₀, t, ε)
     model = train!(model, sde, η, dataset, Second(10))
     trained_loss = loss(model, sde, x₀, t, ε)
-    denoised = clamp.(probability_flow_sample(model, sde, input, t; steps=100), -1f0, 1f0)
+    denoised = clamp.(probability_flow_sample(model, sde, input, t; steps=144), -1f0, 1f0)
     input_loss = mean((input .- x₀).^2)
     denoised_loss = mean((denoised .- x₀).^2)
     input_correlation = correlate(x₀, input)
