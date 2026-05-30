@@ -77,12 +77,16 @@ function train!(model::ScoreSDE, sde::VPSDE, η, dataset, epochs::Int=1)
     end
 end
 
+seconds(d::Dates.Nanosecond) = Dates.value(d) // 1_000_000_000
+seconds(d::Dates.Microsecond) = Dates.value(d) // 1_000_000
+seconds(d::Dates.Millisecond) = Dates.value(d) // 1_000
+seconds(d::Dates.Second) = Dates.value(d)
+seconds(d::Dates.Minute) = 60 * Dates.value(d)
+seconds(d::Dates.Hour) = 3600 * Dates.value(d)
+
 "Trains a score model for a time budget, completing full epochs, source: https://arxiv.org/abs/2011.13456"
 function train!(model::ScoreSDE, sde::VPSDE, η, dataset, duration::Dates.Period)
-    target_s = duration isa Dates.Second ? Dates.value(duration) :
-                duration isa Dates.Minute ? Dates.value(duration) * 60 :
-                duration isa Dates.Hour ? Dates.value(duration) * 3600 :
-                Dates.value(duration)
+    target_s = seconds(duration)
     t₀ = time()
     while true
         time() - t₀ >= target_s && break
