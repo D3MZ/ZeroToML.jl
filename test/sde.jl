@@ -7,7 +7,7 @@ using Statistics
 using Plots
 
 @testset "Score SDE" begin
-    @info "This is testing the paper with the variance-preserving SDE and denoising score matching"
+    @info "This is testing SDE and denoising score matching: https://arxiv.org/abs/2011.13456"
 
     boxes(H=12, W=12, h=3, w=3) = [(g = -ones(Float32, H, W); g[i:i+h-1, j:j+w-1] .= 1f0; g) for i in 1:H-h+1 for j in 1:W-w+1]
     diffuse(rng, sde, x₀, t) = perturbed_sample(sde, x₀, t, randn(rng, Float32, size(x₀)))
