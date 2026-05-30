@@ -1,5 +1,7 @@
+using Base: @kwdef
 using Random, Statistics, Zygote
 using NNlib: conv
+using .ZeroToML: glorot, relu, sgd!
 
 @kwdef struct VPSDE
     βmin = 0.1f0

@@ -1,5 +1,7 @@
+using Base: @kwdef
 using Random, Statistics, Zygote, Tullio, LoopVectorization
 using NNlib: conv
+using .ZeroToML: glorot, relu, sgd!
 
 @kwdef struct DDPM
     W₁ = glorot(3, 3, 1, 16)
