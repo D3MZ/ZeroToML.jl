@@ -10,7 +10,6 @@ using Plots
     @info "This is testing SDE and denoising score matching: https://arxiv.org/abs/2011.13456"
 
     boxes(H=12, W=12, h=3, w=3) = [(g = -ones(Float32, H, W); g[i:i+h-1, j:j+w-1] .= 1f0; g) for i in 1:H-h+1 for j in 1:W-w+1]
-    diffuse(rng, sde, x₀, t) = perturbed_sample(sde, x₀, t, randn(rng, Float32, size(x₀)))
     function denoise(model, sde, x, t; steps=100)
         Δt = t / steps
         foldl(steps:-1:1; init=x) do sample, step
@@ -24,8 +23,8 @@ using Plots
 
     H, W = 12, 12
     h, w = 3, 3
-    η = 5f-3
-    t = 0.5f0
+    η = 1f-2
+    t = 0.75f0
     rng = MersenneTwister(1)
     dataset = shuffle(rng, boxes(H, W, h, w))
     sde = VPSDE(βmin=0.1f0, βmax=2f0)
@@ -33,10 +32,10 @@ using Plots
     model = ScoreSDE()
     x₀ = rand(rng, dataset)
     ε = randn(rng, Float32, size(x₀))
-    input = diffuse(rng, sde, x₀, t)
+    input = perturbed_sample(sde, x₀, t, ε)
 
     untrained_loss = loss(model, sde, x₀, t, ε)
-    model = train!(model, sde, η, dataset; epochs=10)
+    model = train!(model, sde, η, dataset; epochs=15)
     trained_loss = loss(model, sde, x₀, t, ε)
     denoised = clamp.(denoise(model, sde, input, t; steps=100), -1f0, 1f0)
     input_loss = mean((input .- x₀).^2)
