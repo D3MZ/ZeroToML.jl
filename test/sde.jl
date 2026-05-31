@@ -21,7 +21,7 @@ using Plots
     steps = 100
     rng = MersenneTwister(1)
     dataset = shuffle(rng, boxes(H, W, h, w))
-    sde = VPSDE(βmin=0.215f0, βmax=0.43f0)
+    sde = VPSDE(βmin=0.1f0, βmax=2f0)
     label = "VP SDE"
     model = ScoreSDE()
     x₀ = rand(rng, dataset)
