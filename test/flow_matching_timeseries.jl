@@ -92,7 +92,7 @@ function add_candles!(p, bars; color)
         plot!(p, [i, i], [bars.lows[i], bars.highs[i]]; color, linewidth=1, label=false)
         top = max(bars.opens[i], bars.closes[i])
         bottom = min(bars.opens[i], bars.closes[i])
-        body = Shape([i - 0.25, i + 0.25, i + 0.25, i - 0.25], [bottom, bottom, top, top])
+        body = Shape([i - 0.15, i + 0.15, i + 0.15, i - 0.15], [bottom, bottom, top, top])
         plot!(p, body; color, opacity=0.35, linecolor=color, label=false)
     end
     p
