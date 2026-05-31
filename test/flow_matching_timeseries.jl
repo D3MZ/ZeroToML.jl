@@ -60,7 +60,7 @@ function train_timeseries_flow!(model, path, windows; steps=1_500, η=3f-3, rng=
     model
 end
 
-function forecast(model, context; horizon=10, features=4, steps=100, rng=MersenneTwister(2))
+function forecast_sample(model, context; horizon=10, features=4, steps=100, rng=MersenneTwister(2))
     sample = randn(rng, Float32, horizon, features)
     Δt = 1f0 / steps
     foldl(1:steps; init=sample) do xt, step
@@ -69,25 +69,41 @@ function forecast(model, context; horizon=10, features=4, steps=100, rng=Mersenn
     end
 end
 
-function returns_to_bars(last_close, returns)
-    closes = last_close .* exp.(cumsum(returns[:, 4]))
-    opens = [last_close; closes[1:end-1]]
-    highs = max.(opens, closes) .* exp.(abs.(returns[:, 2]) .* 0.25f0)
-    lows = min.(opens, closes) .* exp.(-abs.(returns[:, 3]) .* 0.25f0)
+function forecast_mean(model, context; samples=64, horizon=10, features=4, steps=100, rng=MersenneTwister(2))
+    forecasts = [forecast_sample(model, context; horizon, features, steps, rng) for _ in 1:samples]
+    sum(forecasts) ./ Float32(samples)
+end
+
+function returns_to_bars(last_prices, returns)
+    values = reshape(last_prices, 1, :) .* exp.(cumsum(returns; dims=1))
+    opens = values[:, 1]
+    highs = max.(values[:, 2], values[:, 1], values[:, 4])
+    lows = min.(values[:, 3], values[:, 1], values[:, 4])
+    closes = values[:, 4]
     (; opens, highs, lows, closes)
 end
 
-function candle_panel(title, bars; color)
-    n = length(bars.closes)
-    p = plot(title=title, legend=false, xlabel="day", ylabel="price")
-    for i in 1:n
-        plot!(p, [i, i], [bars.lows[i], bars.highs[i]]; color, linewidth=1)
-        plot!(p, [i - 0.3, i, i + 0.3], [bars.opens[i], bars.closes[i], bars.closes[i]]; color, linewidth=3)
+function add_candles!(p, bars; color)
+    for i in eachindex(bars.closes)
+        plot!(p, [i, i], [bars.lows[i], bars.highs[i]]; color, linewidth=1, label=false)
+        top = max(bars.opens[i], bars.closes[i])
+        bottom = min(bars.opens[i], bars.closes[i])
+        body = Shape([i - 0.25, i + 0.25, i + 0.25, i - 0.25], [bottom, bottom, top, top])
+        plot!(p, body; color, opacity=0.35, linecolor=color, label=false)
     end
     p
 end
 
-@testset "Flow Matching Time Series" begin
+function candle_panel(title, actual, forecasted)
+    p = plot(title=title, xlabel="forecast day", ylabel="price", legend=:topright)
+    add_candles!(p, actual; color=:black)
+    add_candles!(p, forecasted; color=:blue)
+    plot!(p, actual.closes; color=:black, linewidth=2, label="actual close")
+    plot!(p, forecasted.closes; color=:blue, linewidth=2, label="forecast close")
+    p
+end
+
+function run_flow_matching_timeseries(; image_label=get(ENV, "FM_TS_LABEL", "latest"), train_steps=1_500, η=3f-3, forecast_samples=64)
     Random.seed!(1)
     context_len = 30
     horizon = 10
@@ -106,23 +122,38 @@ end
     model = TimeSeriesFlow()
     x₀ = randn(MersenneTwister(3), Float32, horizon, feature_count)
     untrained_loss = flow_loss(model, path, context, x₀, future, 0.5f0)
-    model = train_timeseries_flow!(model, path, windows)
+    model = train_timeseries_flow!(model, path, windows; steps=train_steps, η=η)
     trained_loss = flow_loss(model, path, context, x₀, future, 0.5f0)
-    predicted = forecast(model, context; horizon, features=feature_count)
+    predicted = forecast_mean(model, context; samples=forecast_samples, horizon, features=feature_count)
 
-    last_close = bars[split].close
+    last_prices = prices(bars[split])
     actual_returns = Float32.(future .* σ .+ μ)
     predicted_returns = Float32.(predicted .* σ .+ μ)
-    actual = returns_to_bars(last_close, actual_returns)
-    forecasted = returns_to_bars(last_close, predicted_returns)
+    actual = returns_to_bars(last_prices, actual_returns)
+    forecasted = returns_to_bars(last_prices, predicted_returns)
 
-    figure = plot(
-        candle_panel("NVDA actual", actual; color=:black),
-        candle_panel("Flow forecast", forecasted; color=:blue);
-        layout=(2, 1), size=(700, 700)
-    )
+    close_mae = mean(abs.(forecasted.closes .- actual.closes))
+    close_mape = mean(abs.((forecasted.closes .- actual.closes) ./ actual.closes)) * 100
+    direction_accuracy = mean(sign.(diff([last_prices[4]; forecasted.closes])) .== sign.(diff([last_prices[4]; actual.closes]))) * 100
+
+    figure = candle_panel("NVDA Flow Matching forecast vs actual", actual, forecasted)
+    image_path = joinpath(@__DIR__, "flow_matching_timeseries_nvda_$(image_label).png")
+    savefig(figure, image_path)
     savefig(figure, joinpath(@__DIR__, "flow_matching_timeseries_nvda.png"))
 
-    @test trained_loss < untrained_loss
-    @test all(isfinite, predicted)
+    (; untrained_loss, trained_loss, close_mae, close_mape, direction_accuracy, image_path)
+end
+
+@testset "Flow Matching Time Series" begin
+    metrics = run_flow_matching_timeseries()
+    @test metrics.trained_loss < metrics.untrained_loss
+    @test isfinite(metrics.close_mape)
+    if get(ENV, "AUTORESEARCH", "0") == "1"
+        println("METRIC close_mape=$(metrics.close_mape)")
+        println("METRIC close_mae=$(metrics.close_mae)")
+        println("METRIC direction_accuracy=$(metrics.direction_accuracy)")
+        println("METRIC trained_loss=$(metrics.trained_loss)")
+        println("METRIC untrained_loss=$(metrics.untrained_loss)")
+        println("IMAGE $(metrics.image_path)")
+    end
 end
