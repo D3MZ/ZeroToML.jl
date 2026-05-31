@@ -60,7 +60,9 @@ using Plots
     @debug "DDPM correlations" input=input_correlations denoised=denoised_correlations
 
     figure = plot(panels(training, inputs, denoised, processes, denoise_steps)...; layout=(3, n_samples), size=(900, 900))
-    path = joinpath(@__DIR__, "ddpm_samples.png")
+    output_dir = joinpath(@__DIR__, "outputs")
+    mkpath(output_dir)
+    path = joinpath(output_dir, "ddpm_samples.png")
     savefig(figure, path)
     @debug "Saved DDPM samples" path=path
 

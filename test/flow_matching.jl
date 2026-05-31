@@ -45,7 +45,9 @@ using Plots
         panel("flow $label t=$t₁", generated);
         layout=(3, 1), size=(300, 900)
     )
-    savefig(figure, joinpath(@__DIR__, "flow_matching_samples.png"))
+    output_dir = joinpath(@__DIR__, "outputs")
+    mkpath(output_dir)
+    savefig(figure, joinpath(output_dir, "flow_matching_samples.png"))
 
     @test trained_loss < untrained_loss
     @test generated_correlation > input_correlation

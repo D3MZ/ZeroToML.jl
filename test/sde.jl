@@ -44,7 +44,9 @@ using Plots
         panel("probability flow $label", denoised);
         layout=(3, 1), size=(300, 900)
     )
-    path = joinpath(@__DIR__, "sde_samples.png")
+    output_dir = joinpath(@__DIR__, "outputs")
+    mkpath(output_dir)
+    path = joinpath(output_dir, "sde_samples.png")
     savefig(figure, path)
     # @info "Saved SDE samples" path=path
 

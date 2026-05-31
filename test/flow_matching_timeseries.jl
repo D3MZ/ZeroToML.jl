@@ -146,9 +146,11 @@ function run_flow_matching_timeseries(; image_label=get(ENV, "FM_TS_LABEL", "lat
     direction_accuracy = mean(sign.(diff([last_prices[4]; forecasted.closes])) .== sign.(diff([last_prices[4]; actual.closes]))) * 100
 
     figure = candle_panel("NVDA Flow Matching forecast vs actual", actual, forecasted)
-    image_path = joinpath(@__DIR__, "flow_matching_timeseries_nvda_$(image_label).png")
+    output_dir = joinpath(@__DIR__, "outputs")
+    mkpath(output_dir)
+    image_path = joinpath(output_dir, "flow_matching_timeseries_nvda_$(image_label).png")
     savefig(figure, image_path)
-    savefig(figure, joinpath(@__DIR__, "flow_matching_timeseries_nvda.png"))
+    savefig(figure, joinpath(output_dir, "flow_matching_timeseries_nvda.png"))
 
     (; untrained_loss, trained_loss, close_mae, close_mape, direction_accuracy, image_path)
 end
