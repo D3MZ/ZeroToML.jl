@@ -67,6 +67,7 @@ Yet another AI from scratch repo.
   - [x] Use Multiple Dispatch and Structs/Types
   - [ ] Filename, Model name is Paper name
 - [ ] Stateless? Memory allocations concerns if truely end-to-end stateless. We get history for free though. Maybe Stateless functions only?
+- [ ] compare julia-implementation vs official repos when possible (i.e. JEPA)?
 
 ### Features
 - [ ] Remove Flux / NNlib dependancies in core code. 
