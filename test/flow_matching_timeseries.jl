@@ -74,7 +74,8 @@ end
 
 function forecast_mean(model, context; samples=64, horizon=10, features=4, steps=100, rng=MersenneTwister(2))
     forecasts = [forecast_sample(model, context; horizon, features, steps, rng) for _ in 1:samples]
-    sum(forecasts) ./ Float32(samples)
+    stacked = cat(forecasts...; dims=3)
+    Float32.(dropdims(median(stacked; dims=3); dims=3))
 end
 
 function returns_to_bars(last_prices, returns)
