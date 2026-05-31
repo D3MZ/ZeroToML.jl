@@ -1,4 +1,4 @@
-# Conditional Flow Matching on NVDA daily OHLC bars for toy time-series forecasting.
+# Conditional Flow Matching on daily OHLC bars for toy time-series forecasting.
 ENV["GKSwstype"] = "100"
 
 using ZeroToML
@@ -16,7 +16,23 @@ struct DailyBar
     close::Float32
 end
 
-function read_nvda_bars(path=joinpath(@__DIR__, "data", "nvda_daily.csv"))
+struct TimeSeriesAsset
+    symbol::String
+    sector::String
+    name::String
+end
+
+const TIMESERIES_ASSETS = [
+    TimeSeriesAsset("NVDA", "Technology", "NVIDIA"),
+    TimeSeriesAsset("LLY", "Health Care", "Eli Lilly"),
+    TimeSeriesAsset("WMT", "Consumer Staples", "Walmart"),
+    TimeSeriesAsset("XOM", "Energy", "Exxon Mobil"),
+    TimeSeriesAsset("NEE", "Utilities", "NextEra Energy"),
+]
+
+asset_path(asset::TimeSeriesAsset) = joinpath(@__DIR__, "data", "$(lowercase(asset.symbol))_daily.csv")
+
+function read_daily_bars(path)
     rows = split.(readlines(path)[2:end], ',')
     [DailyBar(row[1], parse.(Float32, row[2:5])...) for row in rows]
 end
@@ -27,6 +43,8 @@ function ohlc_returns(bars)
     values = reduce(hcat, prices.(bars))'
     Float32.(diff(log.(values); dims=1))
 end
+
+close_returns(asset::TimeSeriesAsset) = ohlc_returns(read_daily_bars(asset_path(asset)))[:, 4]
 
 @kwdef struct TimeSeriesFlow
     W₁ = glorot(128, 139)
@@ -112,12 +130,12 @@ function candle_panel(title, actual, forecasted)
     p
 end
 
-function run_flow_matching_timeseries(; image_label=get(ENV, "FM_TS_LABEL", "latest"), train_steps=5_000, η=1f-3, forecast_samples=64)
+function run_flow_matching_timeseries(asset=TIMESERIES_ASSETS[1]; image_label=get(ENV, "FM_TS_LABEL", "latest"), train_steps=5_000, η=1f-3, forecast_samples=64)
     Random.seed!(1)
     context_len = 30
     horizon = 10
     feature_count = 4
-    bars = read_nvda_bars()
+    bars = read_daily_bars(asset_path(asset))
     returns = ohlc_returns(bars)
     μ = mean(returns; dims=1)
     σ = std(returns; dims=1) .+ 1f-6
@@ -145,21 +163,30 @@ function run_flow_matching_timeseries(; image_label=get(ENV, "FM_TS_LABEL", "lat
     close_mape = mean(abs.((forecasted.closes .- actual.closes) ./ actual.closes)) * 100
     direction_accuracy = mean(sign.(diff([last_prices[4]; forecasted.closes])) .== sign.(diff([last_prices[4]; actual.closes]))) * 100
 
-    figure = candle_panel("NVDA Flow Matching forecast vs actual", actual, forecasted)
+    figure = candle_panel("$(asset.symbol) Flow Matching forecast vs actual", actual, forecasted)
     output_dir = joinpath(@__DIR__, "outputs")
     mkpath(output_dir)
-    image_path = joinpath(output_dir, "flow_matching_timeseries_nvda_$(image_label).png")
+    image_path = joinpath(output_dir, "flow_matching_timeseries_$(lowercase(asset.symbol))_$(image_label).png")
     savefig(figure, image_path)
-    savefig(figure, joinpath(output_dir, "flow_matching_timeseries_nvda.png"))
+    if asset.symbol == "NVDA"
+        savefig(figure, joinpath(output_dir, "flow_matching_timeseries_nvda.png"))
+    end
 
-    (; untrained_loss, trained_loss, close_mae, close_mape, direction_accuracy, image_path)
+    (; asset, untrained_loss, trained_loss, close_mae, close_mape, direction_accuracy, image_path)
 end
 
 @testset "Flow Matching Time Series" begin
-    metrics = run_flow_matching_timeseries()
-    @test isfinite(metrics.trained_loss)
-    @test isfinite(metrics.close_mape)
-    @test metrics.close_mape < 20
+    close_return_matrix = reduce(hcat, close_returns.(TIMESERIES_ASSETS))
+    pairwise_correlations = [cor(close_return_matrix[:, i], close_return_matrix[:, j]) for i in 1:length(TIMESERIES_ASSETS) for j in i+1:length(TIMESERIES_ASSETS)]
+    @test maximum(abs.(pairwise_correlations)) < 0.4
+
+    metrics_by_asset = [run_flow_matching_timeseries(asset) for asset in TIMESERIES_ASSETS]
+    for metrics in metrics_by_asset
+        @test isfinite(metrics.trained_loss)
+        @test isfinite(metrics.close_mape)
+        @test metrics.close_mape < 20
+    end
+    metrics = first(metrics_by_asset)
     if get(ENV, "AUTORESEARCH", "0") == "1"
         println("METRIC close_mape=$(metrics.close_mape)")
         println("METRIC close_mae=$(metrics.close_mae)")
