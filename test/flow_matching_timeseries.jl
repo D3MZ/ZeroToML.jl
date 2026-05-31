@@ -131,7 +131,7 @@ end
 function candle_panel(title, history, actual, forecasted)
     history_xs = -length(history.closes)+1:0
     forecast_xs = 1:length(actual.closes)
-    p = plot(title=title, xlabel="days from forecast start", ylabel="price", legend=:topright)
+    p = plot(title=title, xlabel="days from forecast start", ylabel="price", legend=:outertopright, right_margin=8Plots.mm)
     add_candles!(p, history; color=:gray, xs=history_xs)
     add_candles!(p, actual; color=:black, xs=forecast_xs)
     add_candles!(p, forecasted; color=:blue, xs=forecast_xs)
