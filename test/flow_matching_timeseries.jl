@@ -29,15 +29,17 @@ function ohlc_returns(bars)
 end
 
 @kwdef struct TimeSeriesFlow
-    W₁ = glorot(64, 161)
-    b₁ = zeros(Float32, 64)
-    W₂ = glorot(64, 64)
-    b₂ = zeros(Float32, 64)
-    W₃ = glorot(40, 64)
-    b₃ = zeros(Float32, 40)
+    W₁ = glorot(128, 161)
+    b₁ = zeros(Float32, 128)
+    W₂ = glorot(128, 128)
+    b₂ = zeros(Float32, 128)
+    W₃ = glorot(128, 128)
+    b₃ = zeros(Float32, 128)
+    W₄ = glorot(40, 128)
+    b₄ = zeros(Float32, 40)
 end
 
-predict(m::TimeSeriesFlow, x) = m.W₃ * relu(m.W₂ * relu(m.W₁ * x .+ m.b₁) .+ m.b₂) .+ m.b₃
+predict(m::TimeSeriesFlow, x) = m.W₄ * relu(m.W₃ * relu(m.W₂ * relu(m.W₁ * x .+ m.b₁) .+ m.b₂) .+ m.b₃) .+ m.b₄
 
 function velocity(m::TimeSeriesFlow, context, xt, t)
     reshape(predict(m, vcat(vec(context), vec(xt), Float32[t])), size(xt))
@@ -103,7 +105,7 @@ function candle_panel(title, actual, forecasted)
     p
 end
 
-function run_flow_matching_timeseries(; image_label=get(ENV, "FM_TS_LABEL", "latest"), train_steps=1_500, η=3f-3, forecast_samples=64)
+function run_flow_matching_timeseries(; image_label=get(ENV, "FM_TS_LABEL", "latest"), train_steps=5_000, η=1f-3, forecast_samples=64)
     Random.seed!(1)
     context_len = 30
     horizon = 10
