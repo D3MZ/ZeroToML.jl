@@ -66,21 +66,21 @@ end
 loss(m::ScoreSDE, sde::VPSDE, x, t, ε) = mean((marginal_std(sde, t) .* forward(m, perturbed_sample(sde, x, t, ε), t) .+ ε).^2)
 
 "One stochastic gradient step for SDE denoising score matching, source: https://arxiv.org/abs/2011.13456"
-function step!(m::ScoreSDE, sde::VPSDE, x₀; t=rand(Float32), η=1f-3)
+function step!(m::ScoreSDE, sde::VPSDE, x₀; t=rand(Float32), η=1f-3, rng=Random.default_rng())
     t = max(t, 1f-3)
-    ε = randn(Float32, size(x₀))
+    ε = randn(rng, Float32, size(x₀))
     (∇,) = gradient(θ -> loss(θ, sde, x₀, t, ε), m)
     sgd!(m, ∇, η)
     return m
 end
 
 "Trains a score model for N epochs across random continuous SDE times, source: https://arxiv.org/abs/2011.13456"
-function train!(model::ScoreSDE, sde::VPSDE, η, dataset, epochs::Int=1)
+function train!(model::ScoreSDE, sde::VPSDE, η, dataset, epochs::Int=1; rng=Random.default_rng())
     foldl(1:epochs; init=model) do m, _
-        trained = foldl((θ, x₀) -> step!(θ, sde, x₀; η=η), dataset; init=m)
-        x₀ = rand(dataset)
-        t = max(rand(Float32), 1f-3)
-        ℓ = loss(trained, sde, x₀, t, randn(Float32, size(x₀)))
+        trained = foldl((θ, x₀) -> step!(θ, sde, x₀; η=η, rng=rng), dataset; init=m)
+        x₀ = rand(rng, dataset)
+        t = max(rand(rng, Float32), 1f-3)
+        ℓ = loss(trained, sde, x₀, t, randn(rng, Float32, size(x₀)))
         trained
     end
 end
@@ -93,12 +93,12 @@ seconds(d::Dates.Minute) = 60 * Dates.value(d)
 seconds(d::Dates.Hour) = 3600 * Dates.value(d)
 
 "Trains a score model for a time budget, completing full epochs, source: https://arxiv.org/abs/2011.13456"
-function train!(model::ScoreSDE, sde::VPSDE, η, dataset, duration::Dates.Period)
+function train!(model::ScoreSDE, sde::VPSDE, η, dataset, duration::Dates.Period; rng=Random.default_rng())
     target_s = seconds(duration)
     t₀ = time()
     while true
         time() - t₀ >= target_s && break
-        model = foldl((θ, x₀) -> step!(θ, sde, x₀; η=η), dataset; init=model)
+        model = foldl((θ, x₀) -> step!(θ, sde, x₀; η=η, rng=rng), dataset; init=model)
     end
     model
 end
