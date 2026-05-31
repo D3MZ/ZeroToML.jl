@@ -19,7 +19,7 @@ using Plots
     h, w = 3, 3
     η = 0.02f0
     loss_t = 0.5f0
-    t₀ = 0f0
+    t₀ = 0.3f0
     t₁ = 1f0
     steps = 100
     rng = MersenneTwister(1)

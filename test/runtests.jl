@@ -25,6 +25,7 @@ with_logger(ConsoleLogger(stderr, TEST_LOG_LEVEL)) do
             include("ddpm.jl")
             include("sde.jl")
             include("flow_matching.jl")
+            include("flow_matching_timeseries.jl")
         end
 
         @testset "Neural Network Primitives" begin

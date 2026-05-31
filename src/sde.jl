@@ -9,15 +9,15 @@ using .ZeroToML: glorot, relu, sgd!
 end
 
 @kwdef struct ScoreSDE
-    W₁ = glorot(3, 3, 1, 16)
-    b₁ = zeros(Float32, 1, 1, 16, 1)
-    W₂ = glorot(3, 3, 16, 32)
-    b₂ = zeros(Float32, 1, 1, 32, 1)
-    W₃ = glorot(3, 3, 32, 16)
+    W₁ = glorot(3, 3, 1, 48)
+    b₁ = zeros(Float32, 1, 1, 48, 1)
+    W₂ = glorot(3, 3, 48, 24)
+    b₂ = zeros(Float32, 1, 1, 24, 1)
+    W₃ = glorot(3, 3, 24, 16)
     b₃ = zeros(Float32, 1, 1, 16, 1)
     W₄ = glorot(3, 3, 16, 1)
     b₄ = zeros(Float32, 1, 1, 1, 1)
-    Wₜ = reshape(glorot(16, 1), 1, 1, 16, 1)
+    Wₜ = reshape(glorot(48, 1), 1, 1, 48, 1)
 end
 
 "VP-SDE linear noise schedule β(t), source: https://arxiv.org/abs/2011.13456"
