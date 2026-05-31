@@ -37,6 +37,14 @@ Yet another AI from scratch repo.
   - [x] [SDE — Score-Based Generative Modeling through SDEs](https://arxiv.org/abs/2011.13456)
   - [ ] [Flow Matching](https://arxiv.org/abs/2210.02747)
   - [ ] [Rectified Flow — Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow](https://arxiv.org/abs/2209.03003)
+- [ ] JEPA
+  - [ ] [I-JEPA: Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture](https://arxiv.org/pdf/2301.08243) ([Code](https://github.com/facebookresearch/ijepa))
+  - [ ] [V-JEPA: Latent Video Prediction for Visual Representation Learning](https://openreview.net/forum?id=WFYbBOEOtv) ([Code](https://github.com/facebookresearch/jepa))
+  - [ ] [V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning](https://arxiv.org/pdf/2506.09985) ([Code](https://github.com/facebookresearch/vjepa2))
+  - [ ] [V-JEPA 2.1: Unlocking Dense Features in Video Self-Supervised Learning](https://arxiv.org/pdf/2603.14482) ([Code](https://github.com/facebookresearch/vjepa2))
+  - [ ] [D-JEPA: Denoising with a Joint-Embedding Predictive Architecture](https://arxiv.org/pdf/2410.03755)
+  - [ ] [VL-JEPA: Joint Embedding Predictive Architecture for Vision-language](https://arxiv.org/pdf/2512.10942)
+  - [ ] [EB-JEPA examples](https://github.com/facebookresearch/eb_jepa)
 - [ ] RL
   - [ ] [PPO - Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)
   - [ ] [GRPO - Group Relative Policy Optimization](https://arxiv.org/abs/2402.03300)
