@@ -110,23 +110,35 @@ function returns_to_bars(last_prices, returns)
     (; opens, highs, lows, closes)
 end
 
-function add_candles!(p, bars; color)
-    for i in eachindex(bars.closes)
-        plot!(p, [i, i], [bars.lows[i], bars.highs[i]]; color, linewidth=1, label=false)
+bars_to_ohlc(bars) = (;
+    opens=[bar.open for bar in bars],
+    highs=[bar.high for bar in bars],
+    lows=[bar.low for bar in bars],
+    closes=[bar.close for bar in bars],
+)
+
+function add_candles!(p, bars; color, xs=eachindex(bars.closes))
+    for (x, i) in zip(xs, eachindex(bars.closes))
+        plot!(p, [x, x], [bars.lows[i], bars.highs[i]]; color, linewidth=1, label=false)
         top = max(bars.opens[i], bars.closes[i])
         bottom = min(bars.opens[i], bars.closes[i])
-        body = Shape([i - 0.15, i + 0.15, i + 0.15, i - 0.15], [bottom, bottom, top, top])
+        body = Shape([x - 0.15, x + 0.15, x + 0.15, x - 0.15], [bottom, bottom, top, top])
         plot!(p, body; color, opacity=0.35, linecolor=color, label=false)
     end
     p
 end
 
-function candle_panel(title, actual, forecasted)
-    p = plot(title=title, xlabel="forecast day", ylabel="price", legend=:topright)
-    add_candles!(p, actual; color=:black)
-    add_candles!(p, forecasted; color=:blue)
-    plot!(p, actual.closes; color=:black, linewidth=2, label="actual close")
-    plot!(p, forecasted.closes; color=:blue, linewidth=2, label="forecast close")
+function candle_panel(title, history, actual, forecasted)
+    history_xs = -length(history.closes)+1:0
+    forecast_xs = 1:length(actual.closes)
+    p = plot(title=title, xlabel="days from forecast start", ylabel="price", legend=:topright)
+    add_candles!(p, history; color=:gray, xs=history_xs)
+    add_candles!(p, actual; color=:black, xs=forecast_xs)
+    add_candles!(p, forecasted; color=:blue, xs=forecast_xs)
+    plot!(p, history_xs, history.closes; color=:gray, linewidth=2, label="prior actual close")
+    plot!(p, forecast_xs, actual.closes; color=:black, linewidth=2, label="actual close")
+    plot!(p, forecast_xs, forecasted.closes; color=:blue, linewidth=2, label="forecast close")
+    vline!(p, [0]; color=:gray, linestyle=:dash, label=false)
     p
 end
 
@@ -156,6 +168,7 @@ function run_flow_matching_timeseries(asset=TIMESERIES_ASSETS[1]; image_label=ge
     last_prices = prices(bars[split])
     actual_returns = Float32.(future .* σ .+ μ)
     predicted_returns = Float32.(predicted .* σ .+ μ)
+    history = bars_to_ohlc(bars[split-19:split])
     actual = returns_to_bars(last_prices, actual_returns)
     forecasted = returns_to_bars(last_prices, predicted_returns)
 
@@ -163,7 +176,7 @@ function run_flow_matching_timeseries(asset=TIMESERIES_ASSETS[1]; image_label=ge
     close_mape = mean(abs.((forecasted.closes .- actual.closes) ./ actual.closes)) * 100
     direction_accuracy = mean(sign.(diff([last_prices[4]; forecasted.closes])) .== sign.(diff([last_prices[4]; actual.closes]))) * 100
 
-    figure = candle_panel("$(asset.symbol) Flow Matching forecast vs actual", actual, forecasted)
+    figure = candle_panel("$(asset.symbol) Flow Matching forecast vs actual", history, actual, forecasted)
     output_dir = joinpath(@__DIR__, "outputs")
     mkpath(output_dir)
     image_path = joinpath(output_dir, "flow_matching_timeseries_$(lowercase(asset.symbol))_$(image_label).png")
