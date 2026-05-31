@@ -29,21 +29,26 @@ function ohlc_returns(bars)
 end
 
 @kwdef struct TimeSeriesFlow
-    W₁ = glorot(128, 173)
+    W₁ = glorot(128, 139)
     b₁ = zeros(Float32, 128)
     W₂ = glorot(128, 128)
     b₂ = zeros(Float32, 128)
-    W₃ = glorot(128, 128)
-    b₃ = zeros(Float32, 128)
-    W₄ = glorot(40, 128)
-    b₄ = zeros(Float32, 40)
+    W₃ = glorot(4, 128)
+    b₃ = zeros(Float32, 4)
 end
 
-predict(m::TimeSeriesFlow, x) = m.W₄ * relu(m.W₃ * relu(m.W₂ * relu(m.W₁ * x .+ m.b₁) .+ m.b₂) .+ m.b₃) .+ m.b₄
+function predict_day(m::TimeSeriesFlow, context_features, xt_day, t, day, horizon)
+    τ = Float32(day / horizon)
+    h = relu(m.W₁ * vcat(context_features, xt_day, Float32[t, τ, τ^2]) .+ m.b₁)
+    h = relu(m.W₂ * h .+ m.b₂)
+    m.W₃ * h .+ m.b₃
+end
 
 function velocity(m::TimeSeriesFlow, context, xt, t)
     summary = vcat(vec(mean(context; dims=1)), vec(std(context; dims=1)), vec(context[end, :]))
-    reshape(predict(m, vcat(vec(context), vec(xt), Float32[t], summary)), size(xt))
+    context_features = vcat(vec(context), summary)
+    rows = [predict_day(m, context_features, vec(xt[day, :]), t, day, size(xt, 1)) for day in 1:size(xt, 1)]
+    reduce(hcat, rows)'
 end
 
 function flow_loss(m::TimeSeriesFlow, path::OTFlowPath, context, x₀, x₁, t)
