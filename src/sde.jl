@@ -34,6 +34,14 @@ end
 @fastmath marginal_std(sde::VPSDE, t) = sqrt(1f0 - exp(-∫β(sde, t)))
 "Samples xₜ from the VP-SDE perturbation kernel p₀ₜ(xₜ|x₀), source: https://arxiv.org/abs/2011.13456"
 @fastmath perturbed_sample(sde::VPSDE, x₀, t, ε) = marginal_mean(sde, x₀, t) .+ marginal_std(sde, t) .* ε
+"Discrete forward noising with Euler-Maruyama steps, source: https://arxiv.org/abs/2011.13456"
+function forward_noisy_sample(sde::VPSDE, x₀, t; steps=100, rng=Random.default_rng())
+    Δt = t / steps
+    foldl(1:steps; init=x₀) do x, s
+        τ = min(Δt * Float32(s), t)
+        x .+ drift(sde, x, τ) .* Δt .+ diffusion(sde, τ) * sqrt(Δt) .* randn(rng, Float32, size(x))
+    end
+end
 "Conditional perturbation score ∇ₓₜ log p₀ₜ(xₜ|x₀), source: https://arxiv.org/abs/2011.13456"
 @fastmath score_target(sde::VPSDE, t, ε) = .-ε ./ marginal_std(sde, t)
 
