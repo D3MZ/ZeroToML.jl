@@ -7,7 +7,7 @@ using Statistics
 using Plots
 
 @testset "DDPM" begin
-    @info "This is testing the paper, but the paper's code uses a more complicated model and time embedding"
+    @debug "This is testing the paper, but the paper's code uses a more complicated model and time embedding"
     
     "Generate all possible h×w boxes (filled with +1f0s) in a H×W grid of -1f0s."
     boxes(H=16, W=16, h=3, w=3) = [(g = -ones(Float32, H, W); g[i:i+h-1, j:j+w-1] .= 1.0f0; g) for i in 1:H-h+1 for j in 1:W-w+1]
@@ -56,7 +56,7 @@ using Plots
         untrained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
         model = train!(model, ᾱ, T, rate(process, η), dataset, time_embedding; process=process)
         trained_loss = loss(model, xt_test, t_test, ε_test, ᾱ)
-        @info "$(name(process)) loss" untrained=untrained_loss trained=trained_loss
+        @debug "$(name(process)) loss" untrained=untrained_loss trained=trained_loss
         (model, untrained_loss, trained_loss)
     end
 
@@ -65,12 +65,12 @@ using Plots
     denoised_losses = [mean((sample .- training_sample).^2) for sample in denoised]
     input_correlations = [correlate(training_sample, sample) for sample in inputs]
     denoised_correlations = [correlate(training_sample, sample) for sample in denoised]
-    @info "Denoising loss" input=input_losses denoised=denoised_losses
-    @info "Cross correlation" input=input_correlations denoised=denoised_correlations
+    @debug "Denoising loss" input=input_losses denoised=denoised_losses
+    @debug "Cross correlation" input=input_correlations denoised=denoised_correlations
     figure = plot(panels(training, inputs, denoised, processes, denoise_steps)...; layout=(3, n_samples), size=image_size)
     path = joinpath(@__DIR__, "ddpm_samples.png")
     savefig(figure, path)
-    @info "Saved DDPM samples" path=path
+    @debug "Saved DDPM samples" path=path
 
     @test all(loss -> loss[3] < loss[2], losses)
     @test mean(denoised_correlations) > mean(input_correlations)

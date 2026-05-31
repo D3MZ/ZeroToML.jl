@@ -39,7 +39,7 @@ end
     agent = train!(agent, env, steps, iterations; epochs=4)
 
     πᴱ = policy(agent, reset!(env))
-    @info "initial=$(π₀) trained=$(πᴱ)"
+    @debug "initial=$(π₀) trained=$(πᴱ)"
     @test first(πᴱ) > first(π₀)
     @test sum(πᴱ) ≈ 1f0 atol=1f-3
 end

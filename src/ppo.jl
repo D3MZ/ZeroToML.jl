@@ -159,7 +159,7 @@ function train!(ppo::PPO, env, steps, iterations; epochs=4)
         adv, returns = advantages(agent, batch.rewards, batch.values, batch.dones)
         improve!(agent, batch, adv, returns, epochs)
         loss_value = loss(agent, batch.states, batch.actions, adv, returns, batch.log_probs)
-        @info "iteration=$(iteration) loss=$(loss_value)"
+        @debug "iteration=$(iteration) loss=$(loss_value)"
         agent
     end
 end

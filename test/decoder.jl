@@ -16,7 +16,7 @@ using Random
         model = Decoder()
         model = train(model, x, y, length(text), learning_rate, epochs; position=absolute)
         ℓ = loss(model, x, y, absolute(eachindex(x)))
-        @info "Post-train absolute loss" loss=ℓ
+        @debug "Post-train absolute loss" loss=ℓ
         @test ℓ < 1e-3
 
         n_generate = 40
@@ -24,7 +24,7 @@ using Random
         seed_text = text[begin:seed_len]
         generated = generate(model, vocab, seed_text; n=n_generate, position=absolute, choose=argmax)
         actual_text = text[begin:seed_len+n_generate]
-        @info "Generated absolute" seed=seed_text generated=generated actual=actual_text
+        @debug "Generated absolute" seed=seed_text generated=generated actual=actual_text
         @test generated == actual_text
     end
 
@@ -38,13 +38,13 @@ using Random
         model = Decoder()
         model = train(model, x, y, sequence_len, learning_rate, epochs; position=relative, stride=1)
         ℓ = loss(model, x[begin:sequence_len], y[begin:sequence_len], relative(1:sequence_len))
-        @info "Post-train relative loss" loss=ℓ
+        @debug "Post-train relative loss" loss=ℓ
         @test ℓ < 5f-2
 
         seed_text = text[start_idx:start_idx+seed_len-1]
         generated = generate(model, vocab, seed_text; n=n_generate, position=relative, choose=argmax)
         actual_text = text[start_idx:start_idx+sequence_len-1]
-        @info "Generated relative" start=start_idx seed=seed_text generated=generated actual=actual_text
+        @debug "Generated relative" start=start_idx seed=seed_text generated=generated actual=actual_text
         @test generated == actual_text
     end
 end

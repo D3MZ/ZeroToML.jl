@@ -7,6 +7,7 @@ include("decoder.jl")
 include("trm.jl")
 include("ddpm.jl")
 include("sde.jl")
+include("flow_matching.jl")
 include("ppo.jl")
 include("convolution.jl")
 include("gaussian.jl")
@@ -20,6 +21,8 @@ export absolute,
     Cauchy,
     DDPM,
     ScoreSDE,
+    FlowMatching,
+    OTFlowPath,
     VPSDE,
     Gaussian,
     Noise,
@@ -36,6 +39,10 @@ export absolute,
     noised_sample,
     perturbed_sample,
     forward_noisy_sample,
+    flow,
+    flow_sample,
+    flow_std,
+    flow_target,
     denoised_mean,
     marginal_std,
     param_count,

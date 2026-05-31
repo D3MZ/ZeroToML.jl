@@ -68,7 +68,7 @@ using BlackBoxOptim
     )
     best_params = best_candidate(result)
     best_hyperparameters = hyperparameters(best_params)
-    @info "Best SDE hyperparameters" best_hyperparameters correlation=-best_fitness(result)
+    @debug "Best SDE hyperparameters" best_hyperparameters correlation=-best_fitness(result)
 
     (; model, x₀, input, denoised, untrained_loss, trained_loss, input_correlation, denoised_correlation) = evaluate(best_params)
     input_loss = mean((input .- x₀).^2)
@@ -88,5 +88,5 @@ using BlackBoxOptim
 
     @test trained_loss < untrained_loss
     @test denoised_correlation > input_correlation
-    @info denoised_correlation
+    @debug denoised_correlation
 end

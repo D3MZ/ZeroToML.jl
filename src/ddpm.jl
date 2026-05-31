@@ -131,7 +131,7 @@ function train!(model, ᾱ, T, η, dataset, time_embedding, epochs; process=Gau
         t = rand(1:T)
         xt = noised_sample(x₀, ᾱ, t, ε)
         ℓ = loss(trained, xt, t, ε, time_embedding)
-        @info "epoch=$(epoch) loss=$(ℓ)"
+        @debug "epoch=$(epoch) loss=$(ℓ)"
         trained
     end
 end

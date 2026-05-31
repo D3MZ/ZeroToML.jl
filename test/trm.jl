@@ -26,8 +26,8 @@ using Random
     generated = decode(predict(trained, x; n=2, T=2), vocab)
     actual = text[begin+1:context+1]
 
-    @info "Post-train TRM loss" loss=final
-    @info "Generated TRM" input=text[begin:context] generated=generated actual=actual
+    @debug "Post-train TRM loss" loss=final
+    @debug "Generated TRM" input=text[begin:context] generated=generated actual=actual
     @test final < initial
     @test final < 1f-2
     @test generated == actual
