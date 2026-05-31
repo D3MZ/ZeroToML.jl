@@ -29,7 +29,7 @@ function evaluate(x)
 end
 
 res = bboptimize(evaluate;
-    SearchRange = [(-5.0, 1.0), (-1.0, 3.0), (-4.0, 0.0), (3.0, 5.5)],
+    SearchRange = [(-2.0, 0.2), (-1.5, 1.0), (-2.0, 0.5), (4.5, 5.5)],
     Method = :de_rand_1_bin,
     PopulationSize = 10,
     MaxFuncEvals = 50,
