@@ -12,12 +12,12 @@ end
 
 BanditEnv() = BanditEnv(Float32.([1, 0]), Float32.([1, 0]))
 
-function reset!(env::BanditEnv)
+function reset!(env)
     env.state .= Float32.([1, 0])
     env.state
 end
 
-function step!(env::BanditEnv, action)
+function step!(env, action)
     reward = env.rewards[action]
     done = true
     (copy(env.state), reward, done)

@@ -69,7 +69,9 @@ end
 function velocity(m::TimeSeriesFlow, context, xt, t)
     summary = vcat(vec(mean(context; dims=1)), vec(std(context; dims=1)), vec(context[end, :]))
     context_features = vcat(vec(context), summary)
-    rows = [predict_day(m, context_features, vec(xt[day, :]), t, day, size(xt, 1)) for day in 1:size(xt, 1)]
+    day_axis = axes(xt, 1)
+    horizon = length(day_axis)
+    rows = [predict_day(m, context_features, vec(xt[day, :]), t, day, horizon) for day in day_axis]
     reduce(hcat, rows)'
 end
 

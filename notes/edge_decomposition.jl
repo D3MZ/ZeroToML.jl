@@ -4,6 +4,7 @@ _plot(args...; kwargs...) = plot(args...; kwargs...)
 _bar(args...; kwargs...) = bar(args...; kwargs...)
 _hline!(args...; kwargs...) = hline!(args...; kwargs...)
 _vline!(args...; kwargs...) = vline!(args...; kwargs...)
+_sort!(args...; kwargs...) = sort!(args...; kwargs...)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Query data: 3 months of SPY 1s candles (Q3 2024)
@@ -144,7 +145,7 @@ combos = filter(!isnothing, [
                   r -> r.vol_z < -0.5 && r.range_z < -0.5 && abs(r.ret_z) < 0.5),
 ])
 combo_df = DataFrame(combos)
-sort!(combo_df, :persist)
+_sort!(combo_df, :persist)
 
 p4 = _bar(1:nrow(combo_df), combo_df.persist; yerror=combo_df.se,
          color=[c == "ALL THREE" ? :red : :steelblue for c in combo_df.label],
@@ -169,7 +170,7 @@ _vline!([0]; c=:gray, ls=:dot, label="mean vol")
 # ─────────────────────────────────────────────────────────────────────────────
 b6 = bucket_1d(df, :log_ret)
 b6.abs_mid = abs.(b6.mid)
-sort!(b6, :abs_mid)
+_sort!(b6, :abs_mid)
 p6 = _plot(b6.abs_mid, b6.persist; seriestype=:scatter, yerror=b6.se,
           c=:purple, ms=5, msw=0, label="persistence",
           xscale=:log10, ylims=(0.35, 0.55), legend=:bottomleft,
