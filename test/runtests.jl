@@ -15,6 +15,7 @@ with_logger(ConsoleLogger(stderr, TEST_LOG_LEVEL)) do
     @testset "ZeroToML.jl" begin
         @testset "Transformers" begin
             include("decoder.jl")
+            include("transformer.jl")
         end
 
         @testset "Recursive Reasoning" begin
@@ -28,8 +29,13 @@ with_logger(ConsoleLogger(stderr, TEST_LOG_LEVEL)) do
             include("flow_matching_timeseries.jl")
         end
 
+        @testset "I-JEPA" begin
+            include("jepa.jl")
+        end
+
         @testset "Neural Network Primitives" begin
             include("convolution.jl")
+            include("pararnn.jl")
         end
 
         @testset "Reinforcement Learning" begin

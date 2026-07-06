@@ -4,6 +4,7 @@ using Statistics, StatsBase, Random, Logging, LinearAlgebra, Zygote
 
 include("utils.jl")
 include("decoder.jl")
+include("transformer.jl")
 include("trm.jl")
 include("ddpm.jl")
 include("sde.jl")
@@ -12,6 +13,8 @@ include("ppo.jl")
 include("convolution.jl")
 include("gaussian.jl")
 include("kalman.jl")
+include("jepa.jl")
+include("pararnn.jl")
 
 export absolute,
     build_vocab,
@@ -57,6 +60,9 @@ export absolute,
     probability_flow_sample,
     langevin_corrector,
     signal_schedule,
+    scaled_dot_product_attention,
+    causal_mask,
+    TransformerEncoder,
     StudentT,
     TRM,
     glorot,
@@ -78,6 +84,25 @@ export absolute,
     fit!,
     reset!,
     step!,
-    simulate
+    simulate,
+    JEPA,
+    ParaGRU,
+    ParaLSTM,
+    ParaRNNLanguageModel,
+    paragru_step,
+    paralstm_step,
+    pararnn_scan_diag,
+    pararnn_scan_block2,
+    forward_sequential,
+    JEPAEncoder,
+    ConvJEPAEncoder,
+    ConvJEPA,
+    JEPAPredictor,
+    sample_multiblock_mask,
+    apply_context_mask,
+    extract_targets,
+    update_ema!,
+    predict,
+    get_targets
 
 end

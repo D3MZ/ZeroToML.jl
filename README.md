@@ -16,6 +16,8 @@ Yet another AI from scratch repo.
 - [ ] [Gaussian Processes](https://gaussianprocess.org/gpml/chapters/RW.pdf)
 - [ ] Decision Trees
   - [ ] [LightGBM: A Highly Efficient Gradient Boosting Decision Tree](https://proceedings.neurips.cc/paper_files/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf)
+- [ ] RNNs
+  - [x] [ParaRNN: Unlocking Parallel Training of Nonlinear RNNs for Large Language Models](https://arxiv.org/abs/2510.21450) ([Apple research](https://machinelearning.apple.com/research/large-scale-rnns))
 - [ ] Transformers
   - [ ] Encoder
   - [x] Decoder

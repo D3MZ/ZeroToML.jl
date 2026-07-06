@@ -31,13 +31,19 @@ function softmax(logits::AbstractMatrix)
     weights ./ (sum(weights; dims=1) .+ Float32(eps()))
 end
 
-"In-place stochastic gradient descent update"
+"In-place stochastic gradient descent update, recursing into nested parameter structs."
 function sgd!(model, grads, η)
+    grads === nothing && return model
     for field in propertynames(model)
         θ = getproperty(model, field)
         g = getproperty(grads, field)
-        (g === nothing || !(θ isa AbstractArray)) && continue
-        θ .-= η .* g
+        g === nothing && continue
+        if θ isa AbstractArray
+            θ .-= η .* g
+        elseif hasmethod(propertynames, Tuple{typeof(θ)}) &&
+               hasmethod(propertynames, Tuple{typeof(g)})
+            sgd!(θ, g, η)
+        end
     end
     model
 end
