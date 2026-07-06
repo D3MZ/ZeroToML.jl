@@ -1,5 +1,10 @@
 using DataFrames, CSV, Statistics, Plots, Printf
 
+_plot(args...; kwargs...) = plot(args...; kwargs...)
+_bar(args...; kwargs...) = bar(args...; kwargs...)
+_hline!(args...; kwargs...) = hline!(args...; kwargs...)
+_vline!(args...; kwargs...) = vline!(args...; kwargs...)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Query data: 3 months of SPY 1s candles (Q3 2024)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -75,14 +80,14 @@ end
 # Plot 1: Direction Persistence vs Volume Z-score
 # ─────────────────────────────────────────────────────────────────────────────
 b1 = bucket_1d(df, :vol_z)
-p1 = plot(b1.mid, b1.persist; seriestype=:scatter, yerror=b1.se,
+p1 = _plot(b1.mid, b1.persist; seriestype=:scatter, yerror=b1.se,
           color=:blue, ms=5, msw=0, label="persistence (same direction →)",
           xlabel="Vol Z-score (std from rolling mean)",
           ylabel="Persistence (next 1s same direction)",
           title="Edge vs Volume Anomaly",
           ylims=(0.35, 0.55), legend=:bottomleft)
-hline!([0.5]; c=:black, ls=:dash, label="50/50 (no edge)")
-vline!([0]; c=:gray, ls=:dot, label="mean vol")
+_hline!([0.5]; c=:black, ls=:dash, label="50/50 (no edge)")
+_vline!([0]; c=:gray, ls=:dot, label="mean vol")
 annotate!([(3.5, 0.53, text("↑ high volume → reversion", 9)),
            (-0.6, 0.53, text("↓ low volume → reversion", 9, :right))])
 
@@ -90,14 +95,14 @@ annotate!([(3.5, 0.53, text("↑ high volume → reversion", 9)),
 # Plot 2: Persistence vs Return Z-score
 # ─────────────────────────────────────────────────────────────────────────────
 b2 = bucket_1d(df, :ret_z)
-p2 = plot(b2.mid, b2.persist; seriestype=:scatter, yerror=b2.se,
+p2 = _plot(b2.mid, b2.persist; seriestype=:scatter, yerror=b2.se,
           color=:red, ms=5, msw=0, label="persistence",
           xlabel="Return Z-score (σ of this second's move)",
           ylabel="Persistence (next 1s same direction)",
           title="Edge vs Move Size",
           ylims=(0.35, 0.55), legend=:bottomleft)
-hline!([0.5]; c=:black, ls=:dash, label="50/50")
-vline!([0]; c=:gray, ls=:dot, label="mean move")
+_hline!([0.5]; c=:black, ls=:dash, label="50/50")
+_vline!([0]; c=:gray, ls=:dot, label="mean move")
 annotate!([(3.5, 0.53, text("↑ big move → reversion", 9)),
            (-3.5, 0.53, text("↓ big move → reversion", 9, :right))])
 
@@ -105,14 +110,14 @@ annotate!([(3.5, 0.53, text("↑ big move → reversion", 9)),
 # Plot 3: Persistence vs Range Z-score
 # ─────────────────────────────────────────────────────────────────────────────
 b3 = bucket_1d(df, :range_z)
-p3 = plot(b3.mid, b3.persist; seriestype=:scatter, yerror=b3.se,
+p3 = _plot(b3.mid, b3.persist; seriestype=:scatter, yerror=b3.se,
           color=:green, ms=5, msw=0, label="persistence",
           xlabel="Range Z-score (σ of high-low width)",
           ylabel="Persistence (next 1s same direction)",
           title="Edge vs Candle Range (high-low)",
           ylims=(0.35, 0.55), legend=:bottomleft)
-hline!([0.5]; c=:black, ls=:dash, label="50/50")
-vline!([0]; c=:gray, ls=:dot, label="mean range")
+_hline!([0.5]; c=:black, ls=:dash, label="50/50")
+_vline!([0]; c=:gray, ls=:dot, label="mean range")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Plot 4: Persistence by combined conditions (bar chart)
@@ -141,23 +146,23 @@ combos = filter(!isnothing, [
 combo_df = DataFrame(combos)
 sort!(combo_df, :persist)
 
-p4 = bar(1:nrow(combo_df), combo_df.persist; yerror=combo_df.se,
+p4 = _bar(1:nrow(combo_df), combo_df.persist; yerror=combo_df.se,
          color=[c == "ALL THREE" ? :red : :steelblue for c in combo_df.label],
          legend=false, xrotation=30,
          xticks=(1:nrow(combo_df), combo_df.label),
          ylabel="Persistence (next 1s)", ylims=(0.3, 0.65),
          title="Persistence by Combined Conditions")
-hline!([0.5]; c=:black, ls=:dash, label="50/50")
+_hline!([0.5]; c=:black, ls=:dash, label="50/50")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Plot 5: Net forward return by Vol Z-score
 # ─────────────────────────────────────────────────────────────────────────────
-p5 = plot(b1.mid, b1.net1; seriestype=:scatter, c=:blue, ms=5, msw=0,
+p5 = _plot(b1.mid, b1.net1; seriestype=:scatter, c=:blue, ms=5, msw=0,
           label="avg next-1s return (bps)",
           xlabel="Volume Z-score", ylabel="Net forward return (bps)",
           title="Forward Return by Volume Anomaly")
-hline!([0]; c=:black, ls=:dash, label="zero")
-vline!([0]; c=:gray, ls=:dot, label="mean vol")
+_hline!([0]; c=:black, ls=:dash, label="zero")
+_vline!([0]; c=:gray, ls=:dot, label="mean vol")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Plot 6: Persistence vs raw |log return| (log x scale)
@@ -165,17 +170,17 @@ vline!([0]; c=:gray, ls=:dot, label="mean vol")
 b6 = bucket_1d(df, :log_ret)
 b6.abs_mid = abs.(b6.mid)
 sort!(b6, :abs_mid)
-p6 = plot(b6.abs_mid, b6.persist; seriestype=:scatter, yerror=b6.se,
+p6 = _plot(b6.abs_mid, b6.persist; seriestype=:scatter, yerror=b6.se,
           c=:purple, ms=5, msw=0, label="persistence",
           xscale=:log10, ylims=(0.35, 0.55), legend=:bottomleft,
           xlabel="|Log return| this second",
           ylabel="Persistence (next 1s same direction)",
           title="Edge vs Raw Move Size")
-hline!([0.5]; c=:black, ls=:dash, label="50/50")
+_hline!([0.5]; c=:black, ls=:dash, label="50/50")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Display all 6 plots
 # ─────────────────────────────────────────────────────────────────────────────
-p_all = plot(p1, p2, p3, p4, p5, p6; layout=(3, 2), size=(1400, 1200))
+p_all = _plot(p1, p2, p3, p4, p5, p6; layout=(3, 2), size=(1400, 1200))
 savefig(p_all, joinpath(@__DIR__, "edge_decomposition.png"))
 println("\nDone — saved to notes/edge_decomposition.png")

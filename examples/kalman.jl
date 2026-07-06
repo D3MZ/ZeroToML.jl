@@ -1,6 +1,12 @@
 using ZeroToML
 using LinearAlgebra
 using Plots
+
+_plot(args...; kwargs...) = plot(args...; kwargs...)
+_plot!(args...; kwargs...) = plot!(args...; kwargs...)
+_scatter!(args...; kwargs...) = scatter!(args...; kwargs...)
+_hline!(args...; kwargs...) = hline!(args...; kwargs...)
+
 using Random
 
 Random.seed!(42)
@@ -22,9 +28,9 @@ for t in 1:timesteps
     est[t] = kf₁.x[1]
 end
 
-p1 = plot(1:timesteps, obs; label="noisy obs", color=:red, marker=:circle, markersize=3, lw=0)
-plot!(1:timesteps, est; label="estimate", color=:blue, lw=2)
-hline!([5]; color=:black, linestyle=:dash, lw=2, label="truth (5)")
+p1 = _plot(1:timesteps, obs; label="noisy obs", color=:red, marker=:circle, markersize=3, lw=0)
+_plot!(1:timesteps, est; label="estimate", color=:blue, lw=2)
+_hline!([5]; color=:black, linestyle=:dash, lw=2, label="truth (5)")
 title!("Tracking a fixed target")
 xlabel!("time"); ylabel!("position")
 
@@ -55,17 +61,17 @@ for t in 1:T
     est[:, t] = kf₂.x
 end
 
-p2 = plot(1:T, xs[1, :]; label="truth", lw=2, color=:black, linestyle=:dash)
-scatter!(1:T, vec(ys); label="noisy obs", color=:red, markersize=2)
-plot!(1:T, est[1, :]; label="estimate", color=:blue, lw=2)
+p2 = _plot(1:T, xs[1, :]; label="truth", lw=2, color=:black, linestyle=:dash)
+_scatter!(1:T, vec(ys); label="noisy obs", color=:red, markersize=2)
+_plot!(1:T, est[1, :]; label="estimate", color=:blue, lw=2)
 title!("Position tracking")
 xlabel!("time"); ylabel!("position")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Example 3 — velocity estimation (hidden state recovered)
 # ─────────────────────────────────────────────────────────────────────────────
-p3 = plot(1:T, xs[2, :]; label="truth", lw=2, color=:black, linestyle=:dash)
-plot!(1:T, est[2, :]; label="estimate", color=:green, lw=2)
+p3 = _plot(1:T, xs[2, :]; label="truth", lw=2, color=:black, linestyle=:dash)
+_plot!(1:T, est[2, :]; label="estimate", color=:green, lw=2)
 title!("Velocity (hidden state)")
 xlabel!("time"); ylabel!("velocity")
 
@@ -83,11 +89,11 @@ for t in 1:50
     covs[t] = kf₄.P[1, 1]
 end
 
-p4 = plot(1:50, covs; label="error variance P[1,1]", color=:purple, lw=2)
+p4 = _plot(1:50, covs; label="error variance P[1,1]", color=:purple, lw=2)
 title!("Uncertainty shrinks with data")
 xlabel!("number of observations"); ylabel!("P")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Display
 # ─────────────────────────────────────────────────────────────────────────────
-plot(p1, p2, p3, p4; layout=(2, 2), size=(1000, 800))
+_plot(p1, p2, p3, p4; layout=(2, 2), size=(1000, 800))

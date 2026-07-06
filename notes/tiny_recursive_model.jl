@@ -5,6 +5,10 @@
 
 using ZeroToML
 using Plots
+
+_plot(args...; kwargs...) = plot(args...; kwargs...)
+_heatmap(args...; kwargs...) = heatmap(args...; kwargs...)
+
 using Random
 using Statistics
 using Zygote
@@ -30,7 +34,7 @@ y = copy(x)
 
 grid(v) = reshape(v, 3, 3)'
 
-heatmap(grid(x); title="input x", aspect_ratio=1, c=:viridis, clims=(1, 5))
+_heatmap(grid(x); title="input x", aspect_ratio=1, c=:viridis, clims=(1, 5))
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. The model pieces
@@ -52,9 +56,9 @@ X = embed(model, x)
 Y = model.Y
 Z = model.Z
 
-heatmap(X; title="embedded input X", xlabel="position", ylabel="feature")
-heatmap(Y; title="initial answer state Y", xlabel="position", ylabel="feature")
-heatmap(Z; title="initial latent state Z", xlabel="position", ylabel="feature")
+_heatmap(X; title="embedded input X", xlabel="position", ylabel="feature")
+_heatmap(Y; title="initial answer state Y", xlabel="position", ylabel="feature")
+_heatmap(Z; title="initial latent state Z", xlabel="position", ylabel="feature")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. Look at the untrained model
@@ -63,7 +67,7 @@ heatmap(Z; title="initial latent state Z", xlabel="position", ylabel="feature")
 logits, answer, latent = forward(x, model; n=3, T=2)
 ŷ = predict(model, x; n=3, T=2)
 
-heatmap(grid(ŷ); title="untrained prediction", aspect_ratio=1, c=:viridis, clims=(1, 5))
+_heatmap(grid(ŷ); title="untrained prediction", aspect_ratio=1, c=:viridis, clims=(1, 5))
 loss(model, x, y; n=3, T=2)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -99,7 +103,7 @@ end
 
 rows = trace(model, x; n=3, T=2)
 
-plot([mean(row.confidence) for row in rows]; marker=:circle, label=false,
+_plot([mean(row.confidence) for row in rows]; marker=:circle, label=false,
      xlabel="recursive step", ylabel="mean max probability", title="untrained confidence")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -109,7 +113,7 @@ plot([mean(row.confidence) for row in rows]; marker=:circle, label=false,
 # plot learning. The model is immutable; each update returns a new model.
 
 function train_trace(model, x, y, η, epochs; n=3, T=2)
-    losses = Float32[]
+    losses = Vector{Float32}()
     for _ in 1:epochs
         push!(losses, loss(model, x, y; n, T))
         (∇,) = gradient(θ -> loss(θ, x, y; n, T), model)
@@ -120,7 +124,7 @@ end
 
 trained, losses = train_trace(model, x, y, 0.03f0, 160; n=3, T=2)
 
-plot(losses; label=false, xlabel="epoch", ylabel="loss", title="training loss")
+_plot(losses; label=false, xlabel="epoch", ylabel="loss", title="training loss")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. Compare before and after
@@ -129,10 +133,10 @@ plot(losses; label=false, xlabel="epoch", ylabel="loss", title="training loss")
 ŷ₀ = predict(model, x; n=3, T=2)
 ŷ₁ = predict(trained, x; n=3, T=2)
 
-plot(
-    heatmap(grid(x); title="target", aspect_ratio=1, c=:viridis, clims=(1, 5)),
-    heatmap(grid(ŷ₀); title="before", aspect_ratio=1, c=:viridis, clims=(1, 5)),
-    heatmap(grid(ŷ₁); title="after", aspect_ratio=1, c=:viridis, clims=(1, 5));
+_plot(
+    _heatmap(grid(x); title="target", aspect_ratio=1, c=:viridis, clims=(1, 5)),
+    _heatmap(grid(ŷ₀); title="before", aspect_ratio=1, c=:viridis, clims=(1, 5)),
+    _heatmap(grid(ŷ₁); title="after", aspect_ratio=1, c=:viridis, clims=(1, 5));
     layout=(1, 3), size=(900, 280)
 )
 
@@ -143,7 +147,7 @@ plot(
 trained_rows = trace(trained, x; n=3, T=3)
 accuracy(row) = mean(row.answer .== y)
 
-plot(
+_plot(
     [accuracy(row) for row in trained_rows];
     marker=:circle,
     label="token accuracy",
@@ -153,7 +157,7 @@ plot(
     title="answer improves through recursion"
 )
 
-plot(
+_plot(
     [mean(row.confidence) for row in trained_rows];
     marker=:circle,
     label="mean confidence",
@@ -165,8 +169,8 @@ plot(
 
 # Show selected answer grids from the recursive trace.
 selected = [1, 2, 4, 8, length(trained_rows)]
-plots = [heatmap(grid(trained_rows[i].answer); title="step $(i - 1): $(trained_rows[i].kind)", aspect_ratio=1, c=:viridis, clims=(1, 5)) for i in selected]
-plot(plots...; layout=(1, length(plots)), size=(1200, 260))
+plots = [_heatmap(grid(trained_rows[i].answer); title="step $(i - 1): $(trained_rows[i].kind)", aspect_ratio=1, c=:viridis, clims=(1, 5)) for i in selected]
+_plot(plots...; layout=(1, length(plots)), size=(1200, 260))
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 8. Look inside y and z
@@ -180,10 +184,10 @@ plot(plots...; layout=(1, length(plots)), size=(1200, 260))
 
 final = last(trained_rows)
 
-plot(
-    heatmap(final.Y; title="final answer state y", xlabel="position", ylabel="feature"),
-    heatmap(final.Z; title="final latent state z", xlabel="position", ylabel="feature"),
-    heatmap(model.O * final.Y; title="output logits O*y", xlabel="position", ylabel="token");
+_plot(
+    _heatmap(final.Y; title="final answer state y", xlabel="position", ylabel="feature"),
+    _heatmap(final.Z; title="final latent state z", xlabel="position", ylabel="feature"),
+    _heatmap(model.O * final.Y; title="output logits O*y", xlabel="position", ylabel="token");
     layout=(1, 3), size=(950, 280)
 )
 
@@ -196,7 +200,7 @@ plot(
 Ts = 1:6
 accuracies = [mean(predict(trained, x; n=3, T=T) .== y) for T in Ts]
 
-plot(Ts, accuracies; marker=:circle, label=false,
+_plot(Ts, accuracies; marker=:circle, label=false,
      xlabel="T full recursions", ylabel="token accuracy", ylim=(0, 1.05),
      title="more test-time recursion")
 
@@ -231,18 +235,18 @@ println("target: ", y_text)
 println("before: ", decode(text_before, vocab))
 println("after:  ", decode(text_after, vocab))
 
-plot(text_losses; label=false, xlabel="epoch", ylabel="loss", title="TRM decoder-style loss")
+_plot(text_losses; label=false, xlabel="epoch", ylabel="loss", title="TRM decoder-style loss")
 
 text_rows = trace(text_trained, x_tokens; n=2, T=4)
 text_accuracy = [mean(row.answer .== y_tokens) for row in text_rows]
 
-plot(text_accuracy; marker=:circle, label=false,
+_plot(text_accuracy; marker=:circle, label=false,
      xlabel="recursive step", ylabel="token accuracy", ylim=(0, 1.05),
      title="next-character accuracy through recursion")
 
 # Each row is one recursive step. Each column is one character position.
 # Green means correct next-character prediction at that position.
 correct = hcat([(row.answer .== y_tokens) for row in text_rows]...)'
-heatmap(correct; c=:greens, colorbar=false,
+_heatmap(correct; c=:greens, colorbar=false,
         xlabel="character position", ylabel="recursive step",
         title="where the shifted-text prediction is correct")

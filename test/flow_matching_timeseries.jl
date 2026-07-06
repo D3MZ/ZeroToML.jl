@@ -8,6 +8,10 @@ using Statistics
 using Zygote
 using Plots
 
+_plot(args...; kwargs...) = plot(args...; kwargs...)
+_plot!(args...; kwargs...) = plot!(args...; kwargs...)
+_vline!(args...; kwargs...) = vline!(args...; kwargs...)
+
 struct DailyBar
     date::String
     open::Float32
@@ -37,7 +41,7 @@ function read_daily_bars(path)
     [DailyBar(row[1], parse.(Float32, row[2:5])...) for row in rows]
 end
 
-prices(bar::DailyBar) = Float32[bar.open, bar.high, bar.low, bar.close]
+prices(bar::DailyBar) = Float32.([bar.open, bar.high, bar.low, bar.close])
 
 function ohlc_returns(bars)
     values = reduce(hcat, prices.(bars))'
@@ -57,7 +61,7 @@ end
 
 function predict_day(m::TimeSeriesFlow, context_features, xt_day, t, day, horizon)
     τ = Float32(day / horizon)
-    h = relu(m.W₁ * vcat(context_features, xt_day, Float32[t, τ, τ^2]) .+ m.b₁)
+    h = relu(m.W₁ * vcat(context_features, xt_day, Float32.([t, τ, τ^2])) .+ m.b₁)
     h = relu(m.W₂ * h .+ m.b₂)
     m.W₃ * h .+ m.b₃
 end
@@ -119,11 +123,11 @@ bars_to_ohlc(bars) = (;
 
 function add_candles!(p, bars; color, xs=eachindex(bars.closes))
     for (x, i) in zip(xs, eachindex(bars.closes))
-        plot!(p, [x, x], [bars.lows[i], bars.highs[i]]; color, linewidth=1, label=false)
+        _plot!(p, [x, x], [bars.lows[i], bars.highs[i]]; color, linewidth=1, label=false)
         top = max(bars.opens[i], bars.closes[i])
         bottom = min(bars.opens[i], bars.closes[i])
         body = Shape([x - 0.15, x + 0.15, x + 0.15, x - 0.15], [bottom, bottom, top, top])
-        plot!(p, body; color, opacity=0.35, linecolor=color, label=false)
+        _plot!(p, body; color, opacity=0.35, linecolor=color, label=false)
     end
     p
 end
@@ -131,14 +135,14 @@ end
 function candle_panel(title, history, actual, forecasted)
     history_xs = -length(history.closes)+1:0
     forecast_xs = 1:length(actual.closes)
-    p = plot(title=title, xlabel="days from forecast start", ylabel="price", legend=:outertopright, right_margin=8Plots.mm)
+    p = _plot(title=title, xlabel="days from forecast start", ylabel="price", legend=:outertopright, right_margin=8Plots.mm)
     add_candles!(p, history; color=:gray, xs=history_xs)
     add_candles!(p, actual; color=:black, xs=forecast_xs)
     add_candles!(p, forecasted; color=:blue, xs=forecast_xs)
-    plot!(p, history_xs, history.closes; color=:gray, linewidth=2, label="prior actual close")
-    plot!(p, forecast_xs, actual.closes; color=:black, linewidth=2, label="actual close")
-    plot!(p, forecast_xs, forecasted.closes; color=:blue, linewidth=2, label="forecast close")
-    vline!(p, [0]; color=:gray, linestyle=:dash, label=false)
+    _plot!(p, history_xs, history.closes; color=:gray, linewidth=2, label="prior actual close")
+    _plot!(p, forecast_xs, actual.closes; color=:black, linewidth=2, label="actual close")
+    _plot!(p, forecast_xs, forecasted.closes; color=:blue, linewidth=2, label="forecast close")
+    _vline!(p, [0]; color=:gray, linestyle=:dash, label=false)
     p
 end
 

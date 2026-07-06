@@ -10,10 +10,10 @@ struct BanditEnv
     rewards::Base.Vector{Float32}
 end
 
-BanditEnv() = BanditEnv(Float32[1f0, 0f0], Float32[1f0, 0f0])
+BanditEnv() = BanditEnv(Float32.([1, 0]), Float32.([1, 0]))
 
 function reset!(env::BanditEnv)
-    env.state .= Float32[1f0, 0f0]
+    env.state .= Float32.([1, 0])
     env.state
 end
 
