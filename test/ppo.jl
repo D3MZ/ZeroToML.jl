@@ -3,19 +3,21 @@ using Test
 using Random
 using Statistics
 
+import ZeroToML: reset!, step!
+
 struct BanditEnv
-    state::Vector{Float32}
-    rewards::Vector{Float32}
+    state::Base.Vector{Float32}
+    rewards::Base.Vector{Float32}
 end
 
 BanditEnv() = BanditEnv(Float32[1f0, 0f0], Float32[1f0, 0f0])
 
-function ZeroToML.reset!(env::BanditEnv)
+function reset!(env::BanditEnv)
     env.state .= Float32[1f0, 0f0]
     env.state
 end
 
-function ZeroToML.step!(env::BanditEnv, action)
+function step!(env::BanditEnv, action)
     reward = env.rewards[action]
     done = true
     (copy(env.state), reward, done)

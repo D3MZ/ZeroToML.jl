@@ -12,7 +12,7 @@ using ZeroToML
         δ = pararnn_scan_diag(A, b)
         ref = similar(b)
         ref[:, 1] = b[:, 1]
-        for l in 2:size(b, 2)
+        for l in axes(b, 2)[begin+1:end]
             ref[:, l] = A[:, l] .* ref[:, l - 1] .+ b[:, l]
         end
         @test δ ≈ ref atol=1f-5

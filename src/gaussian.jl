@@ -56,7 +56,7 @@ function predict(gp::GaussianProcess, X̃)
     Kₛₛ = kernel_matrix(gp.kernel, X̃, X̃)
     Σ_latent = Kₛₛ .- (v' * v)
     Σ_latent = (Σ_latent + Σ_latent') .* 0.5f0
-    for i in 1:size(Σ_latent, 1)
+    for i in axes(Σ_latent, 1)
         if Σ_latent[i, i] < 0f0
             Σ_latent[i, i] = 0f0
         end

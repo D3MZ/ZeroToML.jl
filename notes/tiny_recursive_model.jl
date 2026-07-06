@@ -132,7 +132,7 @@ plot(losses; label=false, xlabel="epoch", ylabel="loss", title="training loss")
 plot(
     heatmap(grid(x); title="target", aspect_ratio=1, c=:viridis, clims=(1, 5)),
     heatmap(grid(ŷ₀); title="before", aspect_ratio=1, c=:viridis, clims=(1, 5)),
-    heatmap(grid(ŷ₁); title="after", aspect_ratio=1, c=:viridis, clims=(1, 5)),
+    heatmap(grid(ŷ₁); title="after", aspect_ratio=1, c=:viridis, clims=(1, 5));
     layout=(1, 3), size=(900, 280)
 )
 
@@ -183,7 +183,7 @@ final = last(trained_rows)
 plot(
     heatmap(final.Y; title="final answer state y", xlabel="position", ylabel="feature"),
     heatmap(final.Z; title="final latent state z", xlabel="position", ylabel="feature"),
-    heatmap(model.O * final.Y; title="output logits O*y", xlabel="position", ylabel="token"),
+    heatmap(model.O * final.Y; title="output logits O*y", xlabel="position", ylabel="token");
     layout=(1, 3), size=(950, 280)
 )
 
